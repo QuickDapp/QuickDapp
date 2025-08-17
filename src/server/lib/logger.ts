@@ -24,7 +24,9 @@ const getLogLevel = (level: string): LogLevel => {
 }
 
 // Create logger factory function
-export const createRootLogger = (minLevel: LogLevel = getLogLevel(serverConfig.LOG_LEVEL)) => {
+export const createRootLogger = (
+  minLevel: LogLevel = getLogLevel(serverConfig.LOG_LEVEL),
+) => {
   const logger = new Logger({
     minLevel,
   })
