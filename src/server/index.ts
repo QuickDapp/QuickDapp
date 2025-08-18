@@ -81,11 +81,14 @@ export const createApp = async () => {
   app
     .onError(({ error, set, request }) => {
       // Handle NOT_FOUND errors as 404s
-      if ((error as Error)?.message === 'NOT_FOUND' || (error as any)?.code === 'NOT_FOUND') {
+      if (
+        (error as Error)?.message === "NOT_FOUND" ||
+        (error as any)?.code === "NOT_FOUND"
+      ) {
         set.status = 404
         return { error: "Not found" }
       }
-      
+
       // Log and return 500 for actual server errors
       logger.error(`Unhandled error (Request: ${request.url}):`, error)
       set.status = 500

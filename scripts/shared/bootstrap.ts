@@ -118,23 +118,3 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<Bootstr
   }
 }
 
-/**
- * Show help for script usage
- */
-export function showScriptHelp(scriptName: string, description: string, usage: string) {
-  console.log(`
-🧪 ${scriptName}
-
-${description}
-
-Usage: ${usage}
-
-Environment:
-  The script loads environment variables in this order:
-  1. .env (base configuration)
-  2. .env.{NODE_ENV} (environment-specific overrides)  
-  3. .env.local (local overrides, if exists)
-
-  Current environment: ${process.env.NODE_ENV || 'development'}
-`)
-}

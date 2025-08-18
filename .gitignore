@@ -50,3 +50,7 @@ temp/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Claude local
+CLAUDE.local.md
+v2/

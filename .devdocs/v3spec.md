@@ -15,6 +15,7 @@ QuickDapp v3 represents a fundamental architectural evolution from v2, transitio
 
 ### Migration Benefits
 
+
 - **50%+ reduction** in deployment complexity
 - **Faster startup times** with native binary execution
 - **Simplified configuration** with encrypted environment variables
@@ -326,17 +327,44 @@ app
 
 1. **Process Environment**: `process.env` (highest priority)
 2. **Local Overrides**: `.env.local` (developer-specific overrides, gitignored)
-3. **Environment Files**: `.env.development` (committed), `.env.production` (encrypted with dotenvx)
+3. **Environment-Specific Files**: `.env.{NODE_ENV}` (e.g., `.env.test`, `.env.production`)
 4. **Base Configuration**: `.env` (lowest priority, committed)
 
 #### Environment File Strategy
 
-- **`.env`**: Base configuration with safe defaults (committed to repo)
-- **`.env.development`**: Development environment configuration (committed to repo)
+- **`.env`**: Base configuration with safe defaults for all environments (committed to repo)
+- **`.env.test`**: Test environment overrides (committed to repo)
 - **`.env.local`**: Developer-specific overrides (gitignored, optional)
 - **`.env.production`**: Production configuration encrypted with dotenvx (gitignored)
 
-The `.env.development` file serves as both the development defaults and documentation for all available environment variables, eliminating the need for a separate `.env.example` file.
+The `.env` file serves as both the base defaults and documentation for all available environment variables, eliminating the need for a separate `.env.example` file. Environment-specific files only contain overrides for values that differ from the base configuration.
+
+#### Bootstrap Pattern
+
+QuickDapp v3 uses a custom bootstrap utility for consistent environment loading across scripts:
+
+```typescript
+// scripts/shared/bootstrap.ts
+export async function bootstrap(options: BootstrapOptions = {}): Promise<BootstrapResult> {
+  const { env = process.env.NODE_ENV || 'development', verbose = false } = options
+  
+  process.env.NODE_ENV = env
+  const rootFolder = resolve(import.meta.dir, '..', '..')
+  
+  // Load environment files in order: .env → .env.{NODE_ENV} → .env.local
+  const envFiles = [
+    { name: 'base .env', path: resolve(rootFolder, '.env'), required: true },
+    { name: `.env.${env}`, path: resolve(rootFolder, `.env.${env}`), required: false, override: true },
+    { name: '.env.local', path: resolve(rootFolder, '.env.local'), required: false, override: true },
+  ]
+  
+  envFiles.forEach(fileInfo => loadEnvFile(fileInfo, verbose))
+  
+  return { rootFolder, env }
+}
+```
+
+This pattern ensures consistent environment loading across all scripts and test runners.
 
 #### Configuration Structure
 
@@ -1876,35 +1904,73 @@ app.get('/health/ready', async () => {
 
 ### Integration Testing Strategy
 
-QuickDapp v3 employs comprehensive integration testing that validates the entire system including GraphQL APIs, worker processes, and database interactions in a real development environment.
+QuickDapp v3 employs comprehensive integration testing with a dedicated test database and complete database reset functionality for isolated, predictable test execution.
 
 #### Test Environment Setup
 
+The test infrastructure uses a custom bootstrap pattern with dedicated test helpers:
+
 ```typescript
-// tests/setup.ts
-import { serverConfig } from '../src/shared/config/environment'
-
-export const TEST_CONFIG = {
-  // Test against actual development server
-  baseUrl: serverConfig.BASE_URL, // from .env.development
-  host: serverConfig.HOST,
-  port: serverConfig.PORT,
-  databaseUrl: serverConfig.DATABASE_URL,
+// tests/helpers/server.ts
+export async function startTestServer(): Promise<TestServer> {
+  const { app, server, serverApp } = await createApp()
   
-  // Test-specific overrides
-  logLevel: 'silent',
-  workerCount: 1, // Single worker for predictable testing
+  return {
+    app, server, serverApp,
+    url: `http://${process.env.HOST || 'localhost'}:${process.env.PORT || '3002'}`,
+    shutdown: async () => {
+      // Graceful shutdown of server and workers
+      if (server?.stop) await server.stop()
+      if (serverApp.workerManager) await serverApp.workerManager.shutdown()
+    }
+  }
 }
 
-export async function setupTestEnvironment() {
-  // Ensure development database is ready
-  await runMigrations()
-  await seedTestData()
+// tests/helpers/database.ts  
+export async function setupTestDatabase(): Promise<void> {
+  await cleanTestDatabase()      // Truncate all tables
+  await resetTestDatabaseSequences()  // Reset auto-increment IDs
 }
 
-export async function teardownTestEnvironment() {
-  // Clean up test data
-  await cleanupTestData()
+export async function cleanTestDatabase(): Promise<void> {
+  const db = getTestDb()
+  
+  // Truncate in dependency order to respect foreign keys
+  await db.execute(sql`TRUNCATE TABLE notifications RESTART IDENTITY CASCADE`)
+  await db.execute(sql`TRUNCATE TABLE worker_jobs RESTART IDENTITY CASCADE`)
+  await db.execute(sql`TRUNCATE TABLE users RESTART IDENTITY CASCADE`)
+  await db.execute(sql`TRUNCATE TABLE settings RESTART IDENTITY CASCADE`)
+}
+```
+
+#### Test Database Management
+
+Tests use a completely separate test database with proper lifecycle management:
+
+```typescript
+// Dedicated test database connection
+function getTestDb() {
+  if (!testDb) {
+    testClient = postgres(process.env.DATABASE_URL, {
+      max: 5,           // Fewer connections for tests
+      idle_timeout: 20,
+      connect_timeout: 10,
+    })
+    testDb = drizzle(testClient, { schema })
+  }
+  return testDb
+}
+
+// Test data creation with proper typing
+export async function createTestUser(userData = {}): Promise<User> {
+  const defaultUser: NewUser = {
+    wallet: '0x742d35Cc6634C0532925a3b8D39A6Fa678e88CfD',
+    settings: { theme: 'dark' },
+    ...userData,
+  }
+  
+  const [user] = await getTestDb().insert(schema.users).values(defaultUser).returning()
+  return user
 }
 ```
 
@@ -2119,41 +2185,69 @@ describe('WebSocket Integration', () => {
 })
 ```
 
-#### Test Configuration
+#### Integration Test Example
+
+A complete integration test demonstrating the test infrastructure:
 
 ```typescript
-// tests/jest.config.ts (or bun test config)
-export default {
-  testEnvironment: 'node',
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testMatch: ['**/tests/**/*.test.ts'],
-  testTimeout: 30000, // Allow time for server operations
-  globalSetup: '<rootDir>/tests/global-setup.ts',
-  globalTeardown: '<rootDir>/tests/global-teardown.ts',
-}
+// tests/integration/server.test.ts
+import { describe, it, expect, beforeAll, afterAll } from "bun:test"
+import { startTestServer, makeRequest, waitForServer } from "../helpers/server"
+import { setupTestDatabase, cleanTestDatabase, closeTestDb } from "../helpers/database"
+import type { TestServer } from "../helpers/server"
+
+describe("Server Integration Tests", () => {
+  let testServer: TestServer | null = null
+
+  beforeAll(async () => {
+    await setupTestDatabase()          // Clean database and reset sequences
+    testServer = await startTestServer()  // Start test server instance
+    await waitForServer(testServer.url)   // Wait for server to be ready
+  })
+
+  afterAll(async () => {
+    if (testServer) await testServer.shutdown()  // Graceful shutdown
+    await cleanTestDatabase()         // Clean test data
+    await closeTestDb()              // Close test database connection
+  })
+
+  it("should respond to health check endpoint", async () => {
+    if (!testServer) throw new Error("Test server not initialized")
+    
+    const response = await makeRequest(`${testServer.url}/health`)
+    
+    expect(response.status).toBe(200)
+    const data = await response.json()
+    expect(data.status).toBe("ok")
+    expect(data.timestamp).toBeDefined()
+  })
+})
 ```
 
-### Test Database Management
+### Test Database Reset Strategy
+
+Tests use database truncation rather than recreation for speed and consistency:
 
 ```typescript
-// tests/database.ts
-export async function createTestDatabase() {
-  // Create isolated test database
-  const testDbName = `quickdapp_test_${Date.now()}`
-  await createDatabase(testDbName)
-  return testDbName
+// Database reset preserves schema while ensuring clean state
+export async function cleanTestDatabase(): Promise<void> {
+  const db = getTestDb()
+  
+  // Truncate tables in dependency order
+  await db.execute(sql`TRUNCATE TABLE notifications RESTART IDENTITY CASCADE`)
+  await db.execute(sql`TRUNCATE TABLE worker_jobs RESTART IDENTITY CASCADE`) 
+  await db.execute(sql`TRUNCATE TABLE users RESTART IDENTITY CASCADE`)
+  await db.execute(sql`TRUNCATE TABLE settings RESTART IDENTITY CASCADE`)
 }
 
-export async function setupTestData() {
-  // Create predictable test data
-  await seedUsers()
-  await seedNotifications()
-  await seedWorkerJobs()
-}
-
-export async function cleanupTestData() {
-  // Clean slate for each test
-  await truncateAllTables()
+// Reset sequences for consistent test IDs
+export async function resetTestDatabaseSequences(): Promise<void> {
+  const db = getTestDb()
+  
+  await db.execute(sql`ALTER SEQUENCE settings_id_seq RESTART WITH 1`)
+  await db.execute(sql`ALTER SEQUENCE users_id_seq RESTART WITH 1`)
+  await db.execute(sql`ALTER SEQUENCE notifications_id_seq RESTART WITH 1`)
+  await db.execute(sql`ALTER SEQUENCE worker_jobs_id_seq RESTART WITH 1`)
 }
 ```
 
@@ -2161,120 +2255,198 @@ export async function cleanupTestData() {
 
 #### Environment-Based Testing
 
-Tests run with `NODE_ENV=test` and require a dedicated test environment configuration:
+Tests run with `NODE_ENV=test` and use the bootstrap pattern for environment loading:
 
 ```bash
-# .env.test - Test environment configuration
+# .env.test - Test environment overrides only
 NODE_ENV=test
-DATABASE_URL=postgresql://postgres:@localhost:5432/quickdapp_v3_test?schema=public
+PORT=3002
+BASE_URL=http://localhost:3002
+DATABASE_URL=postgresql://ram:@localhost:5432/quickdapp_test
 LOG_LEVEL=warn
 WORKER_LOG_LEVEL=warn
+WORKER_COUNT=1
 
-# Use test-specific values
-SESSION_ENCRYPTION_KEY=test_key_32_chars_long_for_testing
+# Test-specific values
+SESSION_ENCRYPTION_KEY=test_key_32_chars_long_for_testing_only!!
 SERVER_WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
-# Test blockchain settings
-CHAIN=hardhat
-CHAIN_RPC_ENDPOINT=http://localhost:8545
-WALLETCONNECT_PROJECT_ID=test_project_id
-DIAMOND_PROXY_ADDRESS=0x0000000000000000000000000000000000000000
-BASE_URL=http://localhost:3001
 ```
 
 #### Test Execution
 
-The `scripts/test.ts` script manages test environment setup and execution:
+The `scripts/test.ts` script uses the bootstrap pattern for consistent environment loading:
 
 ```typescript
 // scripts/test.ts
-import { spawn } from 'bun'
+import { bootstrap } from './shared/bootstrap'
+import { execa } from 'execa'
 
-export async function runTests() {
-  console.log('Setting up test environment...')
+export async function runTests(options: TestOptions = {}) {
+  // Bootstrap with test environment
+  await bootstrap({ env: 'test', verbose: !!options.verbose })
   
-  // Ensure NODE_ENV=test
-  process.env.NODE_ENV = 'test'
+  // Setup test database with schema push
+  await setupTestDatabase(options)
   
-  // Load test environment configuration
-  await import('@dotenvx/dotenvx/config')
+  // Run tests with Bun
+  const args = ['test', '--timeout', '30000']
+  if (options.pattern) args.push(options.pattern)
   
-  // Initialize test database
-  await setupTestDatabase()
+  const result = await spawn(['bun', ...args], {
+    stdio: ['inherit', 'inherit', 'inherit'],
+    env: { ...process.env, NODE_ENV: 'test' },
+  }).exited
   
-  // Run test suites
-  console.log('Running tests...')
-  await spawn(['bun', 'test', '--timeout', '30000']).exited
-  
-  console.log('Tests completed!')
+  return result
 }
 
-async function setupTestDatabase() {
-  // Create test database if it doesn't exist
-  // Run migrations
-  // Seed test data
-}
-
-// Run if called directly
-if (import.meta.main) {
-  await runTests()
+async function setupTestDatabase(options: TestOptions = {}) {
+  console.log('📦 Setting up test database...')
+  
+  // Run drizzle db:push with current environment variables
+  const result = await execa('bun', ['run', 'db:push', '--force'], {
+    env: { ...process.env }, // Pass test DATABASE_URL
+    stdio: 'pipe',
+  })
+  
+  if (result.exitCode !== 0) {
+    throw new Error(`Database setup failed with exit code ${result.exitCode}`)
+  }
 }
 ```
+
+#### Server Testability Pattern
+
+The server is designed to be testable by exporting a `createApp` function instead of immediately starting:
+
+```typescript
+// src/server/index.ts
+export const createApp = async () => {
+  // Server setup logic...
+  const serverApp: ServerApp = { app, db, rootLogger, createLogger, workerManager }
+  
+  return { app, server, serverApp }
+}
+
+// Start only if run directly
+if (import.meta.main) {
+  createApp().catch(error => {
+    logger.error("Failed to start server:", error)
+    process.exit(1)
+  })
+}
+```
+
+This pattern allows tests to create server instances without side effects.
 
 ---
 
 ## Scripts Architecture
 
-All scripts in QuickDapp v3 are written in TypeScript and located in the `scripts/` folder at the project root.
+All scripts in QuickDapp v3 are written in TypeScript and located in the `scripts/` folder at the project root, using a shared bootstrap pattern for consistent environment loading.
 
 ### Scripts Structure
 
 ```
 scripts/
-├── build.ts        # Build and compile the application
-├── test.ts         # Run tests with proper environment setup
-├── migrate.ts      # Database migration runner
-├── seed.ts         # Database seeding for development
-└── deploy.ts       # Deployment automation
+├── shared/
+│   └── bootstrap.ts    # Shared bootstrap utility for environment loading
+├── test.ts             # Run tests with proper environment setup
+├── build.ts            # Build and compile the application (planned)
+├── migrate.ts          # Database migration runner (planned)
+├── seed.ts             # Database seeding for development (planned)
+└── deploy.ts           # Deployment automation (planned)
 ```
 
 ### Script Characteristics
 
 1. **TypeScript Only**: All scripts use TypeScript for type safety
 2. **Bun Runtime**: Executed directly with `bun run scripts/[script].ts`
-3. **Environment Aware**: Scripts detect and respect NODE_ENV
-4. **Modular**: Each script can be imported as a module
-5. **Self-Contained**: Scripts handle their own dependencies and setup
+3. **Bootstrap Pattern**: Consistent environment loading via shared utility
+4. **Environment Aware**: Scripts detect and respect NODE_ENV
+5. **Modular**: Each script can be imported as a module
+6. **Self-Contained**: Scripts handle their own dependencies and setup
 
-### Test Script
+### Bootstrap Utility
 
-The test script ensures proper environment setup and test execution:
+The shared bootstrap utility provides consistent environment loading:
 
 ```typescript
-// scripts/test.ts
-export async function runTests() {
-  // Set test environment
-  process.env.NODE_ENV = 'test'
+// scripts/shared/bootstrap.ts
+export async function bootstrap(options: BootstrapOptions = {}): Promise<BootstrapResult> {
+  const { env = process.env.NODE_ENV || 'development', verbose = false } = options
   
-  // Load .env.test configuration
-  // Initialize test database
-  // Run test suites with proper timeout
-  // Generate coverage reports
+  process.env.NODE_ENV = env
+  const rootFolder = resolve(import.meta.dir, '..', '..')
+  
+  // Load environment files in order
+  const envFiles: EnvFileInfo[] = [
+    { name: 'base .env', path: resolve(rootFolder, '.env'), required: true },
+    { name: `.env.${env}`, path: resolve(rootFolder, `.env.${env}`), required: false, override: true },
+    { name: '.env.local', path: resolve(rootFolder, '.env.local'), required: false, override: true },
+  ]
+  
+  envFiles.forEach(fileInfo => loadEnvFile(fileInfo, verbose))
+  
+  return { rootFolder, env }
 }
 ```
 
-### Build Script
+### Test Script Implementation
 
-The build script handles compilation and asset bundling:
+The test script uses bootstrap for environment loading and manages database setup:
 
 ```typescript
-// scripts/build.ts
-export async function buildApplication() {
-  // Build frontend with Vite
-  // Run database migrations
-  // Bundle runtime assets with zip-json
-  // Compile to native binaries for all platforms
+// scripts/test.ts
+import { bootstrap } from './shared/bootstrap'
+import { execa } from 'execa'
+
+export async function runTests(options: TestOptions = {}) {
+  // Bootstrap with test environment
+  await bootstrap({ env: 'test', verbose: !!options.verbose })
+  
+  // Setup test database with schema push
+  await setupTestDatabase(options)
+  
+  // Run tests with proper configuration
+  const args = ['test', '--timeout', '30000']
+  if (options.pattern) args.push(options.pattern)
+  
+  return await spawn(['bun', ...args], {
+    stdio: ['inherit', 'inherit', 'inherit'],
+    env: { ...process.env, NODE_ENV: 'test' },
+  }).exited
 }
+
+async function setupTestDatabase(options: TestOptions = {}) {
+  // Run drizzle db:push with test environment variables
+  const result = await execa('bun', ['run', 'db:push', '--force'], {
+    env: { ...process.env },
+    stdio: options.verbose ? 'inherit' : 'pipe',
+  })
+  
+  if (result.exitCode !== 0) {
+    throw new Error(`Database setup failed with exit code ${result.exitCode}`)
+  }
+}
+```
+
+### Script Execution Pattern
+
+Scripts support command-line arguments and can be imported as modules:
+
+```bash
+# Run all tests
+bun run scripts/test.ts
+
+# Run specific test pattern with verbose output
+bun run scripts/test.ts --verbose server
+
+# Run tests in watch mode
+bun run scripts/test.ts --watch
+
+# Show help
+bun run scripts/test.ts --help
 ```
 
 ---
