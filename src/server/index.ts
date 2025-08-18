@@ -45,7 +45,7 @@ process.on("unhandledRejection", (reason, promise) => {
 })
 
 // Create and start the server
-const createApp = async () => {
+export const createApp = async () => {
   const startTime = performance.now()
 
   logger.info("Starting QuickDapp v3 server...")
@@ -80,6 +80,13 @@ const createApp = async () => {
   // Configure Elysia app
   app
     .onError(({ error, set, request }) => {
+      // Handle NOT_FOUND errors as 404s
+      if ((error as Error)?.message === 'NOT_FOUND' || (error as any)?.code === 'NOT_FOUND') {
+        set.status = 404
+        return { error: "Not found" }
+      }
+      
+      // Log and return 500 for actual server errors
       logger.error(`Unhandled error (Request: ${request.url}):`, error)
       set.status = 500
       return { error: "Internal server error" }
@@ -135,11 +142,13 @@ const createApp = async () => {
     },
   )
 
-  return server
+  return { app, server, serverApp }
 }
 
-// Start the application
-createApp().catch((error) => {
-  logger.error("Failed to start server:", error)
-  process.exit(1)
-})
+// Start the application only if this file is run directly
+if (import.meta.main) {
+  createApp().catch((error) => {
+    logger.error("Failed to start server:", error)
+    process.exit(1)
+  })
+}
