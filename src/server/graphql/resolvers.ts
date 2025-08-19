@@ -1,4 +1,5 @@
 import { GraphQLError } from "graphql"
+import { serverConfig } from "../../shared/config/env"
 import type { AuthenticatedUser } from "../auth"
 import {
   getNotificationsForUser,
@@ -8,6 +9,7 @@ import {
   type PageParam,
 } from "../db/notifications"
 import { createUserIfNotExists } from "../db/users"
+import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
 import type { ServerApp } from "../types"
 
 export interface GraphQLContext {
@@ -19,13 +21,13 @@ export interface GraphQLContext {
  * GraphQL resolvers with standard error handling
  */
 export function createResolvers(serverApp: ServerApp) {
-  const logger = serverApp.createLogger("graphql-resolvers")
+  const logger = serverApp.createLogger(LOG_CATEGORIES.GRAPHQL_RESOLVERS)
 
   return {
     Query: {
       // Health check queries (no auth required)
       health: () => "OK",
-      version: () => process.env.APP_VERSION || "3.0.0",
+      version: () => serverConfig.APP_VERSION,
 
       // User notifications (auth required)
       getMyNotifications: async (
@@ -33,17 +35,11 @@ export function createResolvers(serverApp: ServerApp) {
         { pageParam }: { pageParam: PageParam },
         context: GraphQLContext,
       ) => {
-        if (!context.user) {
-          throw new GraphQLError("Authentication required", {
-            extensions: { code: "UNAUTHORIZED" },
-          })
-        }
-
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
             serverApp.db,
-            context.user.wallet,
+            context.user!.wallet,
           )
 
           // Fetch notifications
@@ -66,7 +62,7 @@ export function createResolvers(serverApp: ServerApp) {
           logger.error("Failed to get notifications:", error)
           throw new GraphQLError("Failed to retrieve notifications", {
             extensions: {
-              code: "DATABASE_ERROR",
+              code: GraphQLErrorCode.DATABASE_ERROR,
               originalError:
                 error instanceof Error ? error.message : String(error),
             },
@@ -79,17 +75,11 @@ export function createResolvers(serverApp: ServerApp) {
         __: unknown,
         context: GraphQLContext,
       ) => {
-        if (!context.user) {
-          throw new GraphQLError("Authentication required", {
-            extensions: { code: "UNAUTHORIZED" },
-          })
-        }
-
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
             serverApp.db,
-            context.user.wallet,
+            context.user!.wallet,
           )
 
           const count = await getUnreadNotificationsCountForUser(
@@ -114,17 +104,11 @@ export function createResolvers(serverApp: ServerApp) {
         { id }: { id: number },
         context: GraphQLContext,
       ) => {
-        if (!context.user) {
-          throw new GraphQLError("Authentication required", {
-            extensions: { code: "UNAUTHORIZED" },
-          })
-        }
-
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
             serverApp.db,
-            context.user.wallet,
+            context.user!.wallet,
           )
 
           const success = await markNotificationAsRead(
@@ -137,7 +121,7 @@ export function createResolvers(serverApp: ServerApp) {
             throw new GraphQLError(
               "Notification not found or not owned by user",
               {
-                extensions: { code: "NOT_FOUND" },
+                extensions: { code: GraphQLErrorCode.NOT_FOUND },
               },
             )
           }
@@ -155,7 +139,7 @@ export function createResolvers(serverApp: ServerApp) {
           logger.error("Failed to mark notification as read:", error)
           throw new GraphQLError("Failed to mark notification as read", {
             extensions: {
-              code: "DATABASE_ERROR",
+              code: GraphQLErrorCode.DATABASE_ERROR,
               originalError:
                 error instanceof Error ? error.message : String(error),
             },
@@ -168,17 +152,11 @@ export function createResolvers(serverApp: ServerApp) {
         __: unknown,
         context: GraphQLContext,
       ) => {
-        if (!context.user) {
-          throw new GraphQLError("Authentication required", {
-            extensions: { code: "UNAUTHORIZED" },
-          })
-        }
-
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
             serverApp.db,
-            context.user.wallet,
+            context.user!.wallet,
           )
 
           const updatedCount = await markAllNotificationsAsRead(
@@ -195,7 +173,7 @@ export function createResolvers(serverApp: ServerApp) {
           logger.error("Failed to mark all notifications as read:", error)
           throw new GraphQLError("Failed to mark all notifications as read", {
             extensions: {
-              code: "DATABASE_ERROR",
+              code: GraphQLErrorCode.DATABASE_ERROR,
               originalError:
                 error instanceof Error ? error.message : String(error),
             },

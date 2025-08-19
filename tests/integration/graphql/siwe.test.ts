@@ -7,7 +7,9 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { SiweMessage } from "siwe"
-import { authenticateWithSiwe } from "../../../src/server/auth"
+import { AuthService } from "../../../src/server/auth"
+import { createRootLogger } from "../../../src/server/lib/logger"
+import type { ServerApp } from "../../../src/server/types"
 import {
   checksumAddress,
   createAuthenticatedTestUser,
@@ -28,10 +30,21 @@ import {
 
 describe("SIWE Authentication Tests", () => {
   let testServer: any
+  let authService: AuthService
+
+  // Create mock ServerApp for AuthService
+  const mockServerApp: ServerApp = {
+    app: {} as any,
+    db: {} as any,
+    rootLogger: createRootLogger(),
+    createLogger: (category: string) => createRootLogger().child(category),
+    workerManager: {} as any,
+  }
 
   beforeAll(async () => {
     testServer = await startTestServer()
     await waitForServer(testServer.url)
+    authService = new AuthService(mockServerApp)
   })
 
   afterAll(async () => {
@@ -63,7 +76,7 @@ describe("SIWE Authentication Tests", () => {
       expect(signature.length).toBe(132) // Standard Ethereum signature length
 
       // Step 3: Authenticate and get JWT
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -177,7 +190,7 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address, { chainId })
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        const authResult = await authenticateWithSiwe(
+        const authResult = await authService.authenticateWithSiwe(
           siweMessage.prepareMessage(),
           signature,
         )
@@ -197,7 +210,7 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -216,7 +229,7 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -239,7 +252,7 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -257,7 +270,7 @@ describe("SIWE Authentication Tests", () => {
       const invalidSignature = "0x" + "0".repeat(130) // Invalid signature
 
       await expect(
-        authenticateWithSiwe(siweMessage.prepareMessage(), invalidSignature),
+        authService.authenticateWithSiwe(siweMessage.prepareMessage(), invalidSignature),
       ).rejects.toThrow()
     })
 
@@ -274,7 +287,7 @@ describe("SIWE Authentication Tests", () => {
       )
 
       await expect(
-        authenticateWithSiwe(siweMessage.prepareMessage(), wrongSignature),
+        authService.authenticateWithSiwe(siweMessage.prepareMessage(), wrongSignature),
       ).rejects.toThrow()
     })
 
@@ -293,7 +306,7 @@ describe("SIWE Authentication Tests", () => {
 
       for (const signature of malformedSignatures) {
         await expect(
-          authenticateWithSiwe(siweMessage.prepareMessage(), signature),
+          authService.authenticateWithSiwe(siweMessage.prepareMessage(), signature),
         ).rejects.toThrow()
       }
     })
@@ -316,7 +329,7 @@ describe("SIWE Authentication Tests", () => {
 
       // Try to verify with modified message
       await expect(
-        authenticateWithSiwe(modifiedMessage.prepareMessage(), signature),
+        authService.authenticateWithSiwe(modifiedMessage.prepareMessage(), signature),
       ).rejects.toThrow()
     })
   })
@@ -340,7 +353,7 @@ describe("SIWE Authentication Tests", () => {
             wallet.privateKey,
           )
 
-          const authResult = await authenticateWithSiwe(
+          const authResult = await authService.authenticateWithSiwe(
             siweMessage.prepareMessage(),
             signature,
           )
@@ -360,7 +373,7 @@ describe("SIWE Authentication Tests", () => {
       const siweMessage = createSIWEMessage(checksummed)
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -384,7 +397,7 @@ describe("SIWE Authentication Tests", () => {
         hardhatWallet.privateKey,
       )
 
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -404,7 +417,7 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address, { domain })
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        const authResult = await authenticateWithSiwe(
+        const authResult = await authService.authenticateWithSiwe(
           siweMessage.prepareMessage(),
           signature,
         )
@@ -426,7 +439,7 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address, { uri })
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        const authResult = await authenticateWithSiwe(
+        const authResult = await authService.authenticateWithSiwe(
           siweMessage.prepareMessage(),
           signature,
         )
@@ -459,7 +472,7 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -477,7 +490,7 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authenticateWithSiwe(
+      const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
@@ -496,7 +509,7 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address)
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        return authenticateWithSiwe(siweMessage.prepareMessage(), signature)
+        return authService.authenticateWithSiwe(siweMessage.prepareMessage(), signature)
       })
 
       const authResults = await Promise.all(authPromises)
@@ -526,7 +539,7 @@ describe("SIWE Authentication Tests", () => {
             wallet.privateKey,
           )
 
-          return authenticateWithSiwe(siweMessage.prepareMessage(), signature)
+          return authService.authenticateWithSiwe(siweMessage.prepareMessage(), signature)
         })
 
       const authResults = await Promise.all(authPromises)
@@ -552,7 +565,7 @@ describe("SIWE Authentication Tests", () => {
 
       // Test with completely invalid signature
       try {
-        await authenticateWithSiwe(
+        await authService.authenticateWithSiwe(
           siweMessage.prepareMessage(),
           "invalid-signature",
         )
@@ -568,7 +581,7 @@ describe("SIWE Authentication Tests", () => {
 
       // Try to authenticate with malformed message
       try {
-        await authenticateWithSiwe(
+        await authService.authenticateWithSiwe(
           "This is not a valid SIWE message",
           "0x" + "0".repeat(130),
         )

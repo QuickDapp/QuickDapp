@@ -1,4 +1,5 @@
 import env from "env-var"
+import packageJson from "../../../package.json"
 
 // Client-safe configuration (can be exposed to frontend)
 export interface ClientConfig {
@@ -45,7 +46,7 @@ export interface ServerConfig extends ClientConfig {
 // Load and validate client configuration
 export const clientConfig: ClientConfig = {
   APP_NAME: env.get("APP_NAME").default("QuickDapp").asString(),
-  APP_VERSION: env.get("APP_VERSION").default("3.0.0").asString(),
+  APP_VERSION: env.get("APP_VERSION").default(packageJson.version).asString(),
   NODE_ENV: env
     .get("NODE_ENV")
     .default("development")

@@ -13,7 +13,9 @@ import {
   type PrivateKeyAccount,
   privateKeyToAccount,
 } from "viem/accounts"
-import { authenticateWithSiwe } from "../../src/server/auth"
+import { AuthService } from "../../src/server/auth"
+import { createRootLogger } from "../../src/server/lib/logger"
+import type { ServerApp } from "../../src/server/types"
 
 export interface TestWallet {
   address: string
@@ -84,8 +86,8 @@ export function createSIWEMessage(
   } = {},
 ): SiweMessage {
   const {
-    domain = "localhost",
-    uri = "http://localhost:3002",
+    domain = "example.com",
+    uri = "http://example.com:3002",
     statement = "Sign in to QuickDapp",
     version = "1",
     chainId = 1,
@@ -267,6 +269,20 @@ export async function createSimpleAuthenticatedTestUser(): Promise<{
 }
 
 /**
+ * Create a mock ServerApp for testing auth functions
+ */
+function createMockServerApp(): ServerApp {
+  const rootLogger = createRootLogger()
+  return {
+    app: {} as any,
+    db: {} as any,
+    rootLogger,
+    createLogger: (category: string) => rootLogger.child(category),
+    workerManager: {} as any,
+  }
+}
+
+/**
  * Create a fully authenticated test user with real SIWE flow
  */
 export async function createAuthenticatedTestUser(
@@ -281,8 +297,12 @@ export async function createAuthenticatedTestUser(
   // Sign the message
   const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
+  // Create mock ServerApp and AuthService
+  const mockServerApp = createMockServerApp()
+  const authService = new AuthService(mockServerApp)
+
   // Authenticate through the real auth system to get JWT
-  const { token } = await authenticateWithSiwe(
+  const { token } = await authService.authenticateWithSiwe(
     siweMessage.prepareMessage(),
     signature,
   )

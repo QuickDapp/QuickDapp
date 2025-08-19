@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process"
 import os from "node:os"
 import { serverConfig } from "../../shared/config/env"
+import { LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import type { ServerApp } from "../types"
 
@@ -26,7 +27,7 @@ class WorkerProcess {
     private workerId: number,
     private serverApp: ServerApp,
   ) {
-    this.logger = serverApp.createLogger(`worker-${workerId}`)
+    this.logger = serverApp.createLogger(`${LOG_CATEGORIES.WORKER}-${workerId}`)
   }
 
   start(): void {
@@ -40,11 +41,17 @@ class WorkerProcess {
         "-e",
         `
       const workerId = ${this.workerId};
-      console.log(\`Worker \${workerId} started\`);
       
-      // Keep the process alive
+      // Send startup message to parent process
+      if (process.send) {
+        process.send({ type: 'worker-started', workerId });
+      }
+      
+      // Keep the process alive and send periodic heartbeats
       setInterval(() => {
-        // Worker heartbeat
+        if (process.send) {
+          process.send({ type: 'heartbeat', workerId });
+        }
       }, 30000);
     `,
       ],
@@ -77,6 +84,14 @@ class WorkerProcess {
 
     this.process.on("error", (error) => {
       this.logger.error(`Worker ${this.workerId} error:`, error)
+    })
+
+    this.process.on("message", (message: any) => {
+      if (message?.type === "worker-started") {
+        this.logger.debug(`Worker ${this.workerId} started`)
+      } else if (message?.type === "heartbeat") {
+        this.logger.debug(`Worker ${this.workerId} heartbeat`)
+      }
     })
   }
 
@@ -116,7 +131,7 @@ class WorkerProcess {
 }
 
 export const createWorkerManager = (serverApp: ServerApp): WorkerManager => {
-  const logger = serverApp.createLogger("worker-manager")
+  const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER_MANAGER)
   const workerCount =
     serverConfig.WORKER_COUNT === "cpus"
       ? os.cpus().length

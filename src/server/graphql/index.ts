@@ -1,15 +1,19 @@
 import { makeExecutableSchema } from "@graphql-tools/schema"
 import { Elysia } from "elysia"
+import { type OperationDefinitionNode, parse } from "graphql"
 import { createYoga } from "graphql-yoga"
+import { serverConfig } from "../../shared/config/env"
 import { AuthDirectiveHelper } from "../../shared/graphql/auth-extractor"
 import { defaultResolvers } from "../../shared/graphql/resolvers"
 import { typeDefs } from "../../shared/graphql/schema"
-import { authenticateRequest } from "../auth"
+import { AuthService } from "../auth"
+import { LOG_CATEGORIES } from "../lib/errors"
 import type { ServerApp } from "../types"
 import { createResolvers } from "./resolvers"
 
 export const createGraphQLHandler = (serverApp: ServerApp) => {
-  const logger = serverApp.createLogger("graphql")
+  const logger = serverApp.createLogger(LOG_CATEGORIES.GRAPHQL)
+  const authService = new AuthService(serverApp)
 
   // Create auth directive helper
   const authHelper = new AuthDirectiveHelper(typeDefs)
@@ -26,27 +30,70 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
 
   const yoga = createYoga({
     schema,
-    graphiql: process.env.NODE_ENV === "development",
-    maskedErrors: process.env.NODE_ENV === "production",
-    context: async ({ request }) => {
+    graphiql: serverConfig.NODE_ENV === "development",
+    maskedErrors: serverConfig.NODE_ENV === "production",
+    plugins: [
+      {
+        onResultProcess: ({ result, setResult }) => {
+          // Ensure GraphQL spec compliance: data field should be null when there are errors
+          if (Array.isArray(result)) {
+            // Handle batched queries
+            const processedResults = result.map((r: any) => {
+              if (r.errors && r.errors.length > 0 && r.data === undefined) {
+                return { ...r, data: null }
+              }
+              return r
+            })
+            setResult(processedResults)
+          } else {
+            // Handle single query
+            const singleResult = result as any
+            if (singleResult.errors && singleResult.errors.length > 0 && singleResult.data === undefined) {
+              setResult({
+                ...singleResult,
+                data: null,
+              })
+            }
+          }
+        },
+      },
+    ],
+    context: async ({ request, params }) => {
       // Debug request headers
       logger.debug(`Incoming request: ${request.method} ${request.url}`)
       logger.debug(
         `Authorization header: ${request.headers.get("Authorization")}`,
       )
 
-      // Extract operation name from request body
-      let operationName: string | undefined
+      // GraphQL only supports POST requests
+      if (request.method !== "POST") {
+        throw new Error(`GraphQL only supports POST requests, received ${request.method}`)
+      }
 
-      try {
-        if (request.method === "POST") {
-          const body = await request.clone().json()
-          operationName =
-            body.operationName || extractOperationNameFromQuery(body.query)
-          logger.debug(`Operation name extracted: ${operationName}`)
+      // Extract operation name from GraphQL Yoga params
+      let operationName: string | undefined
+      
+      if (params?.operationName) {
+        operationName = params.operationName
+        logger.debug(`Operation name from params: ${operationName}`)
+      } else if (params?.query) {
+        // Use GraphQL's parse function to properly extract the field name
+        try {
+          const document = parse(params.query)
+          const operation = document.definitions[0] as OperationDefinitionNode
+          if (operation.selectionSet.selections[0] && 'name' in operation.selectionSet.selections[0]) {
+            operationName = operation.selectionSet.selections[0].name?.value
+          }
+          logger.debug(`Operation name extracted from query: ${operationName}`)
+        } catch (error) {
+          logger.error(`Failed to parse GraphQL query for operation name:`, error)
+          throw new Error("Invalid GraphQL query: unable to parse operation")
         }
-      } catch {
-        // Continue without operation name if parsing fails
+      }
+      
+      if (!operationName) {
+        logger.error("No operation name found in GraphQL request")
+        throw new Error("Invalid GraphQL request: no operation name found")
       }
 
       // Check if operation requires auth
@@ -57,16 +104,15 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
       let user: any = null
       if (requiresAuth) {
         logger.debug(`Auth required for operation: ${operationName}`)
-        user = await authenticateRequest(request)
-        if (!user) {
-          logger.debug(
-            `Auth required for operation ${operationName} but no valid token provided`,
-          )
-          logger.debug(
-            `Authorization header: ${request.headers.get("Authorization")?.substring(0, 20)}...`,
-          )
-        } else {
+        try {
+          user = await authService.authenticateRequest(request)
           logger.debug(`User authenticated: ${user.wallet}`)
+        } catch (error) {
+          logger.debug(
+            `Auth required for operation ${operationName} but authentication failed:`,
+            error instanceof Error ? error.message : String(error)
+          )
+          throw error // Re-throw the GraphQLError from AuthService
         }
       }
 
@@ -91,23 +137,4 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
     .post("/graphql", ({ request }) => yoga.fetch(request))
 }
 
-/**
- * Extract operation name from GraphQL query string
- * Handles both named operations (query MyOperation) and anonymous operations (query { field })
- */
-function extractOperationNameFromQuery(query: string): string | undefined {
-  if (!query) return undefined
 
-  // First try to match named operations: query MyOperation { ... }
-  const namedMatch = query.match(/(?:query|mutation|subscription)\s+(\w+)/)
-  if (namedMatch?.[1]) {
-    return namedMatch[1]
-  }
-
-  // For anonymous operations, extract the first field name
-  // Match: query { fieldName } or mutation { fieldName }
-  const anonymousMatch = query.match(
-    /(?:query|mutation|subscription)\s*\{\s*(\w+)/,
-  )
-  return anonymousMatch?.[1]
-}

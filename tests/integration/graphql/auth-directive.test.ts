@@ -124,7 +124,7 @@ describe("Auth Directive Tests", () => {
         expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
       })
 
-      it.skip("should allow getMyNotifications with valid auth", async () => {
+      it("should allow getMyNotifications with valid auth", async () => {
         const authenticatedUser = await createSimpleAuthenticatedTestUser()
 
         const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -168,7 +168,7 @@ describe("Auth Directive Tests", () => {
         expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
       })
 
-      it.skip("should allow getMyUnreadNotificationsCount with valid auth", async () => {
+      it("should allow getMyUnreadNotificationsCount with valid auth", async () => {
         const authenticatedUser = await createSimpleAuthenticatedTestUser()
 
         const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -208,7 +208,7 @@ describe("Auth Directive Tests", () => {
         expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
       })
 
-      it.skip("should allow markNotificationAsRead with valid auth", async () => {
+      it("should allow markNotificationAsRead with valid auth", async () => {
         const authenticatedUser = await createSimpleAuthenticatedTestUser()
 
         const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -251,7 +251,7 @@ describe("Auth Directive Tests", () => {
         expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
       })
 
-      it.skip("should allow markAllNotificationsAsRead with valid auth", async () => {
+      it("should allow markAllNotificationsAsRead with valid auth", async () => {
         const authenticatedUser = await createSimpleAuthenticatedTestUser()
 
         const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -352,7 +352,7 @@ describe("Auth Directive Tests", () => {
         expect(body.data).toBeNull()
       })
 
-      it.skip("should allow mixed queries when properly authenticated", async () => {
+      it("should allow mixed queries when properly authenticated", async () => {
         const authenticatedUser = await createSimpleAuthenticatedTestUser()
 
         const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -380,7 +380,7 @@ describe("Auth Directive Tests", () => {
         }
       })
 
-      it.skip("should handle multiple auth-required fields in single query", async () => {
+      it("should handle multiple auth-required fields in single query", async () => {
         const authenticatedUser = await createSimpleAuthenticatedTestUser()
 
         const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -525,7 +525,7 @@ describe("Auth Directive Tests", () => {
     })
 
     describe("Context Propagation", () => {
-      it.skip("should provide user context to resolvers", async () => {
+      it("should provide user context to resolvers", async () => {
         const authenticatedUser = await createSimpleAuthenticatedTestUser()
 
         // This test verifies that the user context is properly passed to resolvers
@@ -553,7 +553,7 @@ describe("Auth Directive Tests", () => {
   })
 
   describe("Schema Introspection", () => {
-    it.skip("should allow introspection queries", async () => {
+    it("should allow introspection queries", async () => {
       const response = await makeRequest(`${testServer.url}/graphql`, {
         ...createGraphQLRequest(`
           query IntrospectionQuery {
