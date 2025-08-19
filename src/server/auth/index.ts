@@ -39,8 +39,10 @@ export class AuthService {
     signature: string,
   ): Promise<AuthenticationResult> {
     try {
-      this.logger.debug(`Authenticating SIWE message for domain: ${JSON.parse(message).domain}`)
-      
+      this.logger.debug(
+        `Authenticating SIWE message for domain: ${JSON.parse(message).domain}`,
+      )
+
       const siwe = new SiweMessage(message)
 
       const result = await siwe.verify({
@@ -51,7 +53,9 @@ export class AuthService {
       })
 
       if (!result.success) {
-        this.logger.debug(`SIWE verification failed for address: ${siwe.address}`)
+        this.logger.debug(
+          `SIWE verification failed for address: ${siwe.address}`,
+        )
         throw new GraphQLError("Invalid signature", {
           extensions: { code: GraphQLErrorCode.INVALID_SIGNATURE },
         })
@@ -70,7 +74,9 @@ export class AuthService {
         wallet: siwe.address.toLowerCase(),
       }
 
-      this.logger.debug(`SIWE authentication successful for wallet: ${user.wallet}`)
+      this.logger.debug(
+        `SIWE authentication successful for wallet: ${user.wallet}`,
+      )
 
       return {
         token,
@@ -122,14 +128,14 @@ export class AuthService {
       }
 
       this.logger.debug(`Token verification failed:`, error)
-      
+
       // Check if it's a JWT expiration error
-      if (error instanceof Error && error.message.includes('exp')) {
+      if (error instanceof Error && error.message.includes("exp")) {
         throw new GraphQLError("Token expired", {
           extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
         })
       }
-      
+
       throw new GraphQLError("Invalid token", {
         extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
       })

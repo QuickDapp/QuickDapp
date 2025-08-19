@@ -48,7 +48,11 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
           } else {
             // Handle single query
             const singleResult = result as any
-            if (singleResult.errors && singleResult.errors.length > 0 && singleResult.data === undefined) {
+            if (
+              singleResult.errors &&
+              singleResult.errors.length > 0 &&
+              singleResult.data === undefined
+            ) {
               setResult({
                 ...singleResult,
                 data: null,
@@ -67,12 +71,14 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
 
       // GraphQL only supports POST requests
       if (request.method !== "POST") {
-        throw new Error(`GraphQL only supports POST requests, received ${request.method}`)
+        throw new Error(
+          `GraphQL only supports POST requests, received ${request.method}`,
+        )
       }
 
       // Extract operation name from GraphQL Yoga params
       let operationName: string | undefined
-      
+
       if (params?.operationName) {
         operationName = params.operationName
         logger.debug(`Operation name from params: ${operationName}`)
@@ -81,16 +87,22 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
         try {
           const document = parse(params.query)
           const operation = document.definitions[0] as OperationDefinitionNode
-          if (operation.selectionSet.selections[0] && 'name' in operation.selectionSet.selections[0]) {
+          if (
+            operation.selectionSet.selections[0] &&
+            "name" in operation.selectionSet.selections[0]
+          ) {
             operationName = operation.selectionSet.selections[0].name?.value
           }
           logger.debug(`Operation name extracted from query: ${operationName}`)
         } catch (error) {
-          logger.error(`Failed to parse GraphQL query for operation name:`, error)
+          logger.error(
+            `Failed to parse GraphQL query for operation name:`,
+            error,
+          )
           throw new Error("Invalid GraphQL query: unable to parse operation")
         }
       }
-      
+
       if (!operationName) {
         logger.error("No operation name found in GraphQL request")
         throw new Error("Invalid GraphQL request: no operation name found")
@@ -110,7 +122,7 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
         } catch (error) {
           logger.debug(
             `Auth required for operation ${operationName} but authentication failed:`,
-            error instanceof Error ? error.message : String(error)
+            error instanceof Error ? error.message : String(error),
           )
           throw error // Re-throw the GraphQLError from AuthService
         }
@@ -136,5 +148,3 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
     .get("/graphql", ({ request }) => yoga.fetch(request))
     .post("/graphql", ({ request }) => yoga.fetch(request))
 }
-
-

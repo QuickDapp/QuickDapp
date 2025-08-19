@@ -270,7 +270,10 @@ describe("SIWE Authentication Tests", () => {
       const invalidSignature = "0x" + "0".repeat(130) // Invalid signature
 
       await expect(
-        authService.authenticateWithSiwe(siweMessage.prepareMessage(), invalidSignature),
+        authService.authenticateWithSiwe(
+          siweMessage.prepareMessage(),
+          invalidSignature,
+        ),
       ).rejects.toThrow()
     })
 
@@ -287,7 +290,10 @@ describe("SIWE Authentication Tests", () => {
       )
 
       await expect(
-        authService.authenticateWithSiwe(siweMessage.prepareMessage(), wrongSignature),
+        authService.authenticateWithSiwe(
+          siweMessage.prepareMessage(),
+          wrongSignature,
+        ),
       ).rejects.toThrow()
     })
 
@@ -306,7 +312,10 @@ describe("SIWE Authentication Tests", () => {
 
       for (const signature of malformedSignatures) {
         await expect(
-          authService.authenticateWithSiwe(siweMessage.prepareMessage(), signature),
+          authService.authenticateWithSiwe(
+            siweMessage.prepareMessage(),
+            signature,
+          ),
         ).rejects.toThrow()
       }
     })
@@ -329,7 +338,10 @@ describe("SIWE Authentication Tests", () => {
 
       // Try to verify with modified message
       await expect(
-        authService.authenticateWithSiwe(modifiedMessage.prepareMessage(), signature),
+        authService.authenticateWithSiwe(
+          modifiedMessage.prepareMessage(),
+          signature,
+        ),
       ).rejects.toThrow()
     })
   })
@@ -509,7 +521,10 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address)
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        return authService.authenticateWithSiwe(siweMessage.prepareMessage(), signature)
+        return authService.authenticateWithSiwe(
+          siweMessage.prepareMessage(),
+          signature,
+        )
       })
 
       const authResults = await Promise.all(authPromises)
@@ -539,7 +554,10 @@ describe("SIWE Authentication Tests", () => {
             wallet.privateKey,
           )
 
-          return authService.authenticateWithSiwe(siweMessage.prepareMessage(), signature)
+          return authService.authenticateWithSiwe(
+            siweMessage.prepareMessage(),
+            signature,
+          )
         })
 
       const authResults = await Promise.all(authPromises)
