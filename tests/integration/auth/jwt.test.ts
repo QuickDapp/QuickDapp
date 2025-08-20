@@ -15,11 +15,15 @@ import {
   generateTestWallet,
   verifyTestJWT,
 } from "../../helpers/auth"
+// Import global test setup
+import "../../setup"
 import {
   makeRequest,
   startTestServer,
   waitForServer,
 } from "../../helpers/server"
+// Import global test setup
+import "../../setup"
 
 describe("JWT Lifecycle Tests", () => {
   let testServer: any

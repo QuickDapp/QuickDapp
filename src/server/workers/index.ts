@@ -33,32 +33,15 @@ class WorkerProcess {
   start(): void {
     this.logger.debug(`Starting worker ${this.workerId}`)
 
-    // For now, create a simple worker that just logs
-    // In the future, this will spawn actual worker processes
-    this.process = spawn(
-      "node",
-      [
-        "-e",
-        `
-      const workerId = ${this.workerId};
-      
-      // Send startup message to parent process
-      if (process.send) {
-        process.send({ type: 'worker-started', workerId });
-      }
-      
-      // Keep the process alive and send periodic heartbeats
-      setInterval(() => {
-        if (process.send) {
-          process.send({ type: 'heartbeat', workerId });
-        }
-      }, 30000);
-    `,
-      ],
-      {
-        stdio: ["pipe", "pipe", "pipe", "ipc"],
+    // Spawn the actual worker process
+    this.process = spawn("bun", ["run", "./src/server/workers/process.ts"], {
+      stdio: ["pipe", "pipe", "pipe", "ipc"],
+      env: {
+        ...process.env,
+        WORKER_ID: this.workerId.toString(),
       },
-    )
+      cwd: process.cwd(),
+    })
 
     this.process.stdout?.on("data", (data) => {
       this.logger.debug(
@@ -88,7 +71,15 @@ class WorkerProcess {
 
     this.process.on("message", (message: any) => {
       if (message?.type === "worker-started") {
-        this.logger.debug(`Worker ${this.workerId} started`)
+        this.logger.info(
+          `Worker ${this.workerId} started (PID: ${message.pid})`,
+        )
+      } else if (message?.type === "worker-shutdown") {
+        this.logger.info(
+          `Worker ${this.workerId} shutdown (PID: ${message.pid})`,
+        )
+      } else if (message?.type === "worker-error") {
+        this.logger.error(`Worker ${this.workerId} error: ${message.error}`)
       } else if (message?.type === "heartbeat") {
         this.logger.debug(`Worker ${this.workerId} heartbeat`)
       }

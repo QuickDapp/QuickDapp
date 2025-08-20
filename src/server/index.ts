@@ -2,11 +2,11 @@ import path from "node:path"
 import { cors } from "@elysiajs/cors"
 import { Elysia } from "elysia"
 import { serverConfig, validateConfig } from "../shared/config/env"
-import { connectDb, disconnectDb, getDb } from "./db/connection"
+import { createServerApp } from "./bootstrap"
+import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
 import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
-import { createWorkerManager } from "./workers"
 
 // Validate environment configuration on startup
 validateConfig()
@@ -20,7 +20,7 @@ const handleShutdown = async () => {
 
   try {
     // Disconnect from database
-    await disconnectDb()
+    await dbManager.disconnect()
     logger.info("Database disconnected")
   } catch (error) {
     logger.error("Error during shutdown:", error)
@@ -50,9 +50,8 @@ export const createApp = async () => {
 
   logger.info("Starting QuickDapp v3 server...")
 
-  // Connect to database
-  await connectDb()
-  logger.info("Database connected")
+  // Create ServerApp with worker manager
+  const bootstrapResult = await createServerApp({ includeWorkerManager: true })
 
   // Create base Elysia app
   const app = new Elysia({
@@ -62,17 +61,13 @@ export const createApp = async () => {
     },
   })
 
-  // Create the ServerApp instance
+  // Create the complete ServerApp instance
   const serverApp: ServerApp = {
+    ...bootstrapResult,
     app,
-    db: getDb(),
-    rootLogger: logger,
-    createLogger,
-    workerManager: null as any, // Temporary placeholder
+    workerManager: bootstrapResult.workerManager!,
   }
 
-  // Initialize worker manager with ServerApp
-  serverApp.workerManager = createWorkerManager(serverApp)
   logger.info(
     `Worker manager initialized with ${serverConfig.WORKER_COUNT} workers`,
   )

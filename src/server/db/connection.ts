@@ -1,58 +1,185 @@
-import { drizzle } from "drizzle-orm/postgres-js"
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { serverConfig } from "../../shared/config/env"
 import { createLogger } from "../lib/logger"
 import * as schema from "./schema"
 
-const logger = createLogger("database")
+const logger = createLogger("db-manager")
 
-let db: ReturnType<typeof drizzle> | null = null
-let client: postgres.Sql | null = null
+// Global connection state to prevent multiple connections
+let globalDb: PostgresJsDatabase<typeof schema> | null = null
+let globalClient: postgres.Sql | null = null
+let globalConnectionPromise: Promise<void> | null = null
+let isGloballyConnected = false
+let connectionAttemptCount = 0
 
-export const connectDb = async () => {
-  try {
-    logger.debug("Connecting to database...")
+/**
+ * Global singleton database connection manager
+ * Prevents multiple connection pools from being created across processes
+ */
+class DatabaseConnectionManager {
+  private static instance: DatabaseConnectionManager | null = null
 
-    // Create postgres client
-    client = postgres(serverConfig.DATABASE_URL, {
-      max: 10, // Maximum number of connections
-      idle_timeout: 20, // Close idle connections after 20 seconds
-      connect_timeout: 10, // Connection timeout in seconds
-    })
+  private constructor() {}
 
-    // Create drizzle instance
-    db = drizzle(client, { schema })
-
-    // Test the connection
-    await client`SELECT 1 as test`
-
-    logger.info("Database connection established")
-  } catch (error) {
-    logger.error("Failed to connect to database:", error)
-    throw error
-  }
-}
-
-export const disconnectDb = async () => {
-  try {
-    if (client) {
-      logger.debug("Disconnecting from database...")
-      await client.end()
-      client = null
-      db = null
-      logger.info("Database disconnected")
+  static getInstance(): DatabaseConnectionManager {
+    if (!DatabaseConnectionManager.instance) {
+      DatabaseConnectionManager.instance = new DatabaseConnectionManager()
     }
-  } catch (error) {
-    logger.error("Error disconnecting from database:", error)
-    throw error
+    return DatabaseConnectionManager.instance
+  }
+
+  async connect(options?: {
+    maxConnections?: number
+    idleTimeout?: number
+    connectTimeout?: number
+    databaseUrl?: string
+  }): Promise<PostgresJsDatabase<typeof schema>> {
+    // If already connected globally, return existing db
+    if (isGloballyConnected && globalDb) {
+      logger.debug("Reusing existing database connection")
+      return globalDb
+    }
+
+    // If connection is in progress, wait for it
+    if (globalConnectionPromise) {
+      logger.debug("Waiting for existing connection attempt")
+      await globalConnectionPromise
+      if (globalDb) {
+        return globalDb
+      }
+    }
+
+    // For test environment, enforce strict connection limits
+    const isTest = serverConfig.NODE_ENV === "test"
+    if (isTest) {
+      // In test mode, be extremely conservative - only allow 1 total connection
+      const finalOptions = {
+        ...options,
+        maxConnections: 1, // Force single connection in tests
+        idleTimeout: 0, // Never timeout in tests
+      }
+      globalConnectionPromise = this._createConnection(finalOptions)
+    } else {
+      // Normal connection creation for non-test environments
+      globalConnectionPromise = this._createConnection(options)
+    }
+
+    await globalConnectionPromise
+
+    if (!globalDb) {
+      throw new Error("Failed to create database connection")
+    }
+
+    return globalDb
+  }
+
+  private async _createConnection(options?: {
+    maxConnections?: number
+    idleTimeout?: number
+    connectTimeout?: number
+    databaseUrl?: string
+  }): Promise<void> {
+    try {
+      const databaseUrl = options?.databaseUrl || serverConfig.DATABASE_URL
+      const isTest = serverConfig.NODE_ENV === "test"
+
+      connectionAttemptCount++
+      logger.debug(
+        `Creating new database connection pool... (attempt #${connectionAttemptCount})`,
+      )
+
+      // In test environment, log connection attempts for debugging
+      if (isTest) {
+        logger.debug(
+          `Test environment connection attempt #${connectionAttemptCount}`,
+        )
+        if (connectionAttemptCount > 3) {
+          logger.error(
+            `Test environment: Too many connection attempts (${connectionAttemptCount}). This may indicate a problem.`,
+          )
+        }
+      }
+
+      // Determine connection pool size based on process type
+      const isWorkerProcess = process.send !== undefined // Worker processes have IPC
+      let maxConnections = options?.maxConnections
+
+      if (!maxConnections) {
+        if (isTest) {
+          maxConnections = 1 // Very small for tests
+        } else if (isWorkerProcess) {
+          maxConnections = 2 // Small pool for worker processes
+        } else {
+          maxConnections = 10 // Normal pool for main server
+        }
+      }
+
+      // Create postgres client with appropriate settings for environment
+      globalClient = postgres(databaseUrl, {
+        max: maxConnections,
+        idle_timeout: options?.idleTimeout || (isTest ? 0 : 20), // Never timeout in tests
+        connect_timeout: options?.connectTimeout || 10,
+      })
+
+      // Create drizzle instance
+      globalDb = drizzle(globalClient, { schema })
+
+      // Test the connection
+      await globalClient`SELECT 1 as test`
+
+      isGloballyConnected = true
+      globalConnectionPromise = null
+
+      logger.info(
+        `Database connection established (max: ${globalClient.options.max} connections, attempt #${connectionAttemptCount})`,
+      )
+    } catch (error) {
+      globalConnectionPromise = null
+      logger.error("Failed to connect to database:", error)
+      throw error
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    try {
+      if (globalClient && isGloballyConnected) {
+        logger.debug("Disconnecting from database...")
+        await globalClient.end()
+        globalClient = null
+        globalDb = null
+        isGloballyConnected = false
+        logger.info("Database disconnected")
+      }
+    } catch (error) {
+      logger.error("Error disconnecting from database:", error)
+      throw error
+    }
+  }
+
+  getDb(): PostgresJsDatabase<typeof schema> {
+    if (!isGloballyConnected || !globalDb) {
+      throw new Error("Database not connected. Call connect() first.")
+    }
+    return globalDb
+  }
+
+  isConnectionActive(): boolean {
+    return isGloballyConnected && globalDb !== null
+  }
+
+  getConnectionStats(): {
+    isConnected: boolean
+    maxConnections: number | undefined
+  } {
+    return {
+      isConnected: isGloballyConnected,
+      maxConnections: globalClient?.options.max,
+    }
   }
 }
 
-export const getDb = () => {
-  if (!db) {
-    throw new Error("Database not connected. Call connectDb() first.")
-  }
-  return db
-}
+// Export singleton instance
+export const dbManager = DatabaseConnectionManager.getInstance()
 
 export { schema }

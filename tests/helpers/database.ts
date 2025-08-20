@@ -6,54 +6,55 @@
  */
 
 import { sql } from "drizzle-orm"
-import { drizzle } from "drizzle-orm/postgres-js"
-import postgres from "postgres"
-import { schema } from "../../src/server/db/connection"
+import { dbManager, schema } from "../../src/server/db/connection"
 import type {
   NewNotification,
   NewUser,
   NewWorkerJob,
   User,
 } from "../../src/server/db/schema"
-
-// Create a dedicated test database connection
-let testDb: ReturnType<typeof drizzle> | null = null
-let testClient: postgres.Sql | null = null
+import { serverConfig } from "../../src/shared/config/env"
 
 /**
- * Get or create test database connection
+ * Initialize the shared test database connection
+ * Uses the centralized connection manager to prevent pool exhaustion
  */
-function getTestDb() {
-  if (!testDb) {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL environment variable is required for test database connection",
-      )
-    }
+export async function initTestDb() {
+  console.log("🔌 Initializing shared test database connection...")
 
-    // Create postgres client for tests
-    testClient = postgres(process.env.DATABASE_URL, {
-      max: 5, // Fewer connections for tests
-      idle_timeout: 20,
-      connect_timeout: 10,
-    })
-
-    // Create drizzle instance for tests
-    testDb = drizzle(testClient, { schema })
+  if (!serverConfig.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL configuration is required for test database connection",
+    )
   }
 
-  return testDb
+  // Use the centralized connection manager with test-specific settings
+  const db = await dbManager.connect({
+    maxConnections: 1, // Very low limit for tests to prevent pool exhaustion
+    idleTimeout: 0, // Never timeout in tests
+    connectTimeout: 10,
+    databaseUrl: serverConfig.DATABASE_URL,
+  })
+
+  console.log("✅ Shared test database connection established")
+  return db
+}
+
+/**
+ * Get the shared test database connection
+ */
+function getTestDb() {
+  if (!dbManager.isConnectionActive()) {
+    throw new Error("Test database not initialized. Call initTestDb() first.")
+  }
+  return dbManager.getDb()
 }
 
 /**
  * Close test database connection
  */
 export async function closeTestDb() {
-  if (testClient) {
-    await testClient.end()
-    testClient = null
-    testDb = null
-  }
+  await dbManager.disconnect()
 }
 
 /**
@@ -112,12 +113,21 @@ export async function resetTestDatabaseSequences(): Promise<void> {
 /**
  * Setup test database
  * Ensures database is clean and ready for tests
+ * Note: Global setup handles connection initialization
  */
 export async function setupTestDatabase(): Promise<void> {
   console.log("📦 Setting up test database...")
 
   try {
-    // Clean all data
+    // Ensure connection is active (singleton will reuse existing connection if available)
+    if (!dbManager.isConnectionActive()) {
+      console.log("⚠️  Database not connected, initializing...")
+      await initTestDb()
+    } else {
+      console.log("✅ Using existing database connection")
+    }
+
+    // Clean all data between tests
     await cleanTestDatabase()
 
     // Reset sequences for consistent test IDs

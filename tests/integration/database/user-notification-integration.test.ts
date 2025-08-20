@@ -34,6 +34,8 @@ import {
   startTestServer,
   waitForServer,
 } from "../../helpers/server"
+// Import global test setup
+import "../../setup"
 
 describe("Database Integration Tests", () => {
   let testServer: any

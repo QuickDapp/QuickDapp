@@ -27,6 +27,8 @@ import {
   startTestServer,
   waitForServer,
 } from "../../helpers/server"
+// Import global test setup
+import "../../setup"
 
 describe("SIWE Authentication Tests", () => {
   let testServer: any
@@ -39,6 +41,8 @@ describe("SIWE Authentication Tests", () => {
     rootLogger: createRootLogger(),
     createLogger: (category: string) => createRootLogger().child(category),
     workerManager: {} as any,
+    publicClient: {} as any,
+    walletClient: {} as any,
   }
 
   beforeAll(async () => {

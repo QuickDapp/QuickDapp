@@ -18,6 +18,8 @@ import {
 } from "../helpers/database"
 import type { TestServer } from "../helpers/server"
 import { makeRequest, startTestServer, waitForServer } from "../helpers/server"
+// Import global test setup
+import "../setup"
 
 describe("Server Integration Tests", () => {
   let testServer: TestServer | null = null

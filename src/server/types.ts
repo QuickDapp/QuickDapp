@@ -1,5 +1,6 @@
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type { Elysia } from "elysia"
+import type { PublicClient, WalletClient } from "viem"
 import type * as schema from "./db/schema"
 import type { createLogger, Logger } from "./lib/logger"
 import type { WorkerManager } from "./workers"
@@ -19,4 +20,8 @@ export type ServerApp = {
   createLogger: typeof createLogger
   /** Worker manager for background job processing */
   workerManager: WorkerManager
+  /** Public blockchain client for reading */
+  publicClient: PublicClient
+  /** Wallet client for transactions (using server private key) */
+  walletClient: WalletClient
 }

@@ -7,9 +7,12 @@ interface DevOptions extends ScriptOptions {
   // No additional options needed - host/port come from env
 }
 
-async function devHandler(_options: DevOptions, config: { rootFolder: string; env: string }) {
-  console.log('🚀 Starting QuickDapp v3 development server...')
-  console.log('')
+async function devHandler(
+  _options: DevOptions,
+  config: { rootFolder: string; env: string },
+) {
+  console.log("🚀 Starting QuickDapp v3 development server...")
+  console.log("")
 
   // Start the server with watch mode
   const server = spawn({
@@ -24,13 +27,13 @@ async function devHandler(_options: DevOptions, config: { rootFolder: string; en
 
   // Handle graceful shutdown
   const handleShutdown = () => {
-    console.log('\n🛑 Shutting down development server...')
+    console.log("\n🛑 Shutting down development server...")
     server.kill()
     process.exit(0)
   }
 
-  process.on('SIGINT', handleShutdown)
-  process.on('SIGTERM', handleShutdown)
+  process.on("SIGINT", handleShutdown)
+  process.on("SIGTERM", handleShutdown)
 
   // Wait for server process
   await server.exited
@@ -40,8 +43,9 @@ async function devHandler(_options: DevOptions, config: { rootFolder: string; en
 export const { runScript: runDev } = createScriptRunner(
   {
     name: "dev",
-    description: "Start the development server with auto-restart on file changes",
+    description:
+      "Start the development server with auto-restart on file changes",
     env: "development",
   },
-  devHandler
+  devHandler,
 )

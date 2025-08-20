@@ -5,7 +5,7 @@
  * and managing test server lifecycle.
  */
 
-import { createApp } from "../../src/server"
+import { createApp } from "../../src/server/index"
 import type { ServerApp } from "../../src/server/types"
 
 export interface TestServer {
@@ -17,45 +17,46 @@ export interface TestServer {
 }
 
 /**
- * Start a test server instance
+ * Start a test server instance using the real server creation code
  */
 export async function startTestServer(): Promise<TestServer> {
+  console.log("🚀 Starting test server...")
+
+  // Use the real server creation code - this will automatically use test configuration
+  // since NODE_ENV=test is set by the test runner
   const { app, server, serverApp } = await createApp()
 
-  const url = `http://${process.env.HOST || "localhost"}:${process.env.PORT || "3002"}`
+  // The server will automatically start on the test port (3002)
+  // because that's configured in .env.test
+  const url = `http://localhost:3002`
 
-  const shutdown = async () => {
-    console.log("🛑 Shutting down test server...")
-
-    try {
-      // Stop the server
-      if (server && typeof server.stop === "function") {
-        await server.stop()
-      }
-
-      // Disconnect from database
-      if (serverApp.db) {
-        // TODO: Implement proper database disconnection
-      }
-
-      // Stop workers
-      if (serverApp.workerManager) {
-        await serverApp.workerManager.shutdown()
-      }
-
-      console.log("✅ Test server shut down")
-    } catch (error) {
-      console.error("❌ Error shutting down test server:", error)
-      throw error
-    }
-  }
+  console.log(`✅ Test server started at ${url}`)
 
   return {
     app,
     server,
     serverApp,
     url,
-    shutdown,
+    shutdown: async () => {
+      console.log("🛑 Shutting down test server...")
+
+      try {
+        // Stop the server
+        if (server && typeof server.stop === "function") {
+          await server.stop()
+        }
+
+        // Stop workers if they exist
+        if (serverApp.workerManager) {
+          await serverApp.workerManager.shutdown()
+        }
+
+        console.log("✅ Test server shut down")
+      } catch (error) {
+        console.error("❌ Error shutting down test server:", error)
+        throw error
+      }
+    },
   }
 }
 

@@ -6,12 +6,12 @@ import { config } from "dotenv"
 
 /**
  * Bootstrap utility for scripts
- * 
+ *
  * Loads environment variables in the following order:
  * 1. .env (base configuration)
  * 2. .env.{NODE_ENV} (environment-specific overrides)
  * 3. .env.local (local overrides, if exists)
- * 
+ *
  * Similar to quickdapp v2's bootstrap.js but adapted for v3 and TypeScript
  */
 
@@ -37,7 +37,7 @@ interface EnvFileInfo {
  */
 function loadEnvFile(fileInfo: EnvFileInfo, verbose: boolean): void {
   const { name, path, required, override = false } = fileInfo
-  
+
   if (existsSync(path)) {
     const result = config({ path, override })
     if (verbose && result.error) {
@@ -57,34 +57,38 @@ function loadEnvFile(fileInfo: EnvFileInfo, verbose: boolean): void {
  */
 function showEnvironmentInfo(verbose: boolean): void {
   if (!verbose) return
-  
+
   console.log(`📊 Environment configured:`)
   console.log(`   NODE_ENV: ${process.env.NODE_ENV}`)
-  console.log(`   DATABASE_URL: ${process.env.DATABASE_URL?.replace(/:[^@]*@/, ':***@') || 'not set'}`)
+  console.log(
+    `   DATABASE_URL: ${process.env.DATABASE_URL?.replace(/:[^@]*@/, ":***@") || "not set"}`,
+  )
   console.log(`   PORT: ${process.env.PORT}`)
-  console.log('')
+  console.log("")
 }
 
-export async function bootstrap(options: BootstrapOptions = {}): Promise<BootstrapResult> {
+export async function bootstrap(
+  options: BootstrapOptions = {},
+): Promise<BootstrapResult> {
   const { verbose = false } = options
   let { env } = options
-  
+
   try {
     // Determine environment - prioritize parameter over existing NODE_ENV
-    env = env || process.env.NODE_ENV || 'development'
+    env = env || process.env.NODE_ENV || "development"
     process.env.NODE_ENV = env
-    
-    const rootFolder = resolve(import.meta.dir, '..', '..')
-    
+
+    const rootFolder = resolve(import.meta.dir, "..", "..")
+
     if (verbose) {
       console.log(`🚀 Bootstrapping QuickDapp scripts (env: ${env})`)
     }
-    
+
     // Define environment files to load in order
     const envFiles: EnvFileInfo[] = [
       {
-        name: 'base .env',
-        path: resolve(rootFolder, '.env'),
+        name: "base .env",
+        path: resolve(rootFolder, ".env"),
         required: true,
       },
       {
@@ -94,27 +98,25 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<Bootstr
         override: true,
       },
       {
-        name: '.env.local',
-        path: resolve(rootFolder, '.env.local'),
+        name: ".env.local",
+        path: resolve(rootFolder, ".env.local"),
         required: false,
         override: true,
       },
     ]
-    
+
     // Load all environment files
-    envFiles.forEach(fileInfo => loadEnvFile(fileInfo, verbose))
-    
+    envFiles.forEach((fileInfo) => loadEnvFile(fileInfo, verbose))
+
     // Show configuration summary
     showEnvironmentInfo(verbose)
-    
+
     return {
       rootFolder,
       env,
     }
-    
   } catch (error) {
-    console.error('💥 Bootstrap failed:', error)
+    console.error("💥 Bootstrap failed:", error)
     process.exit(1)
   }
 }
-

@@ -1,10 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { createTestJWT } from "../../helpers/auth"
+// Import global test setup
+import "../../setup"
 import {
   makeRequest,
   startTestServer,
   waitForServer,
 } from "../../helpers/server"
+// Import global test setup
+import "../../setup"
 
 describe("GraphQL Queries", () => {
   let testServer: any

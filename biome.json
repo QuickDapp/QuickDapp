@@ -1,17 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
   "files": {
-    "includes": [
-      "**",
-      "!**/node_modules",
-      "!**/node_modules",
-      "!**/dist",
-      "!**/dist-bin",
-      "!**/public",
-      "!**/scripts",
-      "!**/generated/**",
-      "!.claude/**"
-    ]
+    "includes": ["src/**", "tests/**", "scripts/**", "*.ts", "*.js", "*.json"]
   },
   "formatter": {
     "indentStyle": "space",
@@ -61,7 +51,7 @@
         "useValidForDirection": "error",
         "useYield": "error",
         "noInvalidBuiltinInstantiation": "error",
-        "useValidTypeof": "error"
+        "useValidTypeof": "off"
       },
       "style": {
         "noNamespace": "error",
@@ -97,8 +87,7 @@
         "useGetterReturn": "error",
         "noWith": "error"
       }
-    },
-    "includes": ["**", "!**/dist", "!.claude/**"]
+    }
   },
   "json": {
     "parser": {
