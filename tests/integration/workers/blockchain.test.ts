@@ -12,6 +12,7 @@ import {
   transferERC20,
 } from "../../helpers/blockchain"
 import { cleanTestDatabase, setupTestDatabase } from "../../helpers/database"
+import { testLogger } from "../../helpers/logger"
 import type { TestServer } from "../../helpers/server"
 import { startTestServer, waitForServer } from "../../helpers/server"
 
@@ -31,7 +32,7 @@ describe("Worker Blockchain Integration Tests", () => {
       // Start Anvil blockchain for worker tests
       blockchainContext = await createBlockchainTestContext(8546) // Use different port to avoid conflicts
     } catch (error) {
-      console.error("Setup failed:", error)
+      testLogger.error("Setup failed:", error)
       throw error
     }
   })
@@ -53,7 +54,7 @@ describe("Worker Blockchain Integration Tests", () => {
       // Clean database
       await cleanTestDatabase()
     } catch (error) {
-      console.error("Cleanup failed:", error)
+      testLogger.error("Cleanup failed:", error)
     }
   })
 

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { createGraphQLRequest } from "../../helpers/auth"
+import { testLogger } from "../../helpers/logger"
 // Import global test setup
 import "../../setup"
 import {
@@ -113,7 +114,7 @@ describe("GraphQL Authentication", () => {
           .setExpirationTime("1h")
           .sign(jwtSecret)
       } catch (_error) {
-        console.warn(
+        testLogger.warn(
           "Could not create test auth token, skipping authenticated tests",
         )
       }
@@ -138,7 +139,7 @@ describe("GraphQL Authentication", () => {
 
       if (body.errors) {
         // Might fail due to database setup, that's okay for now
-        console.warn(
+        testLogger.warn(
           "Auth test failed (likely DB setup):",
           body.errors[0].message,
         )

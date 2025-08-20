@@ -6,35 +6,36 @@
 import { afterAll, beforeAll } from "bun:test"
 import { dbManager } from "../src/server/db/connection"
 import { closeTestDb, initTestDb } from "./helpers/database"
+import { testLogger } from "./helpers/logger"
 
 // Global test setup - runs once before all tests
 beforeAll(async () => {
-  console.log("🚀 Global test setup starting...")
+  testLogger.info("🚀 Global test setup starting...")
 
   try {
     // Initialize shared test database connection
     await initTestDb()
-    console.log("✅ Global test database initialized")
+    testLogger.info("✅ Global test database initialized")
 
     // Log connection stats for debugging
     const stats = dbManager.getConnectionStats()
-    console.log("📊 Database connection stats:", stats)
+    testLogger.info("📊 Database connection stats:", stats)
   } catch (error) {
-    console.error("❌ Global test setup failed:", error)
+    testLogger.error("❌ Global test setup failed:", error)
     throw error
   }
 })
 
 // Global test teardown - runs once after all tests
 afterAll(async () => {
-  console.log("🧹 Global test teardown starting...")
+  testLogger.info("🧹 Global test teardown starting...")
 
   try {
     // Close all database connections
     await closeTestDb()
-    console.log("✅ Global test database cleanup complete")
+    testLogger.info("✅ Global test database cleanup complete")
   } catch (error) {
-    console.error("❌ Global test teardown failed:", error)
+    testLogger.error("❌ Global test teardown failed:", error)
     // Don't throw here to avoid masking test failures
   }
 })

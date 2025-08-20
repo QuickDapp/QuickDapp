@@ -14,6 +14,7 @@ import {
   createTestJWT,
   generateTestWallet,
 } from "../../helpers/auth"
+import { testLogger } from "../../helpers/logger"
 // Import global test setup
 import "../../setup"
 import {
@@ -29,8 +30,8 @@ describe("Auth Directive Tests", () => {
   let authHelper: AuthDirectiveHelper
 
   beforeAll(async () => {
-    console.log(`[TEST DEBUG] beforeAll NODE_ENV: ${process.env.NODE_ENV}`)
-    console.log(
+    testLogger.info(`[TEST DEBUG] beforeAll NODE_ENV: ${process.env.NODE_ENV}`)
+    testLogger.info(
       `[TEST DEBUG] beforeAll SESSION_ENCRYPTION_KEY: ${process.env.SESSION_ENCRYPTION_KEY}`,
     )
 

@@ -14,13 +14,14 @@ import type {
   User,
 } from "../../src/server/db/schema"
 import { serverConfig } from "../../src/shared/config/env"
+import { testLogger } from "./logger"
 
 /**
  * Initialize the shared test database connection
  * Uses the centralized connection manager to prevent pool exhaustion
  */
 export async function initTestDb() {
-  console.log("🔌 Initializing shared test database connection...")
+  testLogger.info("🔌 Initializing shared test database connection...")
 
   if (!serverConfig.DATABASE_URL) {
     throw new Error(
@@ -36,7 +37,7 @@ export async function initTestDb() {
     databaseUrl: serverConfig.DATABASE_URL,
   })
 
-  console.log("✅ Shared test database connection established")
+  testLogger.info("✅ Shared test database connection established")
   return db
 }
 
@@ -62,7 +63,7 @@ export async function closeTestDb() {
  * Removes all data but keeps schema by truncating tables in correct order
  */
 export async function cleanTestDatabase(): Promise<void> {
-  console.log("🧹 Cleaning test database...")
+  testLogger.info("🧹 Cleaning test database...")
 
   try {
     const db = getTestDb()
@@ -80,9 +81,9 @@ export async function cleanTestDatabase(): Promise<void> {
     // Finally: Independent tables
     await db.execute(sql`TRUNCATE TABLE settings RESTART IDENTITY CASCADE`)
 
-    console.log("✅ Test database cleaned")
+    testLogger.info("✅ Test database cleaned")
   } catch (error) {
-    console.error("❌ Test database cleaning failed:", error)
+    testLogger.error("❌ Test database cleaning failed:", error)
     throw error
   }
 }
@@ -92,7 +93,7 @@ export async function cleanTestDatabase(): Promise<void> {
  * Ensures auto-increment IDs start from 1 for consistent tests
  */
 export async function resetTestDatabaseSequences(): Promise<void> {
-  console.log("🔄 Resetting test database sequences...")
+  testLogger.info("🔄 Resetting test database sequences...")
 
   try {
     const db = getTestDb()
@@ -103,9 +104,9 @@ export async function resetTestDatabaseSequences(): Promise<void> {
     await db.execute(sql`ALTER SEQUENCE notifications_id_seq RESTART WITH 1`)
     await db.execute(sql`ALTER SEQUENCE worker_jobs_id_seq RESTART WITH 1`)
 
-    console.log("✅ Test database sequences reset")
+    testLogger.info("✅ Test database sequences reset")
   } catch (error) {
-    console.error("❌ Test database sequence reset failed:", error)
+    testLogger.error("❌ Test database sequence reset failed:", error)
     throw error
   }
 }
@@ -116,15 +117,15 @@ export async function resetTestDatabaseSequences(): Promise<void> {
  * Note: Global setup handles connection initialization
  */
 export async function setupTestDatabase(): Promise<void> {
-  console.log("📦 Setting up test database...")
+  testLogger.info("📦 Setting up test database...")
 
   try {
     // Ensure connection is active (singleton will reuse existing connection if available)
     if (!dbManager.isConnectionActive()) {
-      console.log("⚠️  Database not connected, initializing...")
+      testLogger.warn("⚠️  Database not connected, initializing...")
       await initTestDb()
     } else {
-      console.log("✅ Using existing database connection")
+      testLogger.info("✅ Using existing database connection")
     }
 
     // Clean all data between tests
@@ -133,9 +134,9 @@ export async function setupTestDatabase(): Promise<void> {
     // Reset sequences for consistent test IDs
     await resetTestDatabaseSequences()
 
-    console.log("✅ Test database setup complete")
+    testLogger.info("✅ Test database setup complete")
   } catch (error) {
-    console.error("❌ Test database setup failed:", error)
+    testLogger.error("❌ Test database setup failed:", error)
     throw error
   }
 }
@@ -144,7 +145,7 @@ export async function setupTestDatabase(): Promise<void> {
  * Seed test database with initial data
  */
 export async function seedTestDatabase(): Promise<void> {
-  console.log("🌱 Seeding test database...")
+  testLogger.info("🌱 Seeding test database...")
 
   try {
     // Create some basic test users
@@ -155,9 +156,9 @@ export async function seedTestDatabase(): Promise<void> {
       wallet: "0x8ba1f109551bD432803012645Hac136c30C8A4E4",
     })
 
-    console.log("✅ Test database seeded")
+    testLogger.info("✅ Test database seeded")
   } catch (error) {
-    console.error("❌ Test database seeding failed:", error)
+    testLogger.error("❌ Test database seeding failed:", error)
     throw error
   }
 }
@@ -181,7 +182,7 @@ export async function createTestUser(
     throw new Error("Failed to create test user")
   }
 
-  console.log("📝 Test user created:", { id: user.id, wallet: user.wallet })
+  testLogger.info("📝 Test user created:", { id: user.id, wallet: user.wallet })
   return user
 }
 
@@ -209,7 +210,7 @@ export async function createTestNotification(
     throw new Error("Failed to create test notification")
   }
 
-  console.log("📝 Test notification created:", {
+  testLogger.info("📝 Test notification created:", {
     id: notification.id,
     userId: notification.userId,
   })
@@ -242,7 +243,7 @@ export async function createTestWorkerJob(
     throw new Error("Failed to create test worker job")
   }
 
-  console.log("📝 Test worker job created:", {
+  testLogger.info("📝 Test worker job created:", {
     id: job.id,
     type: job.type,
     userId: job.userId,

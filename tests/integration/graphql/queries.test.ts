@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { createTestJWT } from "../../helpers/auth"
+import { testLogger } from "../../helpers/logger"
 // Import global test setup
 import "../../setup"
 import {
@@ -68,7 +69,7 @@ describe("GraphQL Queries", () => {
 
       if (body.errors) {
         // Expected if database isn't fully set up
-        console.warn(
+        testLogger.warn(
           "Query test failed (likely DB setup):",
           body.errors[0].message,
         )
@@ -131,7 +132,7 @@ describe("GraphQL Queries", () => {
       expect(response.status).toBe(200)
 
       if (body.errors) {
-        console.warn(
+        testLogger.warn(
           "Count query failed (likely DB setup):",
           body.errors[0].message,
         )

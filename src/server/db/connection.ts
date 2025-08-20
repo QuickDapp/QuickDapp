@@ -120,10 +120,17 @@ class DatabaseConnectionManager {
         max: maxConnections,
         idle_timeout: options?.idleTimeout || (isTest ? 0 : 20), // Never timeout in tests
         connect_timeout: options?.connectTimeout || 10,
+        onnotice: (notice) => {
+          logger.debug(notice)
+        },
       })
 
       // Create drizzle instance
-      globalDb = drizzle(globalClient, { schema })
+      globalDb = drizzle(globalClient, { schema, logger: {
+        logQuery: (query, params) => {
+          logger.debug(`Executing query: ${query}`, { params })
+        },
+      } })
 
       // Test the connection
       await globalClient`SELECT 1 as test`

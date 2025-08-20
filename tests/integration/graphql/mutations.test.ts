@@ -4,6 +4,7 @@ import {
   startTestServer,
   waitForServer,
 } from "../../helpers/server"
+import { testLogger } from "../../helpers/logger"
 // Import global test setup
 import "../../setup"
 
@@ -64,7 +65,7 @@ describe("GraphQL Mutations", () => {
 
       if (body.errors) {
         // Expected if database isn't set up or notification doesn't exist
-        console.warn("Mark notification test failed:", body.errors[0].message)
+        testLogger.warn("Mark notification test failed:", body.errors[0].message)
 
         // Should be a structured error
         expect(body.errors[0].extensions?.code).toBeDefined()
@@ -154,7 +155,7 @@ describe("GraphQL Mutations", () => {
       expect(response.status).toBe(200)
 
       if (body.errors) {
-        console.warn(
+        testLogger.warn(
           "Mark all notifications test failed:",
           body.errors[0].message,
         )

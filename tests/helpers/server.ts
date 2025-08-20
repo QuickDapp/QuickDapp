@@ -7,6 +7,7 @@
 
 import { createApp } from "../../src/server/index"
 import type { ServerApp } from "../../src/server/types"
+import { testLogger } from "./logger"
 
 export interface TestServer {
   app: any
@@ -20,7 +21,7 @@ export interface TestServer {
  * Start a test server instance using the real server creation code
  */
 export async function startTestServer(): Promise<TestServer> {
-  console.log("🚀 Starting test server...")
+  testLogger.info("🚀 Starting test server...")
 
   // Use the real server creation code - this will automatically use test configuration
   // since NODE_ENV=test is set by the test runner
@@ -30,7 +31,7 @@ export async function startTestServer(): Promise<TestServer> {
   // because that's configured in .env.test
   const url = `http://localhost:3002`
 
-  console.log(`✅ Test server started at ${url}`)
+  testLogger.info(`✅ Test server started at ${url}`)
 
   return {
     app,
@@ -38,7 +39,7 @@ export async function startTestServer(): Promise<TestServer> {
     serverApp,
     url,
     shutdown: async () => {
-      console.log("🛑 Shutting down test server...")
+      testLogger.info("🛑 Shutting down test server...")
 
       try {
         // Stop the server
@@ -51,9 +52,9 @@ export async function startTestServer(): Promise<TestServer> {
           await serverApp.workerManager.shutdown()
         }
 
-        console.log("✅ Test server shut down")
+        testLogger.info("✅ Test server shut down")
       } catch (error) {
-        console.error("❌ Error shutting down test server:", error)
+        testLogger.error("❌ Error shutting down test server:", error)
         throw error
       }
     },

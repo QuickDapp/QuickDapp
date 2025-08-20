@@ -5,6 +5,7 @@ import path from "node:path"
 import { createPublicClient, createWalletClient, http, parseEther } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { foundry } from "viem/chains"
+import { testLogger } from "./logger"
 
 export interface AnvilInstance {
   process: ChildProcess
@@ -211,10 +212,10 @@ export const deployMockERC20 = async (
 
     return receipt.contractAddress
   } catch (error) {
-    console.error("ERC20 deployment failed:", error)
+    testLogger.error("ERC20 deployment failed:", error)
 
     // Fallback to mock address for tests that don't require actual deployment
-    console.warn("Falling back to mock address")
+    testLogger.warn("Falling back to mock address")
     return "0x1234567890123456789012345678901234567890" as `0x${string}`
   }
 }
@@ -312,7 +313,7 @@ export const getERC20Info = async (
 
     return { name, symbol, decimals, totalSupply }
   } catch (error) {
-    console.error("Failed to get ERC20 info:", error)
+    testLogger.error("Failed to get ERC20 info:", error)
     throw error
   }
 }
@@ -350,7 +351,7 @@ export const transferERC20 = async (
 
     return hash
   } catch (error) {
-    console.error("Failed to transfer ERC20:", error)
+    testLogger.error("Failed to transfer ERC20:", error)
     throw error
   }
 }

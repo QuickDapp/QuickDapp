@@ -8,6 +8,7 @@ import {
   scheduleJob,
 } from "../../src/server/db/worker"
 import type { ServerApp } from "../../src/server/types"
+import { testLogger } from "./logger"
 
 export interface TestWorkerContext {
   process: ChildProcess | null
@@ -48,15 +49,15 @@ export const startTestWorker = async (
 
   // Set up process event handlers
   context.process.on("message", (message) => {
-    console.log(`Worker ${context.workerId} message:`, message)
+    testLogger.info(`Worker ${context.workerId} message:`, message)
   })
 
   context.process.on("error", (error) => {
-    console.error(`Worker ${context.workerId} error:`, error.message)
+    testLogger.error(`Worker ${context.workerId} error:`, error.message)
   })
 
   context.process.on("exit", (code, signal) => {
-    console.log(
+    testLogger.info(
       `Worker ${context.workerId} exited with code ${code}, signal ${signal}`,
     )
     context.isRunning = false
@@ -65,13 +66,13 @@ export const startTestWorker = async (
   // Capture stdout/stderr for debugging
   if (context.process.stdout) {
     context.process.stdout.on("data", (data) => {
-      console.log(`Worker ${context.workerId} stdout:`, data.toString().trim())
+      testLogger.info(`Worker ${context.workerId} stdout:`, data.toString().trim())
     })
   }
 
   if (context.process.stderr) {
     context.process.stderr.on("data", (data) => {
-      console.log(`Worker ${context.workerId} stderr:`, data.toString().trim())
+      testLogger.info(`Worker ${context.workerId} stderr:`, data.toString().trim())
     })
   }
 
@@ -96,7 +97,7 @@ export const startTestWorker = async (
 
   try {
     await startupPromise
-    console.log(`✅ Test worker ${context.workerId} started successfully`)
+    testLogger.info(`✅ Test worker ${context.workerId} started successfully`)
   } catch (error) {
     context.isRunning = false
     if (context.process) {
@@ -116,11 +117,11 @@ export const stopTestWorker = async (
   context: TestWorkerContext,
 ): Promise<void> => {
   if (!context || !context.isRunning || !context.process) {
-    console.log("⚠️  Worker context is invalid or already stopped")
+    testLogger.warn("⚠️  Worker context is invalid or already stopped")
     return
   }
 
-  console.log(`🛑 Stopping test worker ${context.workerId}...`)
+  testLogger.info(`🛑 Stopping test worker ${context.workerId}...`)
 
   // Send SIGTERM for graceful shutdown
   context.process.kill("SIGTERM")
@@ -128,7 +129,7 @@ export const stopTestWorker = async (
   // Wait for graceful shutdown
   await new Promise<void>((resolve) => {
     const timeout = setTimeout(() => {
-      console.log(`⚠️ Worker ${context.workerId} force killing...`)
+      testLogger.warn(`⚠️ Worker ${context.workerId} force killing...`)
       if (context.process && !context.process.killed) {
         context.process.kill("SIGKILL")
       }
@@ -143,7 +144,7 @@ export const stopTestWorker = async (
 
   context.process = null
   context.isRunning = false
-  console.log(`✅ Test worker ${context.workerId} stopped`)
+  testLogger.info(`✅ Test worker ${context.workerId} stopped`)
 }
 
 /**

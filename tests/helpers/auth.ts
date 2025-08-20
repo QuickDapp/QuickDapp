@@ -16,6 +16,7 @@ import {
 import { AuthService } from "../../src/server/auth"
 import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
+import { testLogger } from "./logger"
 
 export interface TestWallet {
   address: string
@@ -161,9 +162,9 @@ export async function createTestJWT(
     extraClaims = {},
   } = options
 
-  console.log(`[TEST DEBUG] Creating JWT with secret: ${secret}`)
-  console.log(`[TEST DEBUG] NODE_ENV: ${process.env.NODE_ENV}`)
-  console.log(`[TEST DEBUG] Wallet: ${wallet}`)
+  testLogger.debug(`[TEST DEBUG] Creating JWT with secret: ${secret}`)
+  testLogger.debug(`[TEST DEBUG] NODE_ENV: ${process.env.NODE_ENV}`)
+  testLogger.debug(`[TEST DEBUG] Wallet: ${wallet}`)
 
   const jwtSecret = new TextEncoder().encode(secret)
 
