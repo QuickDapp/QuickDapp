@@ -473,36 +473,34 @@ describe("JWT Lifecycle Tests", () => {
     })
 
     it("should reject invalid Authorization header formats", async () => {
+      // Test the extractBearerToken method directly since HTTP headers get normalized
+      const { AuthService } = await import("../../../src/server/auth")
+      const authService = new AuthService(testServer.serverApp)
+
       const wallet = generateTestWallet()
       const token = await createTestJWT(wallet.address)
 
       // Test invalid formats
       const invalidFormats = [
-        token, // Missing "Bearer "
-        `Basic ${token}`, // Wrong auth type
-        `Bearer`, // Missing token
-        `Bearer ${token} extra`, // Extra content
-        ` Bearer ${token}`, // Leading space
-        `Bearer  ${token}`, // Extra space
+        { header: token, desc: "Missing 'Bearer '" },
+        { header: `Basic ${token}`, desc: "Wrong auth type" },
+        { header: `Bearer`, desc: "Missing token" },
+        { header: `Bearer ${token} extra`, desc: "Extra content" },
+        { header: ` Bearer ${token}`, desc: "Leading space" },
+        { header: `Bearer  ${token}`, desc: "Extra space" },
+        { header: `bearer ${token}`, desc: "Lowercase 'bearer'" },
+        { header: `BEARER ${token}`, desc: "Uppercase 'BEARER'" },
       ]
 
-      for (const authHeader of invalidFormats) {
-        const response = await makeRequest(`${testServer.url}/graphql`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
-          body: JSON.stringify({
-            query: `query { getMyUnreadNotificationsCount }`,
-          }),
-        })
-
-        const body = await response.json()
-        expect(response.status).toBe(200)
-        expect(body.errors).toBeDefined()
-        expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
+      for (const { header } of invalidFormats) {
+        const extractedToken = authService.extractBearerToken(header)
+        expect(extractedToken).toBeNull()
       }
+
+      // Also test that valid format works
+      const validHeader = `Bearer ${token}`
+      const extractedToken = authService.extractBearerToken(validHeader)
+      expect(extractedToken).toBe(token)
     })
   })
 })

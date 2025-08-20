@@ -554,8 +554,9 @@ describe("Auth Directive Tests", () => {
 
   describe("Schema Introspection", () => {
     it("should allow introspection queries", async () => {
-      const response = await makeRequest(`${testServer.url}/graphql`, {
-        ...createGraphQLRequest(`
+      const response = await makeRequest(
+        `${testServer.url}/graphql`,
+        createGraphQLRequest(`
           query IntrospectionQuery {
             __schema {
               types {
@@ -563,16 +564,15 @@ describe("Auth Directive Tests", () => {
                 kind
               }
             }
-          `),
-      })
+          }
+        `),
+      )
 
       const body = await response.json()
       expect(response.status).toBe(200)
 
-      if (process.env.NODE_ENV !== "production") {
-        expect(body.data.__schema).toBeDefined()
-        expect(body.data.__schema.types).toBeInstanceOf(Array)
-      }
+      expect(body.data.__schema).toBeDefined()
+      expect(body.data.__schema.types).toBeInstanceOf(Array)
     })
 
     it("should show directive information in development", async () => {
@@ -592,7 +592,7 @@ describe("Auth Directive Tests", () => {
       const body = await response.json()
       expect(response.status).toBe(200)
 
-      if (process.env.NODE_ENV !== "production" && body.data) {
+      if (body.data) {
         const directives = body.data.__schema.directives
         expect(directives).toBeInstanceOf(Array)
 

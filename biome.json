@@ -9,7 +9,8 @@
       "!**/dist-bin",
       "!**/public",
       "!**/scripts",
-      "!**/generated/**"
+      "!**/generated/**",
+      "!.claude/**"
     ]
   },
   "formatter": {
@@ -97,7 +98,7 @@
         "noWith": "error"
       }
     },
-    "includes": ["**", "!**/dist"]
+    "includes": ["**", "!**/dist", "!.claude/**"]
   },
   "json": {
     "parser": {

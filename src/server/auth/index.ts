@@ -39,11 +39,11 @@ export class AuthService {
     signature: string,
   ): Promise<AuthenticationResult> {
     try {
-      this.logger.debug(
-        `Authenticating SIWE message for domain: ${JSON.parse(message).domain}`,
-      )
-
       const siwe = new SiweMessage(message)
+
+      this.logger.debug(
+        `Authenticating SIWE message for domain: ${siwe.domain}`,
+      )
 
       const result = await siwe.verify({
         signature,
@@ -61,10 +61,15 @@ export class AuthService {
         })
       }
 
-      // Create JWT token
+      // Create JWT token with microsecond precision for uniqueness
+      const now = Date.now()
       const token = await new SignJWT({
         wallet: siwe.address.toLowerCase(),
-        iat: Math.floor(Date.now() / 1000),
+        iat: Math.floor(now / 1000),
+        // Add microsecond precision to ensure uniqueness in concurrent requests
+        iatMs: now,
+        // Add a random nonce for additional entropy
+        jti: `${now}-${Math.random().toString(36).substring(2, 11)}`,
       })
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime("24h")
@@ -89,9 +94,44 @@ export class AuthService {
       }
 
       this.logger.error("SIWE authentication failed:", error)
+
+      // Map specific SIWE errors to appropriate error codes
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase()
+
+        // SIWE message format/validation errors
+        if (
+          errorMessage.includes("invalid message") ||
+          errorMessage.includes("invalid nonce") ||
+          (errorMessage.includes("line") && errorMessage.includes("invalid"))
+        ) {
+          throw new GraphQLError("Invalid SIWE message format", {
+            extensions: {
+              code: GraphQLErrorCode.AUTHENTICATION_FAILED,
+              originalError: error.message,
+            },
+          })
+        }
+
+        // Signature validation errors
+        if (
+          errorMessage.includes("signature") ||
+          errorMessage.includes("address") ||
+          errorMessage.includes("verification failed")
+        ) {
+          throw new GraphQLError("Invalid signature or message", {
+            extensions: {
+              code: GraphQLErrorCode.AUTHENTICATION_FAILED,
+              originalError: error.message,
+            },
+          })
+        }
+      }
+
+      // Generic authentication failure for other errors
       throw new GraphQLError("Authentication failed", {
         extensions: {
-          code: GraphQLErrorCode.UNAUTHORIZED,
+          code: GraphQLErrorCode.AUTHENTICATION_FAILED,
           originalError: error instanceof Error ? error.message : String(error),
         },
       })
@@ -148,7 +188,7 @@ export class AuthService {
   extractBearerToken(authHeader: string | null): string | null {
     if (!authHeader) return null
 
-    const match = authHeader.match(/^Bearer (.+)$/)
+    const match = authHeader.match(/^Bearer ([^\s]+)$/)
     return (match ? match[1] : null) || null
   }
 

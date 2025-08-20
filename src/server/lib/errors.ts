@@ -4,6 +4,7 @@
 export enum GraphQLErrorCode {
   // Authentication errors
   UNAUTHORIZED = "UNAUTHORIZED",
+  AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED",
   INVALID_SIGNATURE = "INVALID_SIGNATURE",
 
   // Database errors

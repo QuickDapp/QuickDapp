@@ -30,7 +30,9 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
 
   const yoga = createYoga({
     schema,
-    graphiql: serverConfig.NODE_ENV === "development",
+    graphiql:
+      serverConfig.NODE_ENV === "development" ||
+      serverConfig.NODE_ENV === "test",
     maskedErrors: serverConfig.NODE_ENV === "production",
     plugins: [
       {
@@ -76,24 +78,38 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
         )
       }
 
-      // Extract operation name from GraphQL Yoga params
+      // Extract operation name and check if any field requires auth
       let operationName: string | undefined
+      let requiresAuth = false
 
       if (params?.operationName) {
         operationName = params.operationName
+        requiresAuth = authHelper.requiresAuth(operationName)
         logger.debug(`Operation name from params: ${operationName}`)
       } else if (params?.query) {
-        // Use GraphQL's parse function to properly extract the field name
+        // Use GraphQL's parse function to extract all field names
         try {
           const document = parse(params.query)
           const operation = document.definitions[0] as OperationDefinitionNode
-          if (
-            operation.selectionSet.selections[0] &&
-            "name" in operation.selectionSet.selections[0]
-          ) {
-            operationName = operation.selectionSet.selections[0].name?.value
+
+          // Check all selections in the query
+          const fieldNames: string[] = []
+          for (const selection of operation.selectionSet.selections) {
+            if (selection.kind === "Field" && selection.name?.value) {
+              fieldNames.push(selection.name.value)
+            }
           }
+
+          // Use the first field name as the operation name for logging
+          operationName = fieldNames[0]
+
+          // Check if ANY field requires auth - if so, require auth for entire query
+          requiresAuth = fieldNames.some((fieldName) =>
+            authHelper.requiresAuth(fieldName),
+          )
+
           logger.debug(`Operation name extracted from query: ${operationName}`)
+          logger.debug(`Query fields: [${fieldNames.join(", ")}]`)
         } catch (error) {
           logger.error(
             `Failed to parse GraphQL query for operation name:`,
@@ -108,9 +124,6 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
         throw new Error("Invalid GraphQL request: no operation name found")
       }
 
-      // Check if operation requires auth
-      const requiresAuth =
-        operationName && authHelper.requiresAuth(operationName)
       logger.debug(`Operation requires auth: ${requiresAuth}`)
 
       let user: any = null

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
+import { createGraphQLRequest } from "../../helpers/auth"
 import {
   makeRequest,
   startTestServer,
@@ -163,27 +164,24 @@ describe("GraphQL Authentication", () => {
 
   describe("GraphQL Introspection", () => {
     it("should allow introspection in development", async () => {
-      const response = await makeRequest(`${testServer.url}/graphql`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `query IntrospectionQuery {
+      const response = await makeRequest(
+        `${testServer.url}/graphql`,
+        createGraphQLRequest(`
+          query IntrospectionQuery {
             __schema {
               types {
                 name
               }
             }
-          }`,
-        }),
-      })
+          }
+        `),
+      )
 
       const body = await response.json()
       expect(response.status).toBe(200)
 
-      if (process.env.NODE_ENV !== "production") {
-        expect(body.data.__schema).toBeDefined()
-        expect(body.data.__schema.types).toBeInstanceOf(Array)
-      }
+      expect(body.data.__schema).toBeDefined()
+      expect(body.data.__schema.types).toBeInstanceOf(Array)
     })
   })
 })
