@@ -66,13 +66,19 @@ export const startTestWorker = async (
   // Capture stdout/stderr for debugging
   if (context.process.stdout) {
     context.process.stdout.on("data", (data) => {
-      testLogger.info(`Worker ${context.workerId} stdout:`, data.toString().trim())
+      testLogger.info(
+        `Worker ${context.workerId} stdout:`,
+        data.toString().trim(),
+      )
     })
   }
 
   if (context.process.stderr) {
     context.process.stderr.on("data", (data) => {
-      testLogger.info(`Worker ${context.workerId} stderr:`, data.toString().trim())
+      testLogger.info(
+        `Worker ${context.workerId} stderr:`,
+        data.toString().trim(),
+      )
     })
   }
 

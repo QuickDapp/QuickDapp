@@ -1,6 +1,6 @@
 /**
  * Test logger helper
- * 
+ *
  * Provides a singleton logger instance for all test files
  * Uses the test-logger category with severity level from serverConfig
  */

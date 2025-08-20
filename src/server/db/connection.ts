@@ -126,11 +126,14 @@ class DatabaseConnectionManager {
       })
 
       // Create drizzle instance
-      globalDb = drizzle(globalClient, { schema, logger: {
-        logQuery: (query, params) => {
-          logger.debug(`Executing query: ${query}`, { params })
+      globalDb = drizzle(globalClient, {
+        schema,
+        logger: {
+          logQuery: (query, params) => {
+            logger.debug(`Executing query: ${query}`, { params })
+          },
         },
-      } })
+      })
 
       // Test the connection
       await globalClient`SELECT 1 as test`
