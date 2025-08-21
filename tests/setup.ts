@@ -7,6 +7,7 @@ import { afterAll, beforeAll } from "bun:test"
 import { dbManager } from "../src/server/db/connection"
 import { closeTestDb, initTestDb } from "./helpers/database"
 import { testLogger } from "./helpers/logger"
+import { killAllActiveWorkers } from "./helpers/worker"
 
 // Global test setup - runs once before all tests
 beforeAll(async () => {
@@ -31,6 +32,9 @@ afterAll(async () => {
   testLogger.info("🧹 Global test teardown starting...")
 
   try {
+    // Kill any remaining worker processes
+    killAllActiveWorkers()
+
     // Close all database connections
     await closeTestDb()
     testLogger.info("✅ Global test database cleanup complete")

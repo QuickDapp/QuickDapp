@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from "node:child_process"
+import { type ChildProcess, fork } from "node:child_process"
 import path from "node:path"
 import type { WorkerJob } from "../../src/server/db/schema"
 import {
@@ -9,6 +9,9 @@ import {
 } from "../../src/server/db/worker"
 import type { ServerApp } from "../../src/server/types"
 import { testLogger } from "./logger"
+
+// Global registry of all spawned worker processes
+const activeWorkerProcesses = new Set<ChildProcess>()
 
 export interface TestWorkerContext {
   process: ChildProcess | null
@@ -28,24 +31,25 @@ export const startTestWorker = async (
     workerId,
   }
 
-  // Path to the worker process entry point
-  const workerProcessPath = path.join(
-    __dirname,
-    "../../src/server/workers/process.ts",
-  )
+  // Path to the server entry point (which will detect worker mode)
+  const serverIndexPath = path.join(__dirname, "../../src/server/index.ts")
 
-  // Spawn the worker process using bun
-  context.process = spawn("bun", [workerProcessPath], {
+  // Fork the server process as a worker
+  context.process = fork(serverIndexPath, [], {
     env: {
       ...process.env,
       NODE_ENV: "test",
+      WORKER_ID: workerId.toString(),
     },
-    stdio: ["ignore", "pipe", "pipe", "ipc"],
+    silent: false,
   })
 
   if (!context.process) {
     throw new Error("Failed to spawn worker process")
   }
+
+  // Register process for cleanup
+  activeWorkerProcesses.add(context.process)
 
   // Set up process event handlers
   context.process.on("message", (message) => {
@@ -61,26 +65,11 @@ export const startTestWorker = async (
       `Worker ${context.workerId} exited with code ${code}, signal ${signal}`,
     )
     context.isRunning = false
+    // Remove from active processes registry
+    if (context.process) {
+      activeWorkerProcesses.delete(context.process)
+    }
   })
-
-  // Capture stdout/stderr for debugging
-  if (context.process.stdout) {
-    context.process.stdout.on("data", (data) => {
-      testLogger.info(
-        `Worker ${context.workerId} stdout:`,
-        data.toString().trim(),
-      )
-    })
-  }
-
-  if (context.process.stderr) {
-    context.process.stderr.on("data", (data) => {
-      testLogger.info(
-        `Worker ${context.workerId} stderr:`,
-        data.toString().trim(),
-      )
-    })
-  }
 
   // Wait for worker startup message
   const startupPromise = new Promise<void>((resolve, reject) => {
@@ -107,6 +96,7 @@ export const startTestWorker = async (
   } catch (error) {
     context.isRunning = false
     if (context.process) {
+      activeWorkerProcesses.delete(context.process)
       context.process.kill("SIGKILL")
       context.process = null
     }
@@ -148,6 +138,9 @@ export const stopTestWorker = async (
     })
   })
 
+  if (context.process) {
+    activeWorkerProcesses.delete(context.process)
+  }
   context.process = null
   context.isRunning = false
   testLogger.info(`✅ Test worker ${context.workerId} stopped`)
@@ -347,3 +340,43 @@ export const countJobsByStatus = async (
     total: totalCount,
   }
 }
+
+/**
+ * Kills all active worker processes - used for cleanup on test exit
+ */
+export const killAllActiveWorkers = (): void => {
+  if (activeWorkerProcesses.size === 0) {
+    return
+  }
+
+  testLogger.info(
+    `🧹 Cleaning up ${activeWorkerProcesses.size} active worker processes...`,
+  )
+
+  for (const process of activeWorkerProcesses) {
+    try {
+      if (!process.killed) {
+        process.kill("SIGKILL")
+        testLogger.debug(`Killed worker process ${process.pid}`)
+      }
+    } catch (error) {
+      testLogger.warn(`Failed to kill worker process ${process.pid}:`, error)
+    }
+  }
+
+  activeWorkerProcesses.clear()
+  testLogger.info("✅ All worker processes cleaned up")
+}
+
+/**
+ * Shutdown handler for process exit signals
+ */
+const handleShutdown = (signal: string) => {
+  testLogger.info(`🛑 Test process received ${signal}, cleaning up workers...`)
+  killAllActiveWorkers()
+  process.exit(0)
+}
+
+// Register shutdown handlers for cleanup
+process.on("SIGINT", () => handleShutdown("SIGINT"))
+process.on("SIGTERM", () => handleShutdown("SIGTERM"))

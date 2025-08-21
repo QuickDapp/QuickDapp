@@ -33,26 +33,38 @@ export interface WatchChainData {
   // No specific data needed for this job
 }
 
+export interface DeployMulticall3Data {
+  forceRedeploy?: boolean
+}
+
 // Discriminated union for job types
-export type JobType = "removeOldWorkerJobs" | "watchChain"
+export type JobType = "removeOldWorkerJobs" | "watchChain" | "deployMulticall3"
 
 // Type-safe job configurations
 export type JobConfig<T extends JobType> = T extends "removeOldWorkerJobs"
   ? { type: T; data?: RemoveOldWorkerJobsData }
   : T extends "watchChain"
     ? { type: T; data?: WatchChainData }
-    : never
+    : T extends "deployMulticall3"
+      ? { type: T; data?: DeployMulticall3Data }
+      : never
 
 // Helper type to extract job data type from job type
 export type JobDataType<T extends JobType> = T extends "removeOldWorkerJobs"
   ? RemoveOldWorkerJobsData
   : T extends "watchChain"
     ? WatchChainData
-    : never
+    : T extends "deployMulticall3"
+      ? DeployMulticall3Data
+      : never
 
 // Type guard for job types
 export const isValidJobType = (type: string): type is JobType => {
-  return type === "removeOldWorkerJobs" || type === "watchChain"
+  return (
+    type === "removeOldWorkerJobs" ||
+    type === "watchChain" ||
+    type === "deployMulticall3"
+  )
 }
 
 // Job registry type

@@ -10,7 +10,7 @@ export interface ClientConfig {
   CHAIN: string
   CHAIN_RPC_ENDPOINT: string
   WALLETCONNECT_PROJECT_ID: string
-  DIAMOND_PROXY_ADDRESS: string
+  FACTORY_CONTRACT_ADDRESS: string
   SENTRY_DSN?: string
 }
 
@@ -58,7 +58,10 @@ export const clientConfig: ClientConfig = {
     .get("WALLETCONNECT_PROJECT_ID")
     .required()
     .asString(),
-  DIAMOND_PROXY_ADDRESS: env.get("DIAMOND_PROXY_ADDRESS").required().asString(),
+  FACTORY_CONTRACT_ADDRESS: env
+    .get("FACTORY_CONTRACT_ADDRESS")
+    .required()
+    .asString(),
   SENTRY_DSN: env.get("SENTRY_DSN").asString(),
 }
 

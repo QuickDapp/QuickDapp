@@ -5,7 +5,7 @@
  * and managing test server lifecycle.
  */
 
-import { createApp } from "../../src/server/index"
+import { createApp } from "../../src/server/start-server"
 import type { ServerApp } from "../../src/server/types"
 import { testLogger } from "./logger"
 

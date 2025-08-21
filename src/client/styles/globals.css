@@ -1,0 +1,81 @@
+/* Import Tailwind CSS v4 */
+@import "tailwindcss";
+
+/* Theme configuration for Tailwind v4 */
+@theme {
+  --color-anchor: #0ec8ff;
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-muted: #f8fafc;
+  --color-border: #e2e8f0;
+
+  /* Custom shadows */
+  --shadow-glow: 0 0 1rem
+    color-mix(in srgb, var(--color-anchor) 30%, transparent);
+  --shadow-strong: 0 0 2rem
+    color-mix(in srgb, var(--color-anchor) 50%, transparent);
+}
+
+/* Base layer styles */
+@layer base {
+  html {
+    @apply h-full m-0 p-0 box-border;
+  }
+
+  body {
+    @apply h-full m-0 p-0 box-border bg-background text-foreground;
+    @apply font-sans antialiased;
+  }
+
+  #root {
+    @apply h-full;
+  }
+
+  *,
+  *::before,
+  *::after {
+    @apply box-border;
+  }
+}
+
+/* Custom utility classes */
+@utility btn-primary {
+  @apply px-4 py-2 bg-anchor text-background rounded-lg;
+  @apply hover:opacity-80 transition-opacity duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-anchor focus:ring-offset-2;
+}
+
+@utility btn-secondary {
+  @apply px-4 py-2 bg-muted text-background rounded-lg;
+  @apply hover:opacity-80 transition-opacity duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-muted focus:ring-offset-2;
+}
+
+@utility card {
+  @apply bg-muted border border-border rounded-lg p-6;
+  @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+@utility glow-effect {
+  box-shadow: var(--shadow-glow);
+}
+
+@utility glow-strong {
+  box-shadow: var(--shadow-strong);
+}
+
+@utility flex-center {
+  @apply flex items-center justify-center;
+}
+
+@utility flex-between {
+  @apply flex items-center justify-between;
+}
+
+@utility transition-base {
+  @apply transition-all duration-200 ease-out;
+}
+
+@utility transition-smooth {
+  @apply transition-all duration-300 ease-out;
+}

@@ -64,7 +64,7 @@ export const createServerApp = async (
     const { createWorkerManager } = await import("./workers")
     return {
       ...baseServerApp,
-      workerManager: createWorkerManager(baseServerApp as any),
+      workerManager: await createWorkerManager(baseServerApp as any),
     }
   }
 
