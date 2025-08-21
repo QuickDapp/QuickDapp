@@ -53,15 +53,21 @@ class DatabaseConnectionManager {
     // For test environment, enforce strict connection limits
     const isTest = serverConfig.NODE_ENV === "test"
     if (isTest) {
-      // In test mode, be extremely conservative - only allow 1 total connection
+      // In test mode, allow multiple connections for worker processes
       const finalOptions = {
         ...options,
-        maxConnections: 1, // Force single connection in tests
+        maxConnections: 3, // Allow server + worker + spare
         idleTimeout: 0, // Never timeout in tests
       }
+      logger.debug(
+        `Test mode: creating connection with max=${finalOptions.maxConnections} to ${finalOptions.databaseUrl}`,
+      )
       globalConnectionPromise = this._createConnection(finalOptions)
     } else {
       // Normal connection creation for non-test environments
+      logger.debug(
+        `Production mode: creating connection with max=${options?.maxConnections} to ${options?.databaseUrl}`,
+      )
       globalConnectionPromise = this._createConnection(options)
     }
 

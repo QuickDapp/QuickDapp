@@ -1,8 +1,9 @@
 import { type ChildProcess, fork } from "node:child_process"
 import path from "node:path"
-import type { WorkerJob } from "../../src/server/db/schema"
+import { and, desc, eq, isNotNull } from "drizzle-orm"
+import { type WorkerJob, workerJobs } from "../../src/server/db/schema"
 import {
-  getNextPendingJob,
+  getJobById,
   getTotalPendingJobs,
   scheduleCronJob,
   scheduleJob,
@@ -163,34 +164,11 @@ export const submitJobAndWait = async (
     pollIntervalMs?: number
   } = {},
 ): Promise<WorkerJob> => {
-  const { timeoutMs = 10000, pollIntervalMs = 100 } = options
-
   // Schedule the job
   const job = await scheduleJob(serverApp, jobConfig)
 
-  // Wait for job to complete
-  const startTime = Date.now()
-
-  while (Date.now() - startTime < timeoutMs) {
-    const pendingJob = await getNextPendingJob(serverApp)
-
-    if (!pendingJob || pendingJob.id !== job.id) {
-      // Job is no longer pending, it must have completed
-      break
-    }
-
-    // Wait before checking again
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
-  }
-
-  // Get the final job state
-  const finalJob = await getJobById(serverApp, job.id)
-
-  if (!finalJob.finished) {
-    throw new Error(`Job ${job.id} did not complete within ${timeoutMs}ms`)
-  }
-
-  return finalJob
+  // Wait for job to complete using the helper
+  return waitForJobCompletion(serverApp, job.id, options)
 }
 
 /**
@@ -221,6 +199,10 @@ export const submitCronJobAndWait = async (
 
   while (Date.now() - startTime < timeoutMs) {
     const currentJob = await getJobById(serverApp, job.id)
+
+    if (!currentJob) {
+      throw new Error(`Cron job ${job.id} not found`)
+    }
 
     if (currentJob.finished) {
       return currentJob
@@ -263,44 +245,91 @@ export const waitForAllJobsToComplete = async (
 }
 
 /**
- * Helper to get a job by ID (simulated - would need actual DB query)
+ * Helper to wait for a specific job to complete by ID
  */
-const getJobById = async (
+export const waitForJobCompletion = async (
   serverApp: ServerApp,
   jobId: number,
+  options: {
+    timeoutMs?: number
+    pollIntervalMs?: number
+  } = {},
 ): Promise<WorkerJob> => {
-  // TODO: Implement actual job lookup by ID
-  // For now, this is a placeholder
-  const job = await getNextPendingJob(serverApp)
+  const { timeoutMs = 10000, pollIntervalMs = 100 } = options
+  const startTime = Date.now()
 
-  if (job && job.id === jobId) {
-    return job
+  while (Date.now() - startTime < timeoutMs) {
+    const job = await getJobById(serverApp, jobId)
+
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`)
+    }
+
+    if (job.finished) {
+      return job
+    }
+
+    // Wait before checking again
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
   }
 
-  // Return a mock completed job for testing
-  return {
-    id: jobId,
-    type: "test",
-    userId: 0,
-    data: {},
-    due: new Date(),
-    started: new Date(),
-    finished: new Date(),
-    removeAt: new Date(),
-    success: true,
-    result: null,
-    cronSchedule: null,
-    autoRescheduleOnFailure: false,
-    autoRescheduleOnFailureDelay: 0,
-    removeDelay: 0,
-    rescheduledFromJob: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
+  throw new Error(`Job ${jobId} did not complete within ${timeoutMs}ms`)
 }
 
 /**
- * Creates a test job configuration
+ * More robust helper to wait for a test job completion by matching criteria
+ * This avoids issues with system jobs interfering with specific job IDs
+ */
+export const waitForTestJobCompletion = async (
+  serverApp: ServerApp,
+  criteria: {
+    type: string
+    userId: number
+    data?: any
+  },
+  options: {
+    timeoutMs?: number
+    pollIntervalMs?: number
+  } = {},
+): Promise<WorkerJob> => {
+  const { timeoutMs = 10000, pollIntervalMs = 100 } = options
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < timeoutMs) {
+    // Find jobs matching our criteria
+    const matchingJobs = await serverApp.db
+      .select()
+      .from(workerJobs)
+      .where(
+        and(
+          eq(workerJobs.type, criteria.type),
+          eq(workerJobs.userId, criteria.userId),
+          isNotNull(workerJobs.finished), // Only completed jobs
+        ),
+      )
+      .orderBy(desc(workerJobs.createdAt)) // Get most recent first
+
+    // Find the job that matches our test data
+    const testJob = matchingJobs.find((job) => {
+      if (!criteria.data) return true
+      return JSON.stringify(job.data) === JSON.stringify(criteria.data)
+    })
+
+    if (testJob) {
+      return testJob
+    }
+
+    // Wait before checking again
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
+  }
+
+  throw new Error(
+    `Test job matching criteria did not complete within ${timeoutMs}ms`,
+  )
+}
+
+/**
+ * Creates a test job configuration with unique test markers
  */
 export const createTestJobConfig = (
   overrides: Partial<{
@@ -311,14 +340,56 @@ export const createTestJobConfig = (
     autoRescheduleOnFailureDelay: number
   }> = {},
 ) => {
+  const baseData = {
+    testRun: true,
+    testId: `test-${Date.now()}-${Math.random()}`,
+    ...(overrides.data || {}),
+  }
+
   return {
     type: "removeOldWorkerJobs",
-    userId: 0,
-    data: {},
+    userId: 9999, // Use high user ID to avoid conflicts with system jobs (which use 0)
     autoRescheduleOnFailure: false,
     autoRescheduleOnFailureDelay: 0,
     ...overrides,
+    data: baseData, // Ensure data is always set with test markers
   }
+}
+
+/**
+ * Submits a test job and waits for completion using robust criteria matching
+ * This approach is immune to system job ID conflicts
+ */
+export const submitTestJobAndWait = async (
+  serverApp: ServerApp,
+  jobConfig: {
+    type: string
+    userId?: number
+    data?: any
+    autoRescheduleOnFailure?: boolean
+    autoRescheduleOnFailureDelay?: number
+  },
+  options: {
+    timeoutMs?: number
+    pollIntervalMs?: number
+  } = {},
+): Promise<WorkerJob> => {
+  // Create test job config with unique markers
+  const testJobConfig = createTestJobConfig(jobConfig)
+
+  // Schedule the job
+  await scheduleJob(serverApp, testJobConfig)
+
+  // Wait for completion using the robust criteria-based approach
+  return waitForTestJobCompletion(
+    serverApp,
+    {
+      type: testJobConfig.type,
+      userId: testJobConfig.userId,
+      data: testJobConfig.data,
+    },
+    options,
+  )
 }
 
 /**

@@ -19,7 +19,10 @@ export const startWorker = async () => {
     }
 
     // Create the server app context for the worker (without worker manager to avoid circular dependency)
+    logger.debug("Worker creating database connection...")
     const baseServerApp = await createServerApp({ includeWorkerManager: false })
+    logger.debug("Worker database connection created successfully")
+
     const serverApp = {
       ...baseServerApp,
       app: null as any, // Workers don't need the Elysia app

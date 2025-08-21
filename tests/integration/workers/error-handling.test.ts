@@ -7,14 +7,19 @@ import {
   expect,
   test,
 } from "bun:test"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { workerJobs } from "../../../src/server/db/schema"
 import { scheduleJob } from "../../../src/server/db/worker"
-import { cleanTestDatabase, setupTestDatabase } from "../../helpers/database"
+import { setupTestDatabase } from "../../helpers/database"
 import type { TestServer } from "../../helpers/server"
 import { startTestServer, waitForServer } from "../../helpers/server"
 import type { TestWorkerContext } from "../../helpers/worker"
-import { startTestWorker, stopTestWorker } from "../../helpers/worker"
+import {
+  createTestJobConfig,
+  startTestWorker,
+  stopTestWorker,
+  waitForTestJobCompletion,
+} from "../../helpers/worker"
 // Import global test setup
 import "../../setup"
 
@@ -35,13 +40,11 @@ describe("Worker Error Handling", () => {
   })
 
   beforeEach(async () => {
-    // Clean database before each test
-    await cleanTestDatabase()
+    // No database cleaning needed - tests use different user IDs to avoid conflicts
   })
 
   afterEach(async () => {
-    // Clean database after each test
-    await cleanTestDatabase()
+    // No database cleaning needed - tests use different user IDs to avoid conflicts
   })
 
   afterAll(async () => {
@@ -53,51 +56,82 @@ describe("Worker Error Handling", () => {
   })
 
   test("should handle job execution errors gracefully", async () => {
-    // Schedule a job with invalid type
-    const job = await scheduleJob(serverContext.serverApp, {
+    // Schedule a job with invalid type using test job config
+    const jobConfig = createTestJobConfig({
       type: "nonExistentJob" as any,
-      userId: 0,
+      userId: 999, // Use high user ID to avoid conflicts
+      data: { customTest: "errorHandling" },
     })
 
-    // Wait for worker to process the job
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await scheduleJob(serverContext.serverApp, jobConfig)
+
+    // Wait for the job to complete using robust helper
+    const completedJob = await waitForTestJobCompletion(
+      serverContext.serverApp,
+      {
+        type: "nonExistentJob",
+        userId: 999,
+        data: jobConfig.data,
+      },
+      { timeoutMs: 5000 },
+    )
 
     // Verify the job was marked as failed
-    const failedJob = await serverContext.serverApp.db
-      .select()
-      .from(workerJobs)
-      .where(eq(workerJobs.id, job.id))
-
-    expect(failedJob).toHaveLength(1)
-    expect(failedJob[0]?.finished).not.toBeNull()
-    expect(failedJob[0]?.success).toBe(false)
-    expect(failedJob[0]?.result).toContain("error")
+    expect(completedJob.finished).not.toBeNull()
+    expect(completedJob.success).toBe(false)
+    expect(completedJob.result).toMatchObject({
+      error: expect.stringContaining("Unknown job type"),
+    })
+    // Verify our test data is present
+    expect(completedJob.data).toMatchObject({
+      testRun: true,
+      customTest: "errorHandling",
+    })
   })
 
   test("should reschedule failed jobs when configured", async () => {
-    // Schedule a job that will fail with auto-reschedule enabled
-    const job = await scheduleJob(serverContext.serverApp, {
+    // Schedule a job that will fail with auto-reschedule enabled using test job config
+    const jobConfig = createTestJobConfig({
       type: "nonExistentJob" as any,
-      userId: 0,
+      userId: 888, // Use different user ID from first test
       autoRescheduleOnFailure: true,
       autoRescheduleOnFailureDelay: 1000,
+      data: { customTest: "rescheduleTest" },
     })
 
-    // Wait for job to fail and be rescheduled
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    await scheduleJob(serverContext.serverApp, jobConfig)
 
-    // Should have the original failed job and a rescheduled job
+    // Wait for the original job to complete and fail using robust helper
+    const failedJob = await waitForTestJobCompletion(
+      serverContext.serverApp,
+      {
+        type: "nonExistentJob",
+        userId: 888,
+        data: jobConfig.data,
+      },
+      { timeoutMs: 5000 },
+    )
+
+    // Verify the original job failed
+    expect(failedJob.success).toBe(false)
+    expect(failedJob.finished).not.toBeNull()
+    expect(failedJob.data).toMatchObject({
+      testRun: true,
+      customTest: "rescheduleTest",
+    })
+
+    // Wait a bit more for rescheduling to happen
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    // Check that a rescheduled job was created
     const allJobsForUser = await serverContext.serverApp.db
       .select()
       .from(workerJobs)
-      .where(eq(workerJobs.userId, 0))
+      .where(
+        and(eq(workerJobs.type, "nonExistentJob"), eq(workerJobs.userId, 888)),
+      )
 
     // Should have at least 2 jobs: the failed one and the rescheduled one
     expect(allJobsForUser.length).toBeGreaterThanOrEqual(2)
-
-    // The original job should be marked as failed
-    const originalJob = allJobsForUser.find((j) => j.id === job.id)
-    expect(originalJob?.success).toBe(false)
-    expect(originalJob?.finished).not.toBeNull()
   })
 })

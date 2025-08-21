@@ -66,7 +66,7 @@ async function testHandler(options: TestOptions) {
   for (const [index, file] of filesToRun.entries()) {
     console.log(`[${index + 1}/${filesToRun.length}] Running: ${file}`)
 
-    const args = ["test", `./${file}`, "--bail"]
+    const args = ["test", `./${file}`]
 
     if (timeout) {
       args.push("--timeout", timeout.toString())

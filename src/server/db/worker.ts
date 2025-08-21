@@ -35,12 +35,10 @@ const pendingJobsFilter = (extraCriteria: any = {}) => {
     ),
   )
 
-  return extraCriteria ? and(baseFilter, extraCriteria) : baseFilter
-}
-
-const inProgressOrPendingJobsFilter = (extraCriteria: any = {}) => {
-  const baseFilter = isNull(workerJobs.finished)
-  return extraCriteria ? and(baseFilter, extraCriteria) : baseFilter
+  // Only apply extraCriteria if it has actual content
+  return extraCriteria && Object.keys(extraCriteria).length > 0
+    ? and(baseFilter, extraCriteria)
+    : baseFilter
 }
 
 const cancelPendingJobs = async (serverApp: ServerApp, filter: any) => {
@@ -95,6 +93,10 @@ export const scheduleJob = async <T = unknown>(
     .values(jobData)
     .returning()
 
+  if (!newJob) {
+    throw new Error("Failed to create job")
+  }
+
   return newJob
 }
 
@@ -126,6 +128,10 @@ export const scheduleCronJob = async <T = unknown>(
     .values(jobData)
     .returning()
 
+  if (!newJob) {
+    throw new Error("Failed to create cron job")
+  }
+
   return newJob
 }
 
@@ -153,20 +159,14 @@ export const getNextPendingJob = async (
   return job || null
 }
 
-export const getInProgressOrPendingJobOfTypeForUser = async (
+export const getJobById = async (
   serverApp: ServerApp,
-  userId: number,
-  type: string,
+  id: number,
 ): Promise<WorkerJob | null> => {
   const [job] = await serverApp.db
     .select()
     .from(workerJobs)
-    .where(
-      inProgressOrPendingJobsFilter(
-        and(eq(workerJobs.type, type), eq(workerJobs.userId, userId)),
-      ),
-    )
-    .orderBy(asc(workerJobs.due))
+    .where(eq(workerJobs.id, id))
     .limit(1)
 
   return job || null
@@ -184,6 +184,10 @@ export const markJobAsStarted = async (
     })
     .where(eq(workerJobs.id, id))
     .returning()
+
+  if (!updatedJob) {
+    throw new Error(`Job ${id} not found`)
+  }
 
   return updatedJob
 }
@@ -204,6 +208,10 @@ export const markJobAsSucceeded = async (
     .where(eq(workerJobs.id, id))
     .returning()
 
+  if (!updatedJob) {
+    throw new Error(`Job ${id} not found`)
+  }
+
   return updatedJob
 }
 
@@ -222,6 +230,10 @@ export const markJobAsFailed = async (
     })
     .where(eq(workerJobs.id, id))
     .returning()
+
+  if (!updatedJob) {
+    throw new Error(`Job ${id} not found`)
+  }
 
   return updatedJob
 }
@@ -253,6 +265,10 @@ export const rescheduleFailedJob = async (
     .insert(workerJobs)
     .values(jobData)
     .returning()
+
+  if (!newJob) {
+    throw new Error("Failed to reschedule job")
+  }
 
   return newJob
 }
@@ -288,6 +304,10 @@ export const rescheduleCronJob = async (
     .insert(workerJobs)
     .values(jobData)
     .returning()
+
+  if (!newJob) {
+    throw new Error("Failed to reschedule cron job")
+  }
 
   return newJob
 }
