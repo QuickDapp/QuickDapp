@@ -41,11 +41,11 @@ const recreateFilters = async (params: JobParams) => {
     try {
       const chainFilter = chainFilters[filterName]
 
-      const filter = await chainFilter.createFilter(client)
+      const filter = await chainFilter!.createFilter(client)
 
       if (filter) {
         activeFilters[filterName] = {
-          chainFilter,
+          chainFilter: chainFilter!,
           filter,
           name: filterName,
         }
@@ -79,7 +79,7 @@ export const run: JobRunner = async (params: JobParams) => {
   // Process each active filter
   await Promise.all(
     Object.keys(activeFilters).map(async (filterName) => {
-      const filterModule = activeFilters[filterName]
+      const filterModule = activeFilters[filterName]!
       const filterLog = log.child(filterName)
 
       try {

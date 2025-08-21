@@ -79,8 +79,8 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
       try {
         // Load ERC20 ABI to read token info
         const contractPath = path.join(
-          process.cwd(),
-          "tests/helpers/contracts/out/TestToken.sol/TestToken.json",
+          path.dirname(__filename),
+          "../../../tests/helpers/contracts/out/TestToken.sol/TestToken.json",
         )
 
         if (fs.existsSync(contractPath)) {

@@ -16,6 +16,7 @@ import {
 import { AuthService } from "../../src/server/auth"
 import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
+import { serverConfig } from "../../src/shared/config/env"
 import { testLogger } from "./logger"
 
 export interface TestWallet {
@@ -134,13 +135,13 @@ export async function signSIWEMessage(
  */
 function getJWTSecret(): string {
   // In test environment, always use the test key
-  if (process.env.NODE_ENV === "test") {
+  if (serverConfig.NODE_ENV === "test") {
     return "test_key_32_chars_long_for_testing_only!!"
   }
 
   // Otherwise use the actual server key
   return (
-    process.env.SESSION_ENCRYPTION_KEY ||
+    serverConfig.SESSION_ENCRYPTION_KEY ||
     "test_key_32_chars_long_for_testing_only!!"
   )
 }
@@ -163,7 +164,7 @@ export async function createTestJWT(
   } = options
 
   testLogger.debug(`[TEST DEBUG] Creating JWT with secret: ${secret}`)
-  testLogger.debug(`[TEST DEBUG] NODE_ENV: ${process.env.NODE_ENV}`)
+  testLogger.debug(`[TEST DEBUG] NODE_ENV: ${serverConfig.NODE_ENV}`)
   testLogger.debug(`[TEST DEBUG] Wallet: ${wallet}`)
 
   const jwtSecret = new TextEncoder().encode(secret)
