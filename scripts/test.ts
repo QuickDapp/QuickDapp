@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { $, spawn } from "bun"
+import { $, Glob, spawn } from "bun"
 import {
   type CommandSetup,
   createScriptRunner,
@@ -17,14 +17,7 @@ interface TestOptions extends ScriptOptions {
 }
 
 async function testHandler(options: TestOptions) {
-  const {
-    pattern = "",
-    watch = false,
-    timeout = 30000,
-    testFile,
-    bail = false,
-    serial = false,
-  } = options
+  const { pattern = "", timeout = 30000, testFile, bail = false } = options
 
   // Set up test database first
   console.log("📦 Setting up test database...")
@@ -37,60 +30,101 @@ async function testHandler(options: TestOptions) {
   }
   console.log("")
 
-  // Prepare test command arguments
-  const args = ["test"]
+  // Get all test files for isolation mode
+  const testDir = "tests/"
+  const glob = new Glob("**/*.test.ts")
+  const testFiles = []
+  for await (const file of glob.scan(testDir)) {
+    testFiles.push(`${testDir}${file}`)
+  }
 
+  // Filter test files based on options
+  let filesToRun = testFiles
   if (testFile) {
-    args.push(testFile)
+    filesToRun = [testFile]
   } else if (pattern) {
-    // Run pattern against our test files only
-    args.push("tests/")
-    args.push("--pattern", pattern)
-  } else {
-    // Only run tests in our tests/ directory
-    args.push("tests/")
+    filesToRun = testFiles.filter((file) => file.includes(pattern))
   }
 
-  if (watch) {
-    args.push("--watch")
+  if (filesToRun.length === 0) {
+    console.log("❌ No test files found matching criteria")
+    process.exit(1)
   }
 
-  if (timeout) {
-    args.push("--timeout", timeout.toString())
+  console.log("🚀 Running tests in isolation mode...")
+  console.log(`   Found ${filesToRun.length} test file(s):`)
+  for (const file of filesToRun) {
+    console.log(`   - ${file}`)
   }
-
-  if (options.verbose) {
-    args.push("--verbose")
-  }
-
-  if (bail) {
-    args.push("--bail")
-  }
-
-  if (serial) {
-    args.push("--concurrency", "1")
-  }
-
-  console.log("🚀 Running tests...")
-  console.log(`   Command: bun ${args.join(" ")}`)
   console.log("")
 
-  // Run tests
-  const result = await spawn(["bun", ...args], {
-    stdio: ["inherit", "inherit", "inherit"],
-    env: {
-      ...process.env,
-      NODE_ENV: "test", // Force test environment
-    },
-  }).exited
+  let totalPassed = 0
+  let totalFailed = 0
+  const failedFiles = []
 
-  if (result === 0) {
+  // Run each test file in isolation
+  for (const [index, file] of filesToRun.entries()) {
+    console.log(`[${index + 1}/${filesToRun.length}] Running: ${file}`)
+
+    const args = ["test", `./${file}`, "--bail"]
+
+    if (timeout) {
+      args.push("--timeout", timeout.toString())
+    }
+
+    if (options.verbose) {
+      args.push("--verbose")
+    }
+
+    // Always run in serial mode for isolation
+    args.push("--concurrency", "1")
+
+    const result = await spawn(["bun", ...args], {
+      stdio: ["inherit", "inherit", "inherit"],
+      cwd: process.cwd(), // Ensure we stay in the current directory
+      env: {
+        ...process.env,
+        NODE_ENV: "test", // Force test environment
+      },
+    }).exited
+
+    if (result === 0) {
+      totalPassed++
+      console.log(`✅ ${file} passed`)
+    } else {
+      totalFailed++
+      failedFiles.push(file)
+      console.log(`❌ ${file} failed`)
+
+      if (bail) {
+        console.log("")
+        console.log("🛑 Stopping due to --bail flag")
+        break
+      }
+    }
+
     console.log("")
-    console.log("✅ Tests completed successfully!")
+  }
+
+  // Summary
+  console.log("📊 Test Summary:")
+  console.log(`   Passed: ${totalPassed}`)
+  console.log(`   Failed: ${totalFailed}`)
+
+  if (failedFiles.length > 0) {
+    console.log("   Failed files:")
+    for (const file of failedFiles) {
+      console.log(`   - ${file}`)
+    }
+  }
+
+  if (totalFailed > 0) {
+    console.log("")
+    console.log("❌ Some tests failed!")
+    process.exit(1)
   } else {
     console.log("")
-    console.log("❌ Tests failed!")
-    process.exit(result)
+    console.log("✅ All tests passed!")
   }
 }
 
