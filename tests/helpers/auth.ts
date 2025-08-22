@@ -205,7 +205,9 @@ export async function createMalformedJWT(
       )
       // Corrupt the signature part
       const parts = validToken.split(".")
-      const corruptedSignature = parts[2].replace(/[a-zA-Z]/, "X")
+      const signature = parts[2]
+      if (!signature) throw new Error("Invalid token format")
+      const corruptedSignature = signature.replace(/[a-zA-Z]/, "X")
       return `${parts[0]}.${parts[1]}.${corruptedSignature}`
     }
 
@@ -238,6 +240,7 @@ export function decodeJWT(token: string): any {
     }
 
     const payload = parts[1]
+    if (!payload) throw new Error("Invalid JWT payload")
     const decoded = Buffer.from(payload, "base64url").toString("utf-8")
     return JSON.parse(decoded)
   } catch (error) {
@@ -281,6 +284,8 @@ function createMockServerApp(): ServerApp {
     rootLogger,
     createLogger: (category: string) => rootLogger.child(category),
     workerManager: {} as any,
+    publicClient: {} as any,
+    walletClient: {} as any,
   }
 }
 

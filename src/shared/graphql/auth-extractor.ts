@@ -16,8 +16,13 @@ export function extractAuthOperations(
       enter(node, key, parent, path, ancestors) {
         // Find the parent ObjectTypeDefinition by looking at ancestors
         const parentType = ancestors.find(
-          (ancestor) => ancestor && ancestor.kind === "ObjectTypeDefinition",
-        )
+          (ancestor) =>
+            ancestor &&
+            !Array.isArray(ancestor) &&
+            typeof ancestor === "object" &&
+            "kind" in ancestor &&
+            ancestor.kind === "ObjectTypeDefinition",
+        ) as any
 
         // Only look at Query and Mutation fields
         if (

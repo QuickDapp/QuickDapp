@@ -10,7 +10,7 @@ export const jobRegistry: JobRegistry = {
   deployMulticall3: deployMulticall3Job,
 }
 
-// Export all jobs for easy importing
-export * from "./deployMulticall3"
-export * from "./removeOldWorkerJobs"
-export * from "./watchChain"
+// Export individual job objects (avoiding conflicts from multiple 'run' exports)
+export { deployMulticall3Job } from "./deployMulticall3"
+export { removeOldWorkerJobsJob } from "./removeOldWorkerJobs"
+export { watchChainJob } from "./watchChain"

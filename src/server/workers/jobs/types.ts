@@ -1,6 +1,6 @@
-import type { WorkerJob } from "../db/schema"
-import type { Logger } from "../lib/logger"
-import type { ServerApp } from "../types"
+import type { WorkerJob } from "../../db/schema"
+import type { Logger } from "../../lib/logger"
+import type { ServerApp } from "../../types"
 
 export interface JobParams {
   serverApp: ServerApp

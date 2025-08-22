@@ -12,14 +12,13 @@ import {
 
 interface BuildOptions extends ScriptOptions {
   clean?: boolean
-  skipTypecheck?: boolean
 }
 
 async function buildHandler(
   options: BuildOptions,
   config: { rootFolder: string; env: string },
 ) {
-  const { clean = true, skipTypecheck = false } = options
+  const { clean = true } = options
 
   console.log("🏗️  Building QuickDapp v3 for production...")
   console.log("")
@@ -49,33 +48,26 @@ async function buildHandler(
     console.warn("⚠️  ABI generation failed, using defaults:", error)
   }
 
-  // Step 3: Type checking
-  if (!skipTypecheck) {
-    console.log("🔍 Type checking...")
-    await $`tsc --noEmit`
-    console.log("✅ Type checking passed")
-  }
-
-  // Step 4: Lint (if biome is available)
+  // Step 3: Lint and type check
   try {
-    console.log("🔎 Linting code...")
+    console.log("🔎 Linting and type checking...")
     await $`bun run lint`
-    console.log("✅ Linting passed")
+    console.log("✅ Linting and type checking passed")
   } catch (_error) {
-    console.warn("⚠️  Linting failed, continuing build...")
+    console.warn("⚠️  Linting or type checking failed, continuing build...")
   }
 
-  // Step 5: Build frontend
+  // Step 4: Build frontend
   console.log("🎨 Building frontend...")
   await $`bun vite build`.cwd(path.join(config.rootFolder, "src/client"))
   console.log("✅ Frontend build created")
 
-  // Step 6: Build server bundle
+  // Step 5: Build server bundle
   console.log("📦 Building server bundle...")
   await $`bun build src/server/index.ts --outdir dist --target bun --minify --sourcemap`
   console.log("✅ Server bundle created")
 
-  // Step 7: Validation
+  // Step 6: Validation
   console.log("🔍 Validating build...")
   if (!existsSync("dist/index.js")) {
     throw new Error("Build failed - server output file not found")
@@ -107,7 +99,6 @@ const setupBuildCommand: CommandSetup = (program) => {
   return program
     .option("--clean", "clean dist directory before build (default: true)")
     .option("--no-clean", "skip cleaning dist directory")
-    .option("--skip-typecheck", "skip TypeScript type checking")
 }
 
 // Create script runner

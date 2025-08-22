@@ -34,9 +34,15 @@ const loadAbi = (cfgs: AbiConfig[]): object => {
 
           if (abi && Array.isArray(abi)) {
             abi.forEach((f: any) => {
-              if (!cfg.types || cfg.types.includes(f.type)) {
-                fragments[f.type] = fragments[f.type] || {}
-                fragments[f.type][f.name] = f
+              if (
+                f?.type &&
+                f?.name &&
+                (!cfg.types || cfg.types.includes(f.type))
+              ) {
+                const type = f.type
+                const name = f.name
+                fragments[type] = fragments[type] || {}
+                fragments[type][name] = f
               }
             })
           }
@@ -56,7 +62,10 @@ const loadAbi = (cfgs: AbiConfig[]): object => {
   })
 
   Object.keys(fragments).forEach((type: string) => {
-    ret.push(...Object.values(fragments[type]))
+    const typeFragments = fragments[type]
+    if (typeFragments) {
+      ret.push(...Object.values(typeFragments))
+    }
   })
 
   return ret
@@ -77,9 +86,14 @@ try {
   const abis = Object.keys(config).reduce(
     (acc, name) => {
       try {
-        const abi = loadAbi(config[name])
-        acc[name] =
-          `const ${name}_ABI = ${JSON.stringify(abi, null, 2)} as const`
+        const abiConfig = config[name]
+        if (abiConfig) {
+          const abi = loadAbi(abiConfig)
+          acc[name] =
+            `const ${name}_ABI = ${JSON.stringify(abi, null, 2)} as const`
+        } else {
+          acc[name] = `const ${name}_ABI = [] as const // No config found`
+        }
         return acc
       } catch (err) {
         console.error(`Error loading ABI for ${name}:`, err)

@@ -50,7 +50,7 @@ describe("Worker Blockchain Integration Tests", () => {
       testLogger.error("❌ Blockchain test setup failed:", error)
       throw error
     }
-  }, 45000) // Longer timeout for Anvil startup
+  }) // Longer timeout for Anvil startup
 
   afterAll(async () => {
     try {
@@ -75,7 +75,7 @@ describe("Worker Blockchain Integration Tests", () => {
     } catch (error) {
       testLogger.error("❌ Blockchain test cleanup failed:", error)
     }
-  }, 20000)
+  })
 
   describe("Blockchain Event Monitoring", () => {
     test("should monitor ERC20 transfer events and create notifications", async () => {
@@ -172,7 +172,7 @@ describe("Worker Blockchain Integration Tests", () => {
         "✅ Transfer notification found:",
         transferNotification?.data,
       )
-    }, 30000)
+    })
 
     test.skip("should handle multiple token contracts being monitored", async () => {
       // Create a test user for the token sender (account[0] owns all deployed tokens)
@@ -247,7 +247,7 @@ describe("Worker Blockchain Integration Tests", () => {
 
       // Should have at least 2 notifications (one for each token transfer)
       expect(userNotifications.length).toBeGreaterThanOrEqual(2)
-    }, 35000)
+    })
 
     test("should handle blockchain job scheduling gracefully", async () => {
       // Test that we can schedule watchChain jobs successfully
