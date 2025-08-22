@@ -49,7 +49,7 @@ export const createApp = async (
     process.exit(1)
   })
 
-  logger.info("Starting QuickDapp v3 server...")
+  logger.info("Starting QuickDapp server...")
 
   // Create ServerApp with worker manager
   const bootstrapResult = await createServerApp({
@@ -165,10 +165,10 @@ export const createApp = async (
         return new Response(`
           <!DOCTYPE html>
           <html>
-            <head><title>QuickDapp v3</title></head>
+            <head><title>QuickDapp</title></head>
             <body>
               <div style="margin: 2rem; font-family: system-ui;">
-                <h1>QuickDapp v3 Development Server</h1>
+                <h1>QuickDapp Development Server</h1>
                 <p>The frontend hasn't been built yet. To start the frontend:</p>
                 <ol>
                   <li>Run <code>cd src/client && bun run dev</code> in another terminal</li>
@@ -197,7 +197,7 @@ export const createApp = async (
     (server) => {
       const duration = performance.now() - startTime
       logger.info(
-        `🚀 QuickDapp v3 server v${serverConfig.APP_VERSION} started in ${duration.toFixed(2)}ms`,
+        `🚀 QuickDapp server v${serverConfig.APP_VERSION} started in ${duration.toFixed(2)}ms`,
       )
       logger.info(`➜ Running at: ${server.url}`)
       logger.info(`➜ GraphQL endpoint: ${server.url}graphql`)

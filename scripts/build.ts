@@ -20,7 +20,7 @@ async function buildHandler(
 ) {
   const { clean = true } = options
 
-  console.log("🏗️  Building QuickDapp v3 for production...")
+  console.log("🏗️  Building QuickDapp for production...")
   console.log("")
 
   // Step 1: Clean previous builds

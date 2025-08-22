@@ -12,9 +12,7 @@ export function HomePage() {
 
       <main className="max-w-4xl mx-auto">
         <div className="card">
-          <h2 className="text-2xl font-semibold mb-4">
-            Welcome to QuickDapp v3
-          </h2>
+          <h2 className="text-2xl font-semibold mb-4">Welcome to QuickDapp</h2>
           <p className="text-muted mb-6">
             This is the homepage placeholder. Connect your wallet to start
             creating and managing tokens.

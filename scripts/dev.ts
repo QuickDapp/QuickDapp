@@ -14,7 +14,7 @@ async function devHandler(
   _options: DevOptions,
   config: { rootFolder: string; env: string },
 ) {
-  console.log("🚀 Starting QuickDapp v3 development server...")
+  console.log("🚀 Starting QuickDapp development server...")
   console.log("")
 
   // Check for sample contracts and provide helpful message

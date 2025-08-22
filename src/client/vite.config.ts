@@ -21,6 +21,7 @@ export default defineConfig({
     proxy: {
       "/api": "http://localhost:3000",
       "/auth": "http://localhost:3000",
+      "/graphql": "http://localhost:3000",
     },
   },
   build: {

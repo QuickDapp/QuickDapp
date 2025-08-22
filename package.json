@@ -1,7 +1,7 @@
 {
-  "name": "quickdapp-v3",
-  "version": "3.0.0",
-  "description": "Modern dapp development platform - version 3",
+  "name": "quickdapp",
+  "version": "1.0.0",
+  "description": "Modern dapp development platform",
   "type": "module",
   "private": true,
   "main": "src/server/index.ts",
