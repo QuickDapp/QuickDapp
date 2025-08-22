@@ -15,3 +15,25 @@ export const MARK_ALL_NOTIFICATIONS_AS_READ = gql`
     }
   }
 `
+
+// Token mutations
+export const CREATE_TOKEN = gql`
+  mutation CreateToken($input: CreateTokenInput!) {
+    createToken(input: $input) {
+      success
+      tokenAddress
+      transactionHash
+      error
+    }
+  }
+`
+
+export const TRANSFER_TOKEN = gql`
+  mutation TransferToken($input: TransferTokenInput!) {
+    transferToken(input: $input) {
+      success
+      transactionHash
+      error
+    }
+  }
+`

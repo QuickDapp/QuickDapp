@@ -1,3 +1,9 @@
+import { ConnectWallet } from "../components/ConnectWallet"
+import { CreateTokenDialog } from "../components/CreateTokenDialog"
+import { IfWalletConnected } from "../components/IfWalletConnected"
+import { NumTokens } from "../components/NumTokens"
+import { TokenList } from "../components/TokenList"
+
 export function HomePage() {
   return (
     <div className="container mx-auto px-4 py-8">
@@ -8,38 +14,29 @@ export function HomePage() {
         <p className="text-xl text-muted">
           Fast, simple dapp development platform
         </p>
+        <div className="mt-6">
+          <ConnectWallet />
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto">
-        <div className="card">
-          <h2 className="text-2xl font-semibold mb-4">Welcome to QuickDapp</h2>
+        <div className="card mb-8">
+          <h2 className="text-2xl font-semibold mb-4">ERC20 Token Factory</h2>
           <p className="text-muted mb-6">
-            This is the homepage placeholder. Connect your wallet to start
-            creating and managing tokens.
+            Create and transfer ERC-20 tokens using our factory contract.
           </p>
+        </div>
 
-          <div className="space-y-4">
-            <button className="btn-primary">Connect Wallet</button>
-            <div className="text-sm text-muted">
-              Web3 integration coming in Phase 2
+        <IfWalletConnected>
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <NumTokens />
+              <CreateTokenDialog />
             </div>
-          </div>
-        </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="card">
-            <h3 className="text-xl font-semibold mb-3">Create Tokens</h3>
-            <p className="text-muted">
-              Deploy ERC20 tokens quickly with our factory contract
-            </p>
+            <TokenList />
           </div>
-          <div className="card">
-            <h3 className="text-xl font-semibold mb-3">Manage Assets</h3>
-            <p className="text-muted">
-              View and manage your deployed tokens and contracts
-            </p>
-          </div>
-        </div>
+        </IfWalletConnected>
       </main>
     </div>
   )
