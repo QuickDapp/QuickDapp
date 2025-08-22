@@ -68,12 +68,10 @@ export const startAnvil = async (port?: number): Promise<AnvilInstance> => {
       "10",
       "--balance",
       "10000",
-      "--gas-limit",
-      "30000000",
-      "--code-size-limit",
-      "50000",
       "--gas-price",
       "1000000000", // 1 gwei
+      "--block-time",
+      "1",
     ])
 
     let isResolved = false
