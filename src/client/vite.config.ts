@@ -23,7 +23,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "../server/static/client",
+    outDir: "../../dist/client",
     emptyOutDir: true,
     rollupOptions: {
       output: {
