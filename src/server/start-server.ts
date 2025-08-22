@@ -10,7 +10,9 @@ import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
 
 // Create and start the server
-export const createApp = async () => {
+export const createApp = async (
+  options: { workerCountOverride?: number } = {},
+) => {
   const startTime = performance.now()
 
   // Create logger instance
@@ -49,7 +51,10 @@ export const createApp = async () => {
   logger.info("Starting QuickDapp v3 server...")
 
   // Create ServerApp with worker manager
-  const bootstrapResult = await createServerApp({ includeWorkerManager: true })
+  const bootstrapResult = await createServerApp({
+    includeWorkerManager: true,
+    workerCountOverride: options.workerCountOverride,
+  })
 
   // Create base Elysia app
   const app = new Elysia({
@@ -188,8 +193,9 @@ export const createApp = async () => {
         `)
       }
 
-      set.status = 500
-      return { error: "Frontend assets not found" }
+      // Return 404 for unknown routes - this is semantically correct
+      set.status = 404
+      return { error: "Not found" }
     }
   })
 

@@ -20,12 +20,14 @@ export interface TestServer {
 /**
  * Start a test server instance using the real server creation code
  */
-export async function startTestServer(): Promise<TestServer> {
+export async function startTestServer(
+  options: { workerCountOverride?: number } = {},
+): Promise<TestServer> {
   testLogger.info("🚀 Starting test server...")
 
   // Use the real server creation code - this will automatically use test configuration
   // since NODE_ENV=test is set by the test runner
-  const { app, server, serverApp } = await createApp()
+  const { app, server, serverApp } = await createApp(options)
 
   // The server will automatically start on the test port (3002)
   // because that's configured in .env.test

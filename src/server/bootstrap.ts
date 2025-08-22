@@ -11,13 +11,16 @@ import type { ServerApp } from "./types"
  * This is shared between the main server process and worker processes
  */
 export const createServerApp = async (
-  options: { includeWorkerManager?: boolean } = {},
+  options: {
+    includeWorkerManager?: boolean
+    workerCountOverride?: number
+  } = {},
 ): Promise<
   Omit<ServerApp, "app" | "workerManager"> & {
     workerManager?: ServerApp["workerManager"]
   }
 > => {
-  const { includeWorkerManager = false } = options
+  const { includeWorkerManager = false, workerCountOverride } = options
 
   // Create logger
   const rootLogger = createLogger("server")
@@ -64,7 +67,10 @@ export const createServerApp = async (
     const { createWorkerManager } = await import("./workers")
     return {
       ...baseServerApp,
-      workerManager: await createWorkerManager(baseServerApp as any),
+      workerManager: await createWorkerManager(
+        baseServerApp as any,
+        workerCountOverride,
+      ),
     }
   }
 

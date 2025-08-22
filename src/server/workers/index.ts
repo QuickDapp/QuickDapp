@@ -107,12 +107,14 @@ class WorkerProcess {
 
 export const createWorkerManager = async (
   serverApp: ServerApp,
+  workerCountOverride?: number,
 ): Promise<WorkerManager> => {
   const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER_MANAGER)
   const workerCount =
-    serverConfig.WORKER_COUNT === "cpus"
+    workerCountOverride ??
+    (serverConfig.WORKER_COUNT === "cpus"
       ? os.cpus().length
-      : serverConfig.WORKER_COUNT
+      : serverConfig.WORKER_COUNT)
 
   const workers: WorkerProcess[] = []
 
