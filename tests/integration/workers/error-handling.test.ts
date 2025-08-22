@@ -10,7 +10,13 @@ import {
 import { and, eq } from "drizzle-orm"
 import { workerJobs } from "../../../src/server/db/schema"
 import { scheduleJob } from "../../../src/server/db/worker"
+import type { BlockchainTestContext } from "../../helpers/blockchain"
+import {
+  cleanupBlockchainTestContext,
+  createBlockchainTestContext,
+} from "../../helpers/blockchain"
 import { setupTestDatabase } from "../../helpers/database"
+import { testLogger } from "../../helpers/logger"
 import type { TestServer } from "../../helpers/server"
 import { startTestServer, waitForServer } from "../../helpers/server"
 import type { TestWorkerContext } from "../../helpers/worker"
@@ -24,19 +30,36 @@ import {
 import "../../setup"
 
 describe("Worker Error Handling", () => {
+  let blockchainContext: BlockchainTestContext
   let serverContext: TestServer
   let workerContext: TestWorkerContext
 
   beforeAll(async () => {
-    // Setup test database
-    await setupTestDatabase()
+    try {
+      testLogger.info("🔧 Setting up worker error handling tests...")
 
-    // Start test server
-    serverContext = await startTestServer()
-    await waitForServer(serverContext.url)
+      // Setup test database
+      await setupTestDatabase()
 
-    // Create and start test worker
-    workerContext = await startTestWorker()
+      // Start Anvil blockchain instance for deployMulticall3 job
+      testLogger.info("🔗 Starting test blockchain...")
+      blockchainContext = await createBlockchainTestContext()
+      testLogger.info(
+        `✅ Test blockchain started at ${blockchainContext.anvil.url}`,
+      )
+
+      // Start test server
+      serverContext = await startTestServer()
+      await waitForServer(serverContext.url)
+
+      // Create and start test worker
+      workerContext = await startTestWorker()
+
+      testLogger.info("✅ Worker error handling test setup complete")
+    } catch (error) {
+      testLogger.error("❌ Worker error handling test setup failed:", error)
+      throw error
+    }
   })
 
   beforeEach(async () => {
@@ -48,11 +71,22 @@ describe("Worker Error Handling", () => {
   })
 
   afterAll(async () => {
-    // Stop worker
-    await stopTestWorker(workerContext)
+    try {
+      testLogger.info("🧹 Cleaning up worker error handling tests...")
 
-    // Shutdown server
-    await serverContext.shutdown()
+      // Stop worker
+      await stopTestWorker(workerContext)
+
+      // Shutdown server
+      await serverContext.shutdown()
+
+      // Cleanup blockchain
+      await cleanupBlockchainTestContext(blockchainContext)
+
+      testLogger.info("✅ Worker error handling test cleanup complete")
+    } catch (error) {
+      testLogger.error("❌ Worker error handling test cleanup failed:", error)
+    }
   })
 
   test("should handle job execution errors gracefully", async () => {

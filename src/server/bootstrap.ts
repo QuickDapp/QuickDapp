@@ -5,6 +5,7 @@ import { serverConfig } from "../shared/config/env"
 import { dbManager } from "./db/connection"
 import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
+import { createWorkerManager } from "./workers"
 
 /**
  * Creates a ServerApp instance with all necessary dependencies
@@ -63,8 +64,6 @@ export const createServerApp = async (
   }
 
   if (includeWorkerManager) {
-    // Dynamically import to avoid circular dependency
-    const { createWorkerManager } = await import("./workers")
     return {
       ...baseServerApp,
       workerManager: await createWorkerManager(

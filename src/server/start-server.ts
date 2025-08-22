@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import path from "node:path"
 import { cors } from "@elysiajs/cors"
 import { staticPlugin } from "@elysiajs/static"
@@ -127,7 +128,7 @@ export const createApp = async (
   app.use(createGraphQLHandler(serverApp))
 
   // Serve static assets from Vite build
-  const staticDir = path.join(import.meta.dir, "static", "dist")
+  const staticDir = path.join(import.meta.dir, "static")
   app.use(
     staticPlugin({
       assets: staticDir,
@@ -148,27 +149,15 @@ export const createApp = async (
       return { error: "Not found" }
     }
 
-    // Read and serve index.html with injected config
+    const staticClientDir = path.join(staticDir, "client")
+
+    // Read and serve index.html (config should be injected during build)
     try {
-      const indexPath = path.join(staticDir, "index.html")
-      const { readFileSync } = await import("node:fs")
+      const indexPath = path.join(staticClientDir, "index.html")
       const indexHtml = readFileSync(indexPath, "utf8")
 
-      // Inject client config into the HTML
-      const configScript = `<script>window.__CONFIG__ = ${JSON.stringify({
-        BASE_URL: serverConfig.BASE_URL,
-        CHAIN: serverConfig.CHAIN,
-        FACTORY_CONTRACT_ADDRESS: serverConfig.FACTORY_CONTRACT_ADDRESS,
-        WALLETCONNECT_PROJECT_ID: serverConfig.WALLETCONNECT_PROJECT_ID,
-      })};</script>`
-
-      const htmlWithConfig = indexHtml.replace(
-        "</head>",
-        `${configScript}\n  </head>`,
-      )
-
       set.headers["Content-Type"] = "text/html"
-      return new Response(htmlWithConfig)
+      return new Response(indexHtml)
     } catch {
       // If frontend hasn't been built yet, show development message
       if (serverConfig.NODE_ENV === "development") {

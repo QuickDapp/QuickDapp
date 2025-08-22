@@ -11,7 +11,13 @@ import {
   getTotalPendingJobs,
   scheduleCronJob,
 } from "../../../src/server/db/worker"
+import type { BlockchainTestContext } from "../../helpers/blockchain"
+import {
+  cleanupBlockchainTestContext,
+  createBlockchainTestContext,
+} from "../../helpers/blockchain"
 import { cleanTestDatabase, setupTestDatabase } from "../../helpers/database"
+import { testLogger } from "../../helpers/logger"
 import type { TestServer } from "../../helpers/server"
 import { startTestServer, waitForServer } from "../../helpers/server"
 import type { TestWorkerContext } from "../../helpers/worker"
@@ -24,19 +30,36 @@ import {
 import "../../setup"
 
 describe("Worker Cron Job Scheduling", () => {
+  let blockchainContext: BlockchainTestContext
   let serverContext: TestServer
   let workerContext: TestWorkerContext
 
   beforeAll(async () => {
-    // Setup test database
-    await setupTestDatabase()
+    try {
+      testLogger.info("🔧 Setting up worker cron job tests...")
 
-    // Start test server
-    serverContext = await startTestServer()
-    await waitForServer(serverContext.url)
+      // Setup test database
+      await setupTestDatabase()
 
-    // Create and start test worker
-    workerContext = await startTestWorker()
+      // Start Anvil blockchain instance for deployMulticall3 job
+      testLogger.info("🔗 Starting test blockchain...")
+      blockchainContext = await createBlockchainTestContext()
+      testLogger.info(
+        `✅ Test blockchain started at ${blockchainContext.anvil.url}`,
+      )
+
+      // Start test server
+      serverContext = await startTestServer()
+      await waitForServer(serverContext.url)
+
+      // Create and start test worker
+      workerContext = await startTestWorker()
+
+      testLogger.info("✅ Worker cron job test setup complete")
+    } catch (error) {
+      testLogger.error("❌ Worker cron job test setup failed:", error)
+      throw error
+    }
   })
 
   beforeEach(async () => {
@@ -50,11 +73,22 @@ describe("Worker Cron Job Scheduling", () => {
   })
 
   afterAll(async () => {
-    // Stop worker
-    await stopTestWorker(workerContext)
+    try {
+      testLogger.info("🧹 Cleaning up worker cron job tests...")
 
-    // Shutdown server
-    await serverContext.shutdown()
+      // Stop worker
+      await stopTestWorker(workerContext)
+
+      // Shutdown server
+      await serverContext.shutdown()
+
+      // Cleanup blockchain
+      await cleanupBlockchainTestContext(blockchainContext)
+
+      testLogger.info("✅ Worker cron job test cleanup complete")
+    } catch (error) {
+      testLogger.error("❌ Worker cron job test cleanup failed:", error)
+    }
   })
 
   test("should reschedule cron job after execution", async () => {

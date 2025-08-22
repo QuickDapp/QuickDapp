@@ -31,7 +31,7 @@ async function buildHandler(
     }
     const frontendDistPath = path.join(
       config.rootFolder,
-      "src/server/static/dist",
+      "src/server/static/client",
     )
     if (existsSync(frontendDistPath)) {
       console.log("🧹 Cleaning previous frontend build...")
@@ -75,7 +75,7 @@ async function buildHandler(
 
   const frontendIndexPath = path.join(
     config.rootFolder,
-    "src/server/static/dist/index.html",
+    "src/server/static/client/index.html",
   )
   if (!existsSync(frontendIndexPath)) {
     throw new Error("Build failed - frontend index.html not found")
@@ -87,7 +87,7 @@ async function buildHandler(
   console.log("📄 Build artifacts:")
   console.log("   dist/index.js                    - Server bundle")
   console.log("   dist/index.js.map                - Source map")
-  console.log("   src/server/static/dist/          - Frontend assets")
+  console.log("   src/server/static/client/        - Frontend assets")
   console.log("")
   console.log("🚀 To run production server:")
   console.log("   cd dist && bun index.js")
