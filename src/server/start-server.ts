@@ -139,16 +139,6 @@ export const createApp = async (
 
   // Serve index.html for SPA routes (catch-all for frontend routing)
   app.get("/*", async ({ set, path: requestPath }) => {
-    // Skip API routes and assets
-    if (
-      requestPath.startsWith("/api") ||
-      requestPath.startsWith("/graphql") ||
-      requestPath.startsWith("/assets")
-    ) {
-      set.status = 404
-      return { error: "Not found" }
-    }
-
     const staticClientDir = path.join(staticDir, "client")
 
     // Read and serve index.html (config should be injected during build)
