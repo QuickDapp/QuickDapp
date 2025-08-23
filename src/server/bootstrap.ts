@@ -1,8 +1,8 @@
 import { createPublicClient, createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
-import { foundry, sepolia } from "viem/chains"
-import { serverConfig } from "../shared/config/env"
+import { serverConfig } from "../shared/config/server"
 import { dbManager } from "./db/connection"
+import { getChain } from "./lib/chains"
 import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
 import { createWorkerManager } from "./workers"
@@ -37,7 +37,7 @@ export const createServerApp = async (
   rootLogger.info("Database connected")
 
   // Create blockchain clients
-  const chain = serverConfig.CHAIN === "sepolia" ? sepolia : foundry
+  const chain = getChain()
   const rpcUrl = serverConfig.CHAIN_RPC_ENDPOINT
 
   const publicClient = createPublicClient({

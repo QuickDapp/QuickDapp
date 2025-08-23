@@ -1,6 +1,6 @@
 import multicall3Data from "../abi/data/multicall3.json"
 import { ContractName, getContractAbi } from "../abi/generated"
-import { clientConfig } from "../config/env"
+import { clientConfig } from "../config/client"
 
 export { ContractName }
 

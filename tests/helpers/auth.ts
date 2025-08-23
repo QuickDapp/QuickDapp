@@ -16,7 +16,7 @@ import {
 import { AuthService } from "../../src/server/auth"
 import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
-import { serverConfig } from "../../src/shared/config/env"
+import { serverConfig } from "../../src/shared/config/server"
 import { testLogger } from "./logger"
 
 export interface TestWallet {

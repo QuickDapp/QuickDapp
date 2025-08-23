@@ -1,7 +1,7 @@
 import { type Address, isAddress } from "viem"
 import erc20AbiJson from "../../shared/abi/data/erc20abi.json"
 import { FactoryContract_ABI } from "../../shared/abi/generated"
-import { serverConfig } from "../../shared/config/env"
+import { serverConfig } from "../../shared/config/server"
 import type { ServerApp } from "../types"
 
 // Use the ERC20 ABI from the JSON file directly

@@ -7,8 +7,7 @@ import {
 } from "wagmi"
 import erc20AbiJson from "../../../shared/abi/data/erc20abi.json"
 import { FactoryContract_ABI } from "../../../shared/abi/generated"
-
-// Get config from window object (injected by server)
+import { clientConfig } from "../../../shared/config/client"
 
 const ERC20_ABI = erc20AbiJson
 
@@ -40,10 +39,7 @@ export function useCreateToken() {
         throw new Error("Wallet not connected")
       }
 
-      const factoryAddress =
-        (typeof window !== "undefined" &&
-          window.__CONFIG__?.FACTORY_CONTRACT_ADDRESS) ||
-        "0x0000000000000000000000000000000000000000"
+      const factoryAddress = clientConfig.FACTORY_CONTRACT_ADDRESS
       const initialSupplyWei = parseUnits(params.initialSupply, params.decimals)
 
       const hash = await writeContractAsync({

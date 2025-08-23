@@ -3,7 +3,7 @@ import path from "node:path"
 import { cors } from "@elysiajs/cors"
 import { staticPlugin } from "@elysiajs/static"
 import { Elysia } from "elysia"
-import { serverConfig } from "../shared/config/env"
+import { serverConfig } from "../shared/config/server"
 import { createServerApp } from "./bootstrap"
 import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
@@ -97,7 +97,11 @@ export const createApp = async (
       cors({
         origin:
           serverConfig.NODE_ENV === "development"
-            ? "*"
+            ? [
+                "http://localhost:5173",
+                "http://localhost:3000",
+                serverConfig.BASE_URL,
+              ]
             : [serverConfig.BASE_URL],
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         credentials: true,

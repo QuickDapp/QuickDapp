@@ -1,5 +1,5 @@
 import { GraphQLClient } from "graphql-request"
-import { clientConfig } from "../config/env"
+import { clientConfig } from "../config/client"
 
 let graphqlClient: GraphQLClient | null = null
 

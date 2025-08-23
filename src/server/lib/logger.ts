@@ -1,6 +1,6 @@
 import { Logger, LogLevel } from "@hiddentao/logger"
 import { ConsoleTransport } from "@hiddentao/logger/transports/console"
-import { serverConfig } from "../../shared/config/env"
+import { serverConfig } from "../../shared/config/server"
 
 // Export the Logger type and LogLevel enum for use in other modules
 export type { Logger } from "@hiddentao/logger"

@@ -27,6 +27,19 @@ export const typeDefs = gql`
     success: Boolean!
   }
 
+  # Authentication types
+  type SiweMessageResult {
+    message: String!
+    nonce: String!
+  }
+
+  type AuthResult {
+    success: Boolean!
+    token: String
+    wallet: String
+    error: String
+  }
+
   # Token-related types
   type Token {
     address: String!
@@ -90,6 +103,10 @@ export const typeDefs = gql`
   }
 
   type Mutation {
+    # Authentication mutations (no auth required)
+    generateSiweMessage(address: String!): SiweMessageResult!
+    authenticateWithSiwe(message: String!, signature: String!): AuthResult!
+    
     # User-specific mutations (auth required)
     markNotificationAsRead(id: PositiveInt!): Success! @auth
     markAllNotificationsAsRead: Success! @auth

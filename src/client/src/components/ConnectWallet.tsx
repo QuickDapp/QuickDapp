@@ -1,6 +1,23 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useEffect } from "react"
+import { useAccount } from "wagmi"
+import { useAuth } from "../hooks/useAuth"
 
 export function ConnectWallet() {
+  const { address, isConnected } = useAccount()
+  const { authenticate, isAuthenticated, isLoading, restoreAuth } = useAuth()
+
+  // Restore authentication on component mount
+  useEffect(() => {
+    restoreAuth()
+  }, [restoreAuth])
+
+  // Auto-authenticate when wallet connects
+  useEffect(() => {
+    if (isConnected && address && !isAuthenticated()) {
+      authenticate(address)
+    }
+  }, [isConnected, address, authenticate, isAuthenticated])
   return (
     <ConnectButton.Custom>
       {({
@@ -90,12 +107,25 @@ export function ConnectWallet() {
                   <button
                     onClick={openAccountModal}
                     type="button"
-                    className="bg-gray-700 hover:bg-gray-600 text-white font-medium px-3 py-2 rounded-md transition-colors"
+                    className={`font-medium px-3 py-2 rounded-md transition-colors ${
+                      isLoading
+                        ? "bg-yellow-600 text-white cursor-wait"
+                        : isAuthenticated()
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-gray-700 hover:bg-gray-600 text-white"
+                    }`}
                   >
-                    {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ""}
+                    {isLoading ? (
+                      "Signing in..."
+                    ) : (
+                      <>
+                        {account.displayName}
+                        {account.displayBalance
+                          ? ` (${account.displayBalance})`
+                          : ""}
+                        {isAuthenticated() && " ✓"}
+                      </>
+                    )}
                   </button>
                 </div>
               )

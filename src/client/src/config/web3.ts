@@ -1,7 +1,7 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit"
 import { createPublicClient, http } from "viem"
 import { hardhat, mainnet, sepolia } from "wagmi/chains"
-import type { ClientConfig } from "../../../shared/config/env"
+import type { ClientConfig } from "../../../shared/config/client"
 
 // Define supported chains based on config
 const getSupportedChains = (chainName: string) => {
@@ -13,11 +13,12 @@ const getSupportedChains = (chainName: string) => {
       return [mainnet]
     case "hardhat":
     case "localhost":
+    case "anvil":
       return [hardhat]
     default:
-      // Fallback to sepolia for development
-      console.warn(`Unknown chain: ${chainName}, falling back to sepolia`)
-      return [sepolia]
+      // Fallback to hardhat for development
+      console.warn(`Unknown chain: ${chainName}, falling back to hardhat`)
+      return [hardhat]
   }
 }
 

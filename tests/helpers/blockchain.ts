@@ -5,7 +5,7 @@ import path from "node:path"
 import { createPublicClient, createWalletClient, http, parseEther } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { foundry } from "viem/chains"
-import { serverConfig } from "../../src/shared/config/env"
+import { serverConfig } from "../../src/shared/config/server"
 import { testLogger } from "./logger"
 
 export interface AnvilInstance {

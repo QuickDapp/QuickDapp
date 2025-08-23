@@ -407,7 +407,7 @@ QuickDapp v3 uses `@hiddentao/logger` for structured, category-based logging thr
 // src/server/lib/logger.ts
 import { Logger, LogLevel } from "@hiddentao/logger"
 import { ConsoleTransport } from "@hiddentao/logger/transports/console"
-import { serverConfig } from "../../shared/config/env"
+import { serverConfig } from "../../shared/config/server"
 
 // Create logger factory function
 export const createRootLogger = (

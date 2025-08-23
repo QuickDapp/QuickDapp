@@ -2,7 +2,7 @@ import { makeExecutableSchema } from "@graphql-tools/schema"
 import { Elysia } from "elysia"
 import { type OperationDefinitionNode, parse } from "graphql"
 import { createYoga } from "graphql-yoga"
-import { serverConfig } from "../../shared/config/env"
+import { serverConfig } from "../../shared/config/server"
 import { AuthDirectiveHelper } from "../../shared/graphql/auth-extractor"
 import { defaultResolvers } from "../../shared/graphql/resolvers"
 import { typeDefs } from "../../shared/graphql/schema"
@@ -30,6 +30,7 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
 
   const yoga = createYoga({
     schema,
+    cors: false, // Disable Yoga's CORS since Elysia handles it
     graphiql:
       serverConfig.NODE_ENV === "development" ||
       serverConfig.NODE_ENV === "test",
@@ -71,10 +72,13 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
         `Authorization header: ${request.headers.get("Authorization")}`,
       )
 
-      // GraphQL only supports POST requests
-      if (request.method !== "POST") {
+      // GraphQL operations require POST, but allow GET for GraphiQL
+      const isGraphQLOperation = request.method === "POST"
+      const isGraphiQLRequest = request.method === "GET"
+
+      if (!isGraphQLOperation && !isGraphiQLRequest) {
         throw new Error(
-          `GraphQL only supports POST requests, received ${request.method}`,
+          `GraphQL endpoint only supports GET (GraphiQL) and POST requests, received ${request.method}`,
         )
       }
 
@@ -82,7 +86,11 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
       let operationName: string | undefined
       let requiresAuth = false
 
-      if (params?.operationName) {
+      // Skip auth checks for GraphiQL GET requests
+      if (isGraphiQLRequest) {
+        operationName = "graphiql"
+        requiresAuth = false
+      } else if (params?.operationName) {
         operationName = params.operationName
         requiresAuth = authHelper.requiresAuth(operationName)
         logger.debug(`Operation name from params: ${operationName}`)
@@ -157,7 +165,6 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
   })
 
   return new Elysia()
-    .all("/graphql", ({ request }) => yoga.fetch(request))
-    .get("/graphql", ({ request }) => yoga.fetch(request))
+    .get("/graphql", ({ request }) => yoga.fetch(request)) // For GraphiQL
     .post("/graphql", ({ request }) => yoga.fetch(request))
 }

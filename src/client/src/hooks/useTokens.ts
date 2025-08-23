@@ -6,6 +6,7 @@ import {
   GET_TOKEN_COUNT,
   GET_TOKEN_INFO,
 } from "../../../shared/graphql/queries"
+import { useAuth } from "./useAuth"
 
 export interface Token {
   address: string
@@ -27,6 +28,7 @@ export interface TokensResponse {
  */
 export function useMyTokens() {
   const { isConnected } = useAccount()
+  const { isAuthenticated } = useAuth()
 
   return useQuery({
     queryKey: ["tokens", "my-tokens"],
@@ -35,7 +37,7 @@ export function useMyTokens() {
       const response = (await graphqlClient.request(GET_MY_TOKENS)) as any
       return response.getMyTokens
     },
-    enabled: isConnected,
+    enabled: isConnected && isAuthenticated(),
     staleTime: 1000 * 30, // 30 seconds
     refetchInterval: 1000 * 60, // 1 minute
   })
@@ -46,6 +48,7 @@ export function useMyTokens() {
  */
 export function useTokenInfo(address: string | undefined) {
   const { isConnected } = useAccount()
+  const { isAuthenticated } = useAuth()
 
   return useQuery({
     queryKey: ["tokens", "token-info", address],
@@ -57,7 +60,7 @@ export function useTokenInfo(address: string | undefined) {
       })) as any
       return response.getTokenInfo
     },
-    enabled: isConnected && !!address,
+    enabled: isConnected && isAuthenticated() && !!address,
     staleTime: 1000 * 60, // 1 minute
   })
 }
@@ -67,6 +70,7 @@ export function useTokenInfo(address: string | undefined) {
  */
 export function useTokenCount() {
   const { isConnected } = useAccount()
+  const { isAuthenticated } = useAuth()
 
   return useQuery({
     queryKey: ["tokens", "count"],
@@ -75,7 +79,7 @@ export function useTokenCount() {
       const response = (await graphqlClient.request(GET_TOKEN_COUNT)) as any
       return response.getTokenCount
     },
-    enabled: isConnected,
+    enabled: isConnected && isAuthenticated(),
     staleTime: 1000 * 30, // 30 seconds
   })
 }

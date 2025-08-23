@@ -90,15 +90,17 @@ try {
         if (abiConfig) {
           const abi = loadAbi(abiConfig)
           acc[name] =
-            `const ${name}_ABI = ${JSON.stringify(abi, null, 2)} as const`
+            `export const ${name}_ABI = ${JSON.stringify(abi, null, 2)} as const`
         } else {
-          acc[name] = `const ${name}_ABI = [] as const // No config found`
+          acc[name] =
+            `export const ${name}_ABI = [] as const // No config found`
         }
         return acc
       } catch (err) {
         console.error(`Error loading ABI for ${name}:`, err)
         // Continue with other ABIs even if one fails
-        acc[name] = `const ${name}_ABI = [] as const // Failed to load ABI`
+        acc[name] =
+          `export const ${name}_ABI = [] as const // Failed to load ABI`
         return acc
       }
     },

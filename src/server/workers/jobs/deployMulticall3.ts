@@ -1,7 +1,7 @@
 import { createPublicClient, createWalletClient, type Hex, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import * as chains from "viem/chains"
-import { serverConfig } from "../../../shared/config/env"
+import { serverConfig } from "../../../shared/config/server"
 import { getMulticall3Info } from "../../../shared/contracts"
 import type { Job, JobParams } from "./types"
 

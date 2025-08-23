@@ -1,6 +1,6 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
-import { serverConfig } from "../../shared/config/env"
+import { serverConfig } from "../../shared/config/server"
 import { createLogger } from "../lib/logger"
 import * as schema from "./schema"
 

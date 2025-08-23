@@ -3,7 +3,7 @@ Phase 1: Basic Homepage with Complete Foundation ✅ COMPLETED
     1.1 Environment Configuration Update ✅
 
     ✅ Replace DIAMOND_PROXY_ADDRESS with FACTORY_CONTRACT_ADDRESS:
-      ✅ Update src/shared/config/env.ts
+      ✅ Update src/shared/config/client.ts and server.ts
       ✅ Update .env file with new variable name
       ✅ Use clientConfig from shared config for all client-side env vars
 
@@ -217,7 +217,8 @@ Phase 1: Basic Homepage with Complete Foundation ✅ COMPLETED
     │   │   ├── queries.ts     # Query definitions
     │   │   └── mutations.ts   # Mutation definitions
     │   └── config/
-    │       └── env.ts         # clientConfig & serverConfig
+    │       ├── client.ts      # clientConfig (browser-safe)
+    │       └── server.ts      # serverConfig (extends client)
     └── scripts/
         ├── shared/
         │   ├── bootstrap.ts
@@ -268,7 +269,7 @@ Phase 1: Basic Homepage with Complete Foundation ✅ COMPLETED
     core functionality
     5. Developer friendly: Clear instructions and optional usage
 
-    Phase 2: Web3 Integration
+    Phase 2: Web3 Integrationnote
 
     - Wallet connection with RainbowKit
     - SIWE authentication

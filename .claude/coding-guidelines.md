@@ -20,6 +20,8 @@
 - Don't introduce new patterns/technologies without exhausting existing options
 - Only make requested changes unless very confident about related changes
 - If rules conflict, ask for clarity before proceeding
+- If using require() and import() statements in a module they should go near the top and not in-line in methods.
+- Aim for high-cohesion, low coupling and good separation fo concerns.
 
 ### Development Workflow
 

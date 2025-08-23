@@ -1,4 +1,4 @@
-import { validateConfig } from "../shared/config/env"
+import { validateConfig } from "../shared/config/server"
 import { createApp } from "./start-server"
 import { startWorker } from "./start-worker"
 

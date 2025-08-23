@@ -1,7 +1,7 @@
 import { type ChildProcess, fork } from "node:child_process"
 import os from "node:os"
 import path from "node:path"
-import { serverConfig } from "../../shared/config/env"
+import { serverConfig } from "../../shared/config/server"
 import { scheduleJob } from "../db/worker"
 import { LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"

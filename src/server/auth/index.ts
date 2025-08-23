@@ -1,7 +1,7 @@
 import { GraphQLError } from "graphql"
 import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
-import { serverConfig } from "../../shared/config/env"
+import { serverConfig } from "../../shared/config/server"
 import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import type { ServerApp } from "../types"

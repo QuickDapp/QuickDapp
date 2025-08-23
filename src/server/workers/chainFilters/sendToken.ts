@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
-import { serverConfig } from "../../../shared/config/env"
+import { serverConfig } from "../../../shared/config/server"
 import { notifications, users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
