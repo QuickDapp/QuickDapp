@@ -153,7 +153,7 @@ export function CreateTokenDialog() {
             {txStatus.isLoading && (
               <div className="text-center">
                 <p className="text-blue-400">Transaction submitted...</p>
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-slate-400 mt-2">
                   Hash: {txHash.slice(0, 10)}...{txHash.slice(-8)}
                 </p>
               </div>
@@ -162,7 +162,7 @@ export function CreateTokenDialog() {
             {txStatus.isSuccess && (
               <div className="text-center">
                 <p className="text-green-400">✅ Token created successfully!</p>
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-slate-400 mt-2">
                   Transaction confirmed
                 </p>
               </div>
@@ -222,7 +222,7 @@ export function CreateTokenDialog() {
                   onChange={handleInputChange("decimals")}
                   error={errors.decimals}
                 />
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-400">
                   Standard is 18 (like ETH)
                 </p>
               </div>
@@ -241,7 +241,7 @@ export function CreateTokenDialog() {
                   onChange={handleInputChange("initialSupply")}
                   error={errors.initialSupply}
                 />
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-400">
                   You'll receive this amount when the token is created
                 </p>
               </div>

@@ -100,7 +100,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
   }
 
   const typeStyles = {
-    default: "bg-gray-800 border-gray-700",
+    default: "bg-slate-800 border-slate-700",
     success: "bg-green-800 border-green-700",
     error: "bg-red-800 border-red-700",
     warning: "bg-yellow-800 border-yellow-700",
@@ -129,13 +129,13 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
               <h4 className="font-medium text-white text-sm">{toast.title}</h4>
             )}
             {toast.description && (
-              <p className="text-sm text-gray-300 mt-1">{toast.description}</p>
+              <p className="text-sm text-slate-300 mt-1">{toast.description}</p>
             )}
           </div>
         </div>
         <button
           onClick={handleClose}
-          className="text-gray-400 hover:text-white transition-colors"
+          className="text-slate-400 hover:text-white transition-colors"
         >
           ✕
         </button>

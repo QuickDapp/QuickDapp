@@ -79,7 +79,7 @@ export function ConnectWallet() {
                   <button
                     onClick={openChainModal}
                     type="button"
-                    className="bg-gray-700 hover:bg-gray-600 text-white font-medium px-3 py-2 rounded-md transition-colors flex items-center gap-2"
+                    className="bg-slate-700 hover:bg-slate-600 text-white font-medium px-3 py-2 rounded-md transition-colors flex items-center gap-2"
                   >
                     {chain.hasIcon && (
                       <div
@@ -112,7 +112,7 @@ export function ConnectWallet() {
                         ? "bg-yellow-600 text-white cursor-wait"
                         : isAuthenticated()
                           ? "bg-green-600 hover:bg-green-700 text-white"
-                          : "bg-gray-700 hover:bg-gray-600 text-white"
+                          : "bg-slate-700 hover:bg-slate-600 text-white"
                     }`}
                   >
                     {isLoading ? (

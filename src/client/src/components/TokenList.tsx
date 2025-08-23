@@ -1,7 +1,9 @@
 import { formatUnits } from "viem"
 import type { Token } from "../hooks/useTokens"
 import { useMyTokens } from "../hooks/useTokens"
+import { cn } from "../utils/cn"
 import { SendTokenDialog } from "./SendTokenDialog"
+import styles from "./TokenList.module.css"
 import { Button } from "./ui/Button"
 
 interface TokenCardProps {
@@ -10,58 +12,40 @@ interface TokenCardProps {
 
 function TokenCard({ token }: TokenCardProps) {
   const formattedBalance = formatUnits(BigInt(token.balance), token.decimals)
-  const formattedTotalSupply = formatUnits(
-    BigInt(token.totalSupply),
-    token.decimals,
-  )
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
-      <div className="mb-3">
-        <h3 className="text-lg font-semibold text-white">{token.name}</h3>
-        <p className="text-sm text-gray-400">
-          {token.symbol} • {token.decimals} decimals
-        </p>
-        <p className="text-xs text-gray-500 font-mono break-all mt-1">
-          {token.address}
-        </p>
-      </div>
-
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-400">Your Balance:</span>
-          <span className="font-medium text-white">
-            {parseFloat(formattedBalance).toLocaleString()} {token.symbol}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-400">Total Supply:</span>
-          <span className="text-sm text-gray-300">
-            {parseFloat(formattedTotalSupply).toLocaleString()} {token.symbol}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        <SendTokenDialog token={token}>
-          <Button size="sm" variant="outline" className="flex-1">
-            Send
-          </Button>
-        </SendTokenDialog>
-
-        <Button
-          size="sm"
-          variant="ghost"
-          className="flex-1"
-          onClick={() => {
-            navigator.clipboard.writeText(token.address)
-          }}
+    <SendTokenDialog token={token}>
+      <div className="p-4 rounded-md m-2 bg-slate-800 hover:bg-slate-600 hover:cursor-pointer transition-colors">
+        <div className="text-sm font-mono mb-2">{token.address}</div>
+        <div
+          className={cn(
+            styles.tokenMeta,
+            "flex flex-row justify-between items-end w-full",
+          )}
         >
-          Copy Address
-        </Button>
+          <div className="text-left">
+            <p>
+              <em>name:</em>
+              {token.name}
+            </p>
+            <p>
+              <em>symbol:</em>
+              {token.symbol}
+            </p>
+            <p>
+              <em>decimals:</em>
+              {token.decimals}
+            </p>
+          </div>
+          <div className="text-right">
+            <em>bal:</em>
+            <span className="text-lg font-mono">
+              {parseFloat(formattedBalance).toFixed(2)}
+            </span>
+          </div>
+        </div>
       </div>
-    </div>
+    </SendTokenDialog>
   )
 }
 
@@ -71,26 +55,26 @@ function LoadingSkeleton() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="bg-gray-800 border border-gray-700 rounded-lg p-4 animate-pulse"
+          className="bg-slate-800 border border-slate-700 rounded-lg p-4 animate-pulse"
         >
           <div className="mb-3">
-            <div className="h-5 bg-gray-700 rounded w-32 mb-2"></div>
-            <div className="h-4 bg-gray-700 rounded w-24 mb-1"></div>
-            <div className="h-3 bg-gray-700 rounded w-full"></div>
+            <div className="h-5 bg-slate-700 rounded w-32 mb-2"></div>
+            <div className="h-4 bg-slate-700 rounded w-24 mb-1"></div>
+            <div className="h-3 bg-slate-700 rounded w-full"></div>
           </div>
           <div className="space-y-2 mb-4">
             <div className="flex justify-between">
-              <div className="h-4 bg-gray-700 rounded w-20"></div>
-              <div className="h-4 bg-gray-700 rounded w-16"></div>
+              <div className="h-4 bg-slate-700 rounded w-20"></div>
+              <div className="h-4 bg-slate-700 rounded w-16"></div>
             </div>
             <div className="flex justify-between">
-              <div className="h-4 bg-gray-700 rounded w-20"></div>
-              <div className="h-4 bg-gray-700 rounded w-16"></div>
+              <div className="h-4 bg-slate-700 rounded w-20"></div>
+              <div className="h-4 bg-slate-700 rounded w-16"></div>
             </div>
           </div>
           <div className="flex gap-2">
-            <div className="h-8 bg-gray-700 rounded flex-1"></div>
-            <div className="h-8 bg-gray-700 rounded flex-1"></div>
+            <div className="h-8 bg-slate-700 rounded flex-1"></div>
+            <div className="h-8 bg-slate-700 rounded flex-1"></div>
           </div>
         </div>
       ))}
@@ -106,7 +90,7 @@ export function TokenList() {
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-white">Your Tokens</h2>
-          <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
+          <div className="h-8 bg-slate-700 rounded w-20 animate-pulse"></div>
         </div>
         <LoadingSkeleton />
       </div>
@@ -131,7 +115,7 @@ export function TokenList() {
       <div className="text-center py-12">
         <div className="text-6xl mb-4">🪙</div>
         <h3 className="text-xl font-semibold text-white mb-2">No tokens yet</h3>
-        <p className="text-gray-400 mb-4">
+        <p className="text-slate-400 mb-4">
           Create your first token to get started!
         </p>
       </div>
@@ -149,11 +133,13 @@ export function TokenList() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <ul className="flex flex-row flex-wrap justify-start items-start">
         {tokens.map((token) => (
-          <TokenCard key={token.address} token={token} />
+          <li key={token.address}>
+            <TokenCard token={token} />
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }

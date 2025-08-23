@@ -158,7 +158,7 @@ export function SendTokenDialog({ token, children }: SendTokenDialogProps) {
             {txStatus.isLoading && (
               <div className="text-center">
                 <p className="text-blue-400">Transaction submitted...</p>
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-slate-400 mt-2">
                   Hash: {txHash.slice(0, 10)}...{txHash.slice(-8)}
                 </p>
               </div>
@@ -167,7 +167,7 @@ export function SendTokenDialog({ token, children }: SendTokenDialogProps) {
             {txStatus.isSuccess && (
               <div className="text-center">
                 <p className="text-green-400">✅ Transfer successful!</p>
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-slate-400 mt-2">
                   Tokens have been sent
                 </p>
               </div>
@@ -189,17 +189,17 @@ export function SendTokenDialog({ token, children }: SendTokenDialogProps) {
         ) : (
           <div className="space-y-4">
             {/* Token info */}
-            <div className="bg-gray-800 rounded-lg p-3">
+            <div className="bg-slate-800 rounded-lg p-3">
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium text-white">{token.name}</p>
-                  <p className="text-sm text-gray-400">{token.symbol}</p>
+                  <p className="text-sm text-slate-400">{token.symbol}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-medium text-white">
                     {parseFloat(maxBalance).toLocaleString()}
                   </p>
-                  <p className="text-sm text-gray-400">Available</p>
+                  <p className="text-sm text-slate-400">Available</p>
                 </div>
               </div>
             </div>
@@ -244,7 +244,7 @@ export function SendTokenDialog({ token, children }: SendTokenDialogProps) {
                     onChange={handleInputChange("amount")}
                     error={errors.amount}
                   />
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-slate-400">
                     Available balance: {parseFloat(maxBalance).toLocaleString()}{" "}
                     {token.symbol}
                   </p>

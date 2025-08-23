@@ -17,7 +17,7 @@ export function IfWalletConnected({
       <div className="text-center py-8">
         {fallback || (
           <div className="space-y-4">
-            <p className="text-gray-400 mb-4">
+            <p className="text-slate-400 mb-4">
               Please connect your wallet to use this dapp.
             </p>
             <ConnectWallet />
