@@ -10,10 +10,8 @@ export function NumTokens({ className }: NumTokensProps) {
   if (isLoading) {
     return (
       <div className={className}>
-        <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-anchor"></div>
-          <span className="text-slate-400">Loading...</span>
-        </div>
+        <span className="mr-2">No. of tokens:</span>
+        <span>Loading...</span>
       </div>
     )
   }
@@ -21,7 +19,8 @@ export function NumTokens({ className }: NumTokensProps) {
   if (error) {
     return (
       <div className={className}>
-        <span className="text-red-400">Error loading count</span>
+        <span className="mr-2">No. of tokens:</span>
+        <span>Error</span>
       </div>
     )
   }
@@ -30,19 +29,8 @@ export function NumTokens({ className }: NumTokensProps) {
 
   return (
     <div className={className}>
-      <div className="flex items-center space-x-2">
-        <span className="text-2xl">🪙</span>
-        <div>
-          <p className="text-lg font-semibold text-white">
-            {tokenCount} {tokenCount === 1 ? "Token" : "Tokens"}
-          </p>
-          <p className="text-sm text-slate-400">
-            {tokenCount === 0
-              ? "No tokens yet"
-              : `You own ${tokenCount} token${tokenCount === 1 ? "" : "s"}`}
-          </p>
-        </div>
-      </div>
+      <span className="mr-2">No. of tokens:</span>
+      <span>{tokenCount}</span>
     </div>
   )
 }

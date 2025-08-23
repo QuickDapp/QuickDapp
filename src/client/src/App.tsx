@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { WagmiProvider } from "wagmi"
 import { clientConfig } from "../../shared/config/client"
+import { Header } from "./components/Header"
 import { ToastProvider } from "./components/ui/Toast"
 import { createWeb3Config } from "./config/web3"
 import { AuthProvider } from "./contexts/AuthContext"
@@ -32,10 +33,18 @@ export function App() {
           <AuthProvider>
             <ToastProvider>
               <BrowserRouter>
-                <div className="min-h-screen bg-background text-foreground">
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                  </Routes>
+                <div className="flex flex-col w-full min-h-screen relative font-body bg-background text-foreground">
+                  <Header className="fixed h-header" />
+                  <main className="relative m-after-header">
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                    </Routes>
+                  </main>
+                  <footer>
+                    <p className="text-xs p-4">
+                      Built with <a href="https://quickdapp.xyz">QuickDapp</a>
+                    </p>
+                  </footer>
                 </div>
               </BrowserRouter>
             </ToastProvider>

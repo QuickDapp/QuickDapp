@@ -2,8 +2,6 @@ import type { FC } from "react"
 import { cn } from "../utils/cn"
 import { ConnectWallet } from "./ConnectWallet"
 import styles from "./Header.module.css"
-import { IfWalletConnected } from "./IfWalletConnected"
-import { NumTokens } from "./NumTokens"
 
 const Logo: FC = () => (
   <svg viewBox="0 0 100 100" fill="currentColor">
@@ -36,11 +34,6 @@ export const Header: FC<HeaderProps> = ({ className }) => {
         </span>
       </a>
       <div className="flex flex-row justify-end items-center">
-        <IfWalletConnected>
-          <div className="mr-4">
-            <NumTokens />
-          </div>
-        </IfWalletConnected>
         <div className="ml-6">
           <ConnectWallet />
         </div>
