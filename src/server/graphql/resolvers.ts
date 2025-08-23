@@ -1,6 +1,8 @@
 import { GraphQLError } from "graphql"
-import { serverConfig } from "../../shared/config/env"
-import type { AuthenticatedUser } from "../auth"
+import { SiweMessage } from "siwe"
+import { type Address } from "viem"
+import { serverConfig } from "../../shared/config/server"
+import { type AuthenticatedUser, AuthService } from "../auth"
 import {
   getNotificationsForUser,
   getUnreadNotificationsCountForUser,
@@ -9,6 +11,7 @@ import {
   type PageParam,
 } from "../db/notifications"
 import { createUserIfNotExists } from "../db/users"
+import { getChainId } from "../lib/chains"
 import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
 import type { ServerApp } from "../types"
 
@@ -99,6 +102,78 @@ export function createResolvers(serverApp: ServerApp) {
     },
 
     Mutation: {
+      // Authentication mutations (no auth required)
+      generateSiweMessage: async (
+        _: unknown,
+        { address }: { address: string },
+        context: GraphQLContext,
+      ) => {
+        try {
+          const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+          logger.debug(`Generating SIWE message for address: ${address}`)
+
+          const message = new SiweMessage({
+            domain: new URL(serverConfig.BASE_URL).hostname,
+            address,
+            statement: "Sign in to QuickDapp",
+            uri: serverConfig.BASE_URL,
+            version: "1",
+            chainId: getChainId(),
+            nonce: Math.random().toString(36).substring(2, 15),
+          })
+
+          const messageString = message.prepareMessage()
+
+          return {
+            message: messageString,
+            nonce: message.nonce || "",
+          }
+        } catch (error) {
+          logger.error("Failed to generate SIWE message:", error)
+          throw new GraphQLError("Failed to generate SIWE message", {
+            extensions: {
+              code: GraphQLErrorCode.INTERNAL_ERROR,
+            },
+          })
+        }
+      },
+
+      authenticateWithSiwe: async (
+        _: unknown,
+        { message, signature }: { message: string; signature: string },
+        context: GraphQLContext,
+      ) => {
+        try {
+          const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+          const authService = new AuthService(serverApp)
+
+          logger.debug("Authenticating with SIWE message")
+
+          const authResult = await authService.authenticateWithSiwe(
+            message,
+            signature,
+          )
+
+          return {
+            success: true,
+            token: authResult.token,
+            wallet: authResult.wallet,
+            error: null,
+          }
+        } catch (error) {
+          logger.error("SIWE authentication failed:", error)
+
+          // Return error in result rather than throwing for better UX
+          return {
+            success: false,
+            token: null,
+            wallet: null,
+            error:
+              error instanceof Error ? error.message : "Authentication failed",
+          }
+        }
+      },
+
       markNotificationAsRead: async (
         _: unknown,
         { id }: { id: number },
@@ -178,6 +253,93 @@ export function createResolvers(serverApp: ServerApp) {
                 error instanceof Error ? error.message : String(error),
             },
           })
+        }
+      },
+
+      // Token mutations (auth required)
+      createToken: async (
+        _: unknown,
+        {
+          input,
+        }: {
+          input: {
+            name: string
+            symbol: string
+            decimals: number
+            initialSupply: string
+          }
+        },
+        context: GraphQLContext,
+      ) => {
+        try {
+          const userAddress = context.user!.wallet as Address
+
+          // Note: This is a simplified implementation
+          // In a real app, the frontend would handle the transaction signing
+          // and send the transaction hash to the server for confirmation
+
+          logger.info(`Token creation requested by user ${userAddress}`, {
+            name: input.name,
+            symbol: input.symbol,
+            decimals: input.decimals,
+            initialSupply: input.initialSupply,
+          })
+
+          // For now, return success with a placeholder response
+          // The actual implementation would involve the frontend handling the transaction
+          return {
+            success: true,
+            tokenAddress: null,
+            transactionHash: null,
+            error:
+              "Frontend integration required - tokens must be created through wallet interaction",
+          }
+        } catch (error) {
+          logger.error("Failed to create token:", error)
+          return {
+            success: false,
+            tokenAddress: null,
+            transactionHash: null,
+            error:
+              error instanceof Error ? error.message : "Failed to create token",
+          }
+        }
+      },
+
+      transferToken: async (
+        _: unknown,
+        {
+          input,
+        }: { input: { tokenAddress: string; to: string; amount: string } },
+        context: GraphQLContext,
+      ) => {
+        try {
+          const userAddress = context.user!.wallet as Address
+
+          logger.info(`Token transfer requested by user ${userAddress}`, {
+            tokenAddress: input.tokenAddress,
+            to: input.to,
+            amount: input.amount,
+          })
+
+          // For now, return success with a placeholder response
+          // The actual implementation would involve the frontend handling the transaction
+          return {
+            success: true,
+            transactionHash: null,
+            error:
+              "Frontend integration required - transfers must be done through wallet interaction",
+          }
+        } catch (error) {
+          logger.error("Failed to transfer token:", error)
+          return {
+            success: false,
+            transactionHash: null,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to transfer token",
+          }
         }
       },
     },

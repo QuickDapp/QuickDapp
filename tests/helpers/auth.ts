@@ -16,6 +16,7 @@ import {
 import { AuthService } from "../../src/server/auth"
 import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
+import { serverConfig } from "../../src/shared/config/server"
 import { testLogger } from "./logger"
 
 export interface TestWallet {
@@ -134,13 +135,13 @@ export async function signSIWEMessage(
  */
 function getJWTSecret(): string {
   // In test environment, always use the test key
-  if (process.env.NODE_ENV === "test") {
+  if (serverConfig.NODE_ENV === "test") {
     return "test_key_32_chars_long_for_testing_only!!"
   }
 
   // Otherwise use the actual server key
   return (
-    process.env.SESSION_ENCRYPTION_KEY ||
+    serverConfig.SESSION_ENCRYPTION_KEY ||
     "test_key_32_chars_long_for_testing_only!!"
   )
 }
@@ -163,7 +164,7 @@ export async function createTestJWT(
   } = options
 
   testLogger.debug(`[TEST DEBUG] Creating JWT with secret: ${secret}`)
-  testLogger.debug(`[TEST DEBUG] NODE_ENV: ${process.env.NODE_ENV}`)
+  testLogger.debug(`[TEST DEBUG] NODE_ENV: ${serverConfig.NODE_ENV}`)
   testLogger.debug(`[TEST DEBUG] Wallet: ${wallet}`)
 
   const jwtSecret = new TextEncoder().encode(secret)
@@ -204,7 +205,9 @@ export async function createMalformedJWT(
       )
       // Corrupt the signature part
       const parts = validToken.split(".")
-      const corruptedSignature = parts[2].replace(/[a-zA-Z]/, "X")
+      const signature = parts[2]
+      if (!signature) throw new Error("Invalid token format")
+      const corruptedSignature = signature.replace(/[a-zA-Z]/, "X")
       return `${parts[0]}.${parts[1]}.${corruptedSignature}`
     }
 
@@ -237,6 +240,7 @@ export function decodeJWT(token: string): any {
     }
 
     const payload = parts[1]
+    if (!payload) throw new Error("Invalid JWT payload")
     const decoded = Buffer.from(payload, "base64url").toString("utf-8")
     return JSON.parse(decoded)
   } catch (error) {
@@ -280,6 +284,8 @@ function createMockServerApp(): ServerApp {
     rootLogger,
     createLogger: (category: string) => rootLogger.child(category),
     workerManager: {} as any,
+    publicClient: {} as any,
+    walletClient: {} as any,
   }
 }
 

@@ -24,6 +24,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # caches
 .eslintcache
 .cache
+cache
 *.tsbuildinfo
 
 # IntelliJ based IDEs
@@ -35,6 +36,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Generated files
 generated/
 *.generated.*
+src/shared/abi/generated.ts
+src/server/static/
 
 # Database files
 *.db

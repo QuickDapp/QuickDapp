@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
+import { serverConfig } from "../../../shared/config/server"
 import { notifications, users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
@@ -20,9 +21,12 @@ export const createFilter: ChainFilterModule["createFilter"] = (
 
   try {
     // Create a filter for all ERC20 Transfer events
+    // Use "earliest" in test environments to capture all events
+    const fromBlock = serverConfig.NODE_ENV === "test" ? "earliest" : "latest"
+
     return chainClient.createEventFilter({
       event: ERC20_TRANSFER_EVENT,
-      fromBlock: "latest",
+      fromBlock,
     })
   } catch (error) {
     console.error("sendToken filter: Failed to create filter:", error)
@@ -79,17 +83,13 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
       try {
         // Load ERC20 ABI to read token info
         const contractPath = path.join(
-          process.cwd(),
-          "tests/helpers/contracts/out/TestToken.sol/TestToken.json",
+          path.dirname(__filename),
+          "../../../tests/helpers/contracts/out/TestToken.sol/TestToken.json",
         )
 
         if (fs.existsSync(contractPath)) {
-          const contractArtifact = JSON.parse(
-            fs.readFileSync(contractPath, "utf8"),
-          )
-          const _abi = contractArtifact.abi
-
-          // For a proper implementation, you'd query the actual chain client here
+          // Contract artifact exists - for a proper implementation,
+          // you'd query the actual chain client here
           // For now, we'll use default values
           tokenInfo = {
             name: "Test Token",
@@ -106,22 +106,35 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
       const formattedAmount = amount.toFixed(2)
 
       // Create notification for the user
-      await serverApp.db.insert(notifications).values({
-        userId: user.id,
-        data: {
-          type: "token_transfer",
-          message: `Sent ${formattedAmount} ${tokenInfo.symbol} (${tokenInfo.name}) to ${to}`,
-          transactionHash,
-          tokenAddress,
-          from,
-          to,
-          amount: value.toString(),
-          tokenSymbol: tokenInfo.symbol,
-          tokenName: tokenInfo.name,
-        },
-      })
+      try {
+        const insertResult = await serverApp.db
+          .insert(notifications)
+          .values({
+            userId: user.id,
+            data: {
+              type: "token_transfer",
+              message: `Sent ${formattedAmount} ${tokenInfo.symbol} (${tokenInfo.name}) to ${to}`,
+              transactionHash,
+              tokenAddress,
+              from,
+              to,
+              amount: value.toString(),
+              tokenSymbol: tokenInfo.symbol,
+              tokenName: tokenInfo.name,
+            },
+          })
+          .returning()
 
-      log.info(`Created notification for user ${user.id} for token transfer`)
+        log.info(
+          `Successfully created notification for user ${user.id} for token transfer:`,
+          insertResult[0]?.id,
+        )
+      } catch (notificationError) {
+        log.error(
+          `Failed to create notification for user ${user.id}:`,
+          notificationError,
+        )
+      }
     } catch (error) {
       log.error("Error processing Transfer event:", error)
     }

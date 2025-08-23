@@ -1,6 +1,8 @@
-import { type ChildProcess, spawn } from "node:child_process"
+import { type ChildProcess, fork } from "node:child_process"
 import os from "node:os"
-import { serverConfig } from "../../shared/config/env"
+import path from "node:path"
+import { serverConfig } from "../../shared/config/server"
+import { scheduleJob } from "../db/worker"
 import { LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import type { ServerApp } from "../types"
@@ -33,28 +35,20 @@ class WorkerProcess {
   start(): void {
     this.logger.debug(`Starting worker ${this.workerId}`)
 
-    // Spawn the actual worker process
-    this.process = spawn("bun", ["run", "./src/server/workers/process.ts"], {
-      stdio: ["pipe", "pipe", "pipe", "ipc"],
+    // Fork the server entry point to create a worker
+    // In development: use the TypeScript file
+    // In production: use the main entry point from package.json or the current executable
+    const serverEntryPoint =
+      serverConfig.NODE_ENV === "production"
+        ? process.argv[0] // Use the same executable (bun binary or node)
+        : path.resolve(__dirname, "../index.ts")
+
+    this.process = fork(serverEntryPoint!, [], {
       env: {
         ...process.env,
         WORKER_ID: this.workerId.toString(),
       },
-      cwd: process.cwd(),
-    })
-
-    this.process.stdout?.on("data", (data) => {
-      this.logger.debug(
-        `Worker ${this.workerId} stdout:`,
-        data.toString().trim(),
-      )
-    })
-
-    this.process.stderr?.on("data", (data) => {
-      this.logger.error(
-        `Worker ${this.workerId} stderr:`,
-        data.toString().trim(),
-      )
+      silent: false,
     })
 
     this.process.on("exit", (code) => {
@@ -109,24 +103,18 @@ class WorkerProcess {
       })
     }
   }
-
-  sendJob(job: WorkerJob): void {
-    if (this.process && this.process.send) {
-      this.process.send(job)
-    } else {
-      this.logger.error(
-        `Cannot send job to worker ${this.workerId}: process not available`,
-      )
-    }
-  }
 }
 
-export const createWorkerManager = (serverApp: ServerApp): WorkerManager => {
+export const createWorkerManager = async (
+  serverApp: ServerApp,
+  workerCountOverride?: number,
+): Promise<WorkerManager> => {
   const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER_MANAGER)
   const workerCount =
-    serverConfig.WORKER_COUNT === "cpus"
+    workerCountOverride ??
+    (serverConfig.WORKER_COUNT === "cpus"
       ? os.cpus().length
-      : serverConfig.WORKER_COUNT
+      : serverConfig.WORKER_COUNT)
 
   const workers: WorkerProcess[] = []
 
@@ -139,18 +127,16 @@ export const createWorkerManager = (serverApp: ServerApp): WorkerManager => {
 
   logger.info(`Initialized ${workerCount} worker processes`)
 
-  return {
+  // Create the WorkerManager instance first so we can use submitJob
+  const workerManager = {
     submitJob: async (job: WorkerJob) => {
-      // Simple round-robin job distribution
-      const workerIndex = Math.floor(Math.random() * workers.length)
-      const worker = workers[workerIndex]
-
-      if (worker) {
-        logger.debug(`Submitting job ${job.id} to worker ${workerIndex + 1}`)
-        worker.sendJob(job)
-      } else {
-        logger.error(`No worker available at index ${workerIndex}`)
-      }
+      logger.debug(`Scheduling job ${job.id} of type ${job.type}`)
+      await scheduleJob(serverApp, {
+        type: job.type,
+        userId: job.userId,
+        data: job.data,
+      })
+      logger.debug(`Job ${job.id} scheduled successfully`)
     },
 
     getWorkerCount: () => workers.length,
@@ -161,4 +147,15 @@ export const createWorkerManager = (serverApp: ServerApp): WorkerManager => {
       logger.info("All workers shut down")
     },
   }
+
+  // Schedule Multicall3 deployment immediately
+  logger.info("Scheduling Multicall3 deployment check...")
+  await workerManager.submitJob({
+    id: `multicall3-deploy-startup-${Date.now()}`,
+    type: "deployMulticall3",
+    data: { forceRedeploy: false },
+    userId: 0, // System job
+  })
+
+  return workerManager
 }

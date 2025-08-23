@@ -1,18 +1,5 @@
 import env from "env-var"
-import packageJson from "../../../package.json"
-
-// Client-safe configuration (can be exposed to frontend)
-export interface ClientConfig {
-  APP_NAME: string
-  APP_VERSION: string
-  NODE_ENV: "development" | "production" | "test"
-  BASE_URL: string
-  CHAIN: string
-  CHAIN_RPC_ENDPOINT: string
-  WALLETCONNECT_PROJECT_ID: string
-  DIAMOND_PROXY_ADDRESS: string
-  SENTRY_DSN?: string
-}
+import { type ClientConfig, clientConfig } from "./client"
 
 // Server-only configuration (extends client config)
 export interface ServerConfig extends ClientConfig {
@@ -41,25 +28,6 @@ export interface ServerConfig extends ClientConfig {
   SENTRY_WORKER_DSN?: string
   SENTRY_AUTH_TOKEN?: string
   DIGITALOCEAN_ACCESS_TOKEN?: string
-}
-
-// Load and validate client configuration
-export const clientConfig: ClientConfig = {
-  APP_NAME: env.get("APP_NAME").default("QuickDapp").asString(),
-  APP_VERSION: env.get("APP_VERSION").default(packageJson.version).asString(),
-  NODE_ENV: env
-    .get("NODE_ENV")
-    .default("development")
-    .asEnum(["development", "production", "test"]),
-  BASE_URL: env.get("BASE_URL").required().asString(),
-  CHAIN: env.get("CHAIN").required().asString(),
-  CHAIN_RPC_ENDPOINT: env.get("CHAIN_RPC_ENDPOINT").required().asString(),
-  WALLETCONNECT_PROJECT_ID: env
-    .get("WALLETCONNECT_PROJECT_ID")
-    .required()
-    .asString(),
-  DIAMOND_PROXY_ADDRESS: env.get("DIAMOND_PROXY_ADDRESS").required().asString(),
-  SENTRY_DSN: env.get("SENTRY_DSN").asString(),
 }
 
 // Load and validate server configuration
@@ -140,3 +108,6 @@ export function validateConfig() {
     )
   }
 }
+
+// Re-export client config and types for convenience
+export { type ClientConfig, clientConfig } from "./client"

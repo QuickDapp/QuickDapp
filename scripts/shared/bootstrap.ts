@@ -98,11 +98,22 @@ export async function bootstrap(
         override: true,
       },
       {
-        name: ".env.local",
-        path: resolve(rootFolder, ".env.local"),
+        name: `.env.${env}.local`,
+        path: resolve(rootFolder, `.env.${env}.local`),
         required: false,
         override: true,
       },
+      // Skip .env.local in test mode to avoid interference from local dev settings
+      ...(env !== "test"
+        ? [
+            {
+              name: ".env.local",
+              path: resolve(rootFolder, ".env.local"),
+              required: false,
+              override: true,
+            },
+          ]
+        : []),
     ]
 
     // Load all environment files

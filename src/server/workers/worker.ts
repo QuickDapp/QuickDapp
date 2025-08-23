@@ -77,8 +77,10 @@ export const runWorker = async (serverApp: ServerApp) => {
   await setupDefaultJobs(serverApp)
 
   // Main worker loop
+  let cycleCount = 0
   while (true) {
-    logger.debug("Starting worker cycle")
+    cycleCount++
+    logger.debug(`Starting worker cycle #${cycleCount}`)
 
     try {
       // Get total pending jobs
@@ -89,6 +91,10 @@ export const runWorker = async (serverApp: ServerApp) => {
         logger.debug("Fetching next job")
 
         const job = await getNextPendingJob(serverApp)
+        logger.debug(
+          `getNextPendingJob result:`,
+          job ? `Job #${job.id} type=${job.type} due=${job.due}` : "null",
+        )
 
         if (job) {
           if (dateBefore(job.due, Date.now())) {
@@ -96,7 +102,7 @@ export const runWorker = async (serverApp: ServerApp) => {
               `job[${job.id}-${job.type}]${job.cronSchedule ? " (cron)" : ""}`,
             )
 
-            jobLogger.debug(`Executing for user ${job.userId}`)
+            jobLogger.info(`Starting job execution for user ${job.userId}`)
             jobLogger.debug("Job data:", job.data)
 
             await markJobAsStarted(serverApp, job.id)
@@ -109,7 +115,7 @@ export const runWorker = async (serverApp: ServerApp) => {
               })
 
               await markJobAsSucceeded(serverApp, job.id, result)
-              jobLogger.debug(`Finished executing job #${job.id}`)
+              jobLogger.info(`Job completed successfully`)
 
               // Reschedule cron job if needed
               if (job.cronSchedule) {
@@ -120,7 +126,8 @@ export const runWorker = async (serverApp: ServerApp) => {
                 )
               }
             } catch (err: any) {
-              jobLogger.error("Error executing job:", err)
+              jobLogger.info("Job execution failed:", err.message)
+              jobLogger.debug("Full error details:", err)
 
               await markJobAsFailed(serverApp, job.id, { error: err.message })
 
@@ -142,9 +149,16 @@ export const runWorker = async (serverApp: ServerApp) => {
       }
     } catch (err: any) {
       logger.error("Error in worker cycle:", err)
+      logger.debug("Full error details:", err)
     }
 
     // Wait before next loop
+    logger.debug(
+      `Worker cycle #${cycleCount} complete, sleeping for ${ONE_SECOND}ms`,
+    )
     await new Promise((resolve) => setTimeout(resolve, ONE_SECOND))
+    logger.debug(
+      `Worker cycle #${cycleCount} sleep complete, starting next cycle`,
+    )
   }
 }

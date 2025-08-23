@@ -13,7 +13,7 @@ import type {
   NewWorkerJob,
   User,
 } from "../../src/server/db/schema"
-import { serverConfig } from "../../src/shared/config/env"
+import { serverConfig } from "../../src/shared/config/server"
 import { testLogger } from "./logger"
 
 /**

@@ -1,23 +1,27 @@
 import { createPublicClient, createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
-import { foundry, sepolia } from "viem/chains"
-import { serverConfig } from "../shared/config/env"
+import { serverConfig } from "../shared/config/server"
 import { dbManager } from "./db/connection"
+import { getChain } from "./lib/chains"
 import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
+import { createWorkerManager } from "./workers"
 
 /**
  * Creates a ServerApp instance with all necessary dependencies
  * This is shared between the main server process and worker processes
  */
 export const createServerApp = async (
-  options: { includeWorkerManager?: boolean } = {},
+  options: {
+    includeWorkerManager?: boolean
+    workerCountOverride?: number
+  } = {},
 ): Promise<
   Omit<ServerApp, "app" | "workerManager"> & {
     workerManager?: ServerApp["workerManager"]
   }
 > => {
-  const { includeWorkerManager = false } = options
+  const { includeWorkerManager = false, workerCountOverride } = options
 
   // Create logger
   const rootLogger = createLogger("server")
@@ -33,7 +37,7 @@ export const createServerApp = async (
   rootLogger.info("Database connected")
 
   // Create blockchain clients
-  const chain = serverConfig.CHAIN === "sepolia" ? sepolia : foundry
+  const chain = getChain()
   const rpcUrl = serverConfig.CHAIN_RPC_ENDPOINT
 
   const publicClient = createPublicClient({
@@ -60,11 +64,12 @@ export const createServerApp = async (
   }
 
   if (includeWorkerManager) {
-    // Dynamically import to avoid circular dependency
-    const { createWorkerManager } = await import("./workers")
     return {
       ...baseServerApp,
-      workerManager: createWorkerManager(baseServerApp as any),
+      workerManager: await createWorkerManager(
+        baseServerApp as any,
+        workerCountOverride,
+      ),
     }
   }
 

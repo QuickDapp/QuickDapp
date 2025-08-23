@@ -28,8 +28,8 @@ describe("Server Integration Tests", () => {
     // Setup test database
     await setupTestDatabase()
 
-    // Start test server
-    testServer = await startTestServer()
+    // Start test server with worker count override
+    testServer = await startTestServer({ workerCountOverride: 1 })
 
     // Wait for server to be ready
     await waitForServer(testServer.url)
@@ -84,7 +84,8 @@ describe("Server Integration Tests", () => {
       expect(typeof workerManager.submitJob).toBe("function")
       expect(typeof workerManager.getWorkerCount).toBe("function")
       expect(typeof workerManager.shutdown).toBe("function")
-      expect(workerManager.getWorkerCount()).toBeGreaterThan(0)
+      // Worker count should be 1 as set in beforeAll
+      expect(workerManager.getWorkerCount()).toBe(1)
     })
 
     it("should connect to database", () => {
