@@ -124,15 +124,6 @@ export function TokenList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-white">
-          Your Tokens ({tokens.length})
-        </h2>
-        <Button onClick={() => refetch()} variant="ghost" size="sm">
-          ↻ Refresh
-        </Button>
-      </div>
-
       <ul className="flex flex-row flex-wrap justify-start items-start">
         {tokens.map((token) => (
           <li key={token.address}>
