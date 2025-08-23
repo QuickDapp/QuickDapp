@@ -13,7 +13,6 @@ import {
 import { createUserIfNotExists } from "../db/users"
 import { getChainId } from "../lib/chains"
 import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
-import { TokenService } from "../services/tokens"
 import type { ServerApp } from "../types"
 
 export interface GraphQLContext {
@@ -26,7 +25,6 @@ export interface GraphQLContext {
  */
 export function createResolvers(serverApp: ServerApp) {
   const logger = serverApp.createLogger(LOG_CATEGORIES.GRAPHQL_RESOLVERS)
-  const tokenService = new TokenService(serverApp)
 
   return {
     Query: {
@@ -98,79 +96,6 @@ export function createResolvers(serverApp: ServerApp) {
         } catch (error) {
           logger.error("Failed to get unread notifications count:", error)
           // For count queries, return 0 on error rather than throwing
-          return 0
-        }
-      },
-
-      // Token queries (auth required)
-      getMyTokens: async (_: unknown, __: unknown, context: GraphQLContext) => {
-        try {
-          const userAddress = context.user!.wallet as Address
-          const tokens = await tokenService.getUserTokens(userAddress)
-
-          // Add createdAt timestamp (mock for now - in real app you'd track this)
-          const tokensWithTimestamp = tokens.map((token) => ({
-            ...token,
-            createdAt: new Date().toISOString(),
-          }))
-
-          logger.debug(
-            `Retrieved ${tokens.length} tokens for user ${userAddress}`,
-          )
-
-          return {
-            tokens: tokensWithTimestamp,
-            total: tokens.length,
-          }
-        } catch (error) {
-          logger.error("Failed to get user tokens:", error)
-          throw new GraphQLError("Failed to retrieve tokens", {
-            extensions: {
-              code: GraphQLErrorCode.DATABASE_ERROR,
-              originalError:
-                error instanceof Error ? error.message : String(error),
-            },
-          })
-        }
-      },
-
-      getTokenInfo: async (
-        _: unknown,
-        { address }: { address: string },
-        context: GraphQLContext,
-      ) => {
-        try {
-          const userAddress = context.user!.wallet as Address
-          const tokenInfo = await tokenService.getTokenInfo(
-            address as Address,
-            userAddress,
-          )
-
-          if (!tokenInfo) {
-            return null
-          }
-
-          return {
-            ...tokenInfo,
-            createdAt: new Date().toISOString(),
-          }
-        } catch (error) {
-          logger.error(`Failed to get token info for ${address}:`, error)
-          return null
-        }
-      },
-
-      getTokenCount: async (
-        _: unknown,
-        __: unknown,
-        context: GraphQLContext,
-      ) => {
-        try {
-          const userAddress = context.user!.wallet as Address
-          const tokens = await tokenService.getUserTokens(userAddress)
-          return tokens.length
-        } catch (error) {
-          logger.error("Failed to get token count:", error)
           return 0
         }
       },

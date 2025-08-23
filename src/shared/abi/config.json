@@ -1,7 +1,7 @@
 {
   "Erc20": [
     {
-      "glob": "../data/erc20abi.json"
+      "glob": "./data/erc20abi.json"
     }
   ],
   "FactoryContract": [

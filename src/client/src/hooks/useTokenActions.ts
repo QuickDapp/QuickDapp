@@ -5,11 +5,11 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi"
-import erc20AbiJson from "../../../shared/abi/data/erc20abi.json"
-import { FactoryContract_ABI } from "../../../shared/abi/generated"
-import { clientConfig } from "../../../shared/config/client"
-
-const ERC20_ABI = erc20AbiJson
+import {
+  getERC20ContractInfo,
+  getFactoryContractInfo,
+} from "../../../shared/contracts"
+import { createContractWrite, writeContract } from "../lib/contracts"
 
 export interface CreateTokenParams {
   name: string
@@ -39,14 +39,14 @@ export function useCreateToken() {
         throw new Error("Wallet not connected")
       }
 
-      const factoryAddress = clientConfig.FACTORY_CONTRACT_ADDRESS
+      const factory = getFactoryContractInfo()
       const initialSupplyWei = parseUnits(params.initialSupply, params.decimals)
 
-      const hash = await writeContractAsync({
-        address: factoryAddress as Address,
-        abi: FactoryContract_ABI,
-        functionName: "erc20DeployToken",
-        args: [
+      const contractCall = createContractWrite(
+        factory.address,
+        factory.abi,
+        "erc20DeployToken",
+        [
           {
             name: params.name,
             symbol: params.symbol,
@@ -54,8 +54,9 @@ export function useCreateToken() {
           },
           initialSupplyWei,
         ],
-      })
+      )
 
+      const hash = await writeContract(contractCall, writeContractAsync)
       return { hash, params }
     },
     onSuccess: () => {
@@ -80,14 +81,16 @@ export function useTransferToken() {
       }
 
       const amountWei = parseUnits(params.amount, params.decimals)
+      const erc20Contract = getERC20ContractInfo(params.tokenAddress)
 
-      const hash = await writeContractAsync({
-        address: params.tokenAddress as Address,
-        abi: ERC20_ABI,
-        functionName: "transfer",
-        args: [params.to as Address, amountWei],
-      })
+      const contractCall = createContractWrite(
+        erc20Contract.address,
+        erc20Contract.abi,
+        "transfer",
+        [params.to as Address, amountWei],
+      )
 
+      const hash = await writeContract(contractCall, writeContractAsync)
       return { hash, params }
     },
     onSuccess: () => {
