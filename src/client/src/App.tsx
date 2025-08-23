@@ -5,6 +5,7 @@ import { WagmiProvider } from "wagmi"
 import { clientConfig } from "../../shared/config/client"
 import { ToastProvider } from "./components/ui/Toast"
 import { createWeb3Config } from "./config/web3"
+import { AuthProvider } from "./contexts/AuthContext"
 import { HomePage } from "./pages/HomePage"
 
 // Import RainbowKit styles
@@ -28,15 +29,17 @@ export function App() {
     <WagmiProvider config={web3Config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={darkTheme()}>
-          <ToastProvider>
-            <BrowserRouter>
-              <div className="min-h-screen bg-background text-foreground">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                </Routes>
-              </div>
-            </BrowserRouter>
-          </ToastProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <BrowserRouter>
+                <div className="min-h-screen bg-background text-foreground">
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                  </Routes>
+                </div>
+              </BrowserRouter>
+            </ToastProvider>
+          </AuthProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

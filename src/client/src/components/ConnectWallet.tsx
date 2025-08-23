@@ -1,23 +1,44 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { useEffect } from "react"
+import { useCallback, useMemo } from "react"
 import { useAccount } from "wagmi"
-import { useAuth } from "../hooks/useAuth"
+import { useAuthContext } from "../contexts/AuthContext"
 
 export function ConnectWallet() {
-  const { address, isConnected } = useAccount()
-  const { authenticate, isAuthenticated, isLoading, restoreAuth } = useAuth()
+  const { isAuthenticated, isLoading, userRejectedAuth, authenticate } =
+    useAuthContext()
+  const { address } = useAccount()
 
-  // Restore authentication on component mount
-  useEffect(() => {
-    restoreAuth()
-  }, [restoreAuth])
-
-  // Auto-authenticate when wallet connects
-  useEffect(() => {
-    if (isConnected && address && !isAuthenticated()) {
-      authenticate(address)
+  const handleRetryAuth = useCallback(async () => {
+    if (address) {
+      await authenticate(address)
     }
-  }, [isConnected, address, authenticate, isAuthenticated])
+  }, [address, authenticate])
+
+  // Memoized button classes and content for better performance
+  const accountButtonClass = useMemo(() => {
+    const baseClass = "font-medium px-3 py-2 rounded-md transition-colors"
+    if (isLoading) {
+      return `${baseClass} bg-yellow-600 text-white cursor-wait`
+    }
+    if (isAuthenticated) {
+      return `${baseClass} bg-green-600 hover:bg-green-700 text-white`
+    }
+    if (userRejectedAuth) {
+      return `${baseClass} bg-blue-600 hover:bg-blue-700 text-white`
+    }
+    return `${baseClass} bg-slate-700 hover:bg-slate-600 text-white`
+  }, [isLoading, isAuthenticated, userRejectedAuth])
+
+  const accountButtonContent = useMemo(() => {
+    if (isLoading) {
+      return "Signing in..."
+    }
+    if (userRejectedAuth) {
+      return "Sign In"
+    }
+    return null // Will use account info in render
+  }, [isLoading, userRejectedAuth])
+
   return (
     <ConnectButton.Custom>
       {({
@@ -105,25 +126,19 @@ export function ConnectWallet() {
                   </button>
 
                   <button
-                    onClick={openAccountModal}
+                    onClick={
+                      userRejectedAuth ? handleRetryAuth : openAccountModal
+                    }
                     type="button"
-                    className={`font-medium px-3 py-2 rounded-md transition-colors ${
-                      isLoading
-                        ? "bg-yellow-600 text-white cursor-wait"
-                        : isAuthenticated()
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : "bg-slate-700 hover:bg-slate-600 text-white"
-                    }`}
+                    className={accountButtonClass}
                   >
-                    {isLoading ? (
-                      "Signing in..."
-                    ) : (
+                    {accountButtonContent || (
                       <>
                         {account.displayName}
                         {account.displayBalance
                           ? ` (${account.displayBalance})`
                           : ""}
-                        {isAuthenticated() && " ✓"}
+                        {isAuthenticated && " ✓"}
                       </>
                     )}
                   </button>
