@@ -1,15 +1,11 @@
 import type { FC } from "react"
+import logoSvg from "../images/logo.svg"
 import { cn } from "../utils/cn"
 import { ConnectWallet } from "./ConnectWallet"
 import styles from "./Header.module.css"
 
 const Logo: FC = () => (
-  <svg viewBox="0 0 100 100" fill="currentColor">
-    <circle cx="50" cy="50" r="40" />
-    <text x="50" y="55" textAnchor="middle" fontSize="20" fill="#000">
-      Q
-    </text>
-  </svg>
+  <img src={logoSvg} alt="QuickDapp Logo" className="w-8 h-8" />
 )
 
 interface HeaderProps {
@@ -35,7 +31,7 @@ export const Header: FC<HeaderProps> = ({ className }) => {
       </a>
       <div className="flex flex-row justify-end items-center">
         <div className="ml-6">
-          <ConnectWallet />
+          <ConnectWallet showNetwork={true} />
         </div>
       </div>
     </header>

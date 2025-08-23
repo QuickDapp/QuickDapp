@@ -11,9 +11,9 @@ export function HomePage() {
         ERC-20 tokens.
       </p>
       <IfWalletConnected>
-        <div className="flex flex-row justify-start items-center">
-          <NumTokens className="mr-4" />
+        <div>
           <CreateTokenDialog />
+          <NumTokens className="mt-4" />
         </div>
         <div className="mt-4">
           <TokenList />
