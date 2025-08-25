@@ -6,6 +6,7 @@ import { createPublicClient, createWalletClient, http, parseEther } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { foundry } from "viem/chains"
 import { serverConfig } from "../../src/shared/config/server"
+import { getMulticall3Info } from "../../src/shared/contracts"
 import { testLogger } from "./logger"
 
 export interface AnvilInstance {
@@ -91,7 +92,7 @@ export const startAnvil = async (port?: number): Promise<AnvilInstance> => {
         isResolved = true
         clearTimeout(timeout)
 
-        resolve({
+        const anvilInstance = {
           process: anvilProcess,
           url: `http://127.0.0.1:${testPort}`,
           chainId: foundry.id,
@@ -99,7 +100,17 @@ export const startAnvil = async (port?: number): Promise<AnvilInstance> => {
             (pk) => privateKeyToAccount(pk as `0x${string}`).address,
           ),
           privateKeys: DEFAULT_PRIVATE_KEYS,
-        })
+        }
+
+        // Deploy Multicall3 immediately after Anvil starts
+        deployMulticall3ToAnvil(anvilInstance)
+          .then(() => {
+            resolve(anvilInstance)
+          })
+          .catch((error) => {
+            testLogger.error("Failed to deploy Multicall3 to Anvil:", error)
+            resolve(anvilInstance) // Continue even if Multicall3 deployment fails
+          })
       }
     })
 
@@ -147,6 +158,91 @@ export const stopAnvil = async (anvil: AnvilInstance): Promise<void> => {
       resolve()
     }, 5000)
   })
+}
+
+/**
+ * Deploys Multicall3 to Anvil immediately after startup
+ */
+const deployMulticall3ToAnvil = async (anvil: AnvilInstance): Promise<void> => {
+  try {
+    const multicall3Info = getMulticall3Info()
+
+    testLogger.info(
+      `Deploying Multicall3 to Anvil at ${multicall3Info.contract}`,
+    )
+
+    // Create clients for this Anvil instance
+    const publicClient = createPublicClient({
+      chain: foundry,
+      transport: http(anvil.url),
+    })
+
+    const testAccount = privateKeyToAccount(
+      anvil.privateKeys[0] as `0x${string}`,
+    )
+    const walletClient = createWalletClient({
+      chain: foundry,
+      transport: http(anvil.url),
+      account: testAccount,
+    })
+
+    // Check if Multicall3 is already deployed
+    try {
+      const bytecode = await publicClient.getCode({
+        address: multicall3Info.contract,
+      })
+
+      if (bytecode && bytecode.length > 5) {
+        testLogger.info("✅ Multicall3 already deployed on Anvil")
+        return
+      }
+    } catch {
+      testLogger.debug("Multicall3 not found on Anvil, will deploy")
+    }
+
+    // Fund the sender address with the required ETH
+    const fundingTx = await walletClient.sendTransaction({
+      account: testAccount,
+      chain: foundry,
+      to: multicall3Info.sender,
+      value: BigInt(parseFloat(multicall3Info.eth) * 10 ** 18), // Convert ETH to wei
+    })
+
+    await publicClient.waitForTransactionReceipt({ hash: fundingTx })
+    testLogger.info(
+      `Funded Multicall3 deployer address ${multicall3Info.sender}`,
+    )
+
+    // Deploy using the pre-signed transaction
+    const deployTx = await publicClient.sendRawTransaction({
+      serializedTransaction: multicall3Info.signedDeploymentTx,
+    })
+
+    const deployReceipt = await publicClient.waitForTransactionReceipt({
+      hash: deployTx,
+    })
+
+    if (deployReceipt.status === "success") {
+      // Verify deployment
+      const bytecode = await publicClient.getCode({
+        address: multicall3Info.contract,
+      })
+
+      if (bytecode && bytecode.length > 5) {
+        testLogger.info(
+          `✅ Multicall3 deployed successfully to Anvil at ${multicall3Info.contract}`,
+        )
+        testLogger.info(`Transaction hash: ${deployTx}`)
+      } else {
+        throw new Error("Multicall3 deployment verification failed")
+      }
+    } else {
+      throw new Error("Deployment transaction failed")
+    }
+  } catch (error) {
+    testLogger.error("Multicall3 deployment to Anvil failed:", error)
+    throw error
+  }
 }
 
 /**
@@ -376,6 +472,139 @@ export const transferERC20 = async (
     return hash
   } catch (error) {
     testLogger.error("Failed to transfer ERC20:", error)
+    throw error
+  }
+}
+
+/**
+ * Deploys a TestTokenFactory contract for testing
+ */
+export const deployTokenFactory = async (
+  context: BlockchainTestContext,
+): Promise<`0x${string}`> => {
+  try {
+    // Load the compiled contract artifacts
+    const contractPath = path.join(
+      __dirname,
+      "contracts/out/TestTokenFactory.sol/TestTokenFactory.json",
+    )
+
+    if (!fs.existsSync(contractPath)) {
+      throw new Error(
+        `Contract artifact not found at ${contractPath}. Run 'forge build' first.`,
+      )
+    }
+
+    const contractArtifact = JSON.parse(fs.readFileSync(contractPath, "utf8"))
+    const bytecode = contractArtifact.bytecode.object as `0x${string}`
+    const abi = contractArtifact.abi
+
+    // Deploy the factory contract
+    const hash = await context.walletClient.deployContract({
+      abi,
+      bytecode,
+      args: [],
+      account: context.testAccount,
+      chain: foundry,
+    })
+
+    // Wait for the transaction to be mined
+    const receipt = await context.publicClient.waitForTransactionReceipt({
+      hash,
+    })
+
+    if (!receipt.contractAddress) {
+      throw new Error(
+        "Factory deployment failed - no contract address in receipt",
+      )
+    }
+
+    testLogger.info(`TestTokenFactory deployed at ${receipt.contractAddress}`)
+    return receipt.contractAddress
+  } catch (error) {
+    testLogger.error("TokenFactory deployment failed:", error)
+    throw error
+  }
+}
+
+/**
+ * Deploys a token via the TestTokenFactory
+ */
+export const deployTokenViaFactory = async (
+  context: BlockchainTestContext,
+  factoryAddress: `0x${string}`,
+  options: {
+    name?: string
+    symbol?: string
+    decimals?: number
+    initialSupply?: bigint
+  } = {},
+): Promise<`0x${string}`> => {
+  const {
+    name = "Factory Token",
+    symbol = "FACT",
+    decimals = 18,
+    initialSupply = parseEther("1000000"),
+  } = options
+
+  try {
+    // Load the factory contract artifacts
+    const contractPath = path.join(
+      __dirname,
+      "contracts/out/TestTokenFactory.sol/TestTokenFactory.json",
+    )
+
+    const contractArtifact = JSON.parse(fs.readFileSync(contractPath, "utf8"))
+    const abi = contractArtifact.abi
+
+    // Call erc20DeployToken on the factory
+    const hash = await context.walletClient.writeContract({
+      address: factoryAddress,
+      abi,
+      functionName: "erc20DeployToken",
+      args: [
+        {
+          name,
+          symbol,
+          decimals,
+        },
+        initialSupply,
+      ],
+      chain: foundry,
+      account: context.testAccount,
+    })
+
+    // Wait for the transaction to be mined
+    const receipt = await context.publicClient.waitForTransactionReceipt({
+      hash,
+    })
+
+    // Get the ERC20NewToken event to find the deployed token address
+    const logs = await context.publicClient.getLogs({
+      address: factoryAddress,
+      fromBlock: receipt.blockNumber,
+      toBlock: receipt.blockNumber,
+    })
+
+    // Find the ERC20NewToken event log
+    const tokenCreationLog = logs.find(
+      (log) => log.topics[0] && log.topics.length >= 3,
+    )
+
+    if (!tokenCreationLog || !tokenCreationLog.topics[1]) {
+      throw new Error("Could not find ERC20NewToken event in transaction logs")
+    }
+
+    // Extract token address from the event (first indexed parameter after event signature)
+    const tokenAddress =
+      `0x${tokenCreationLog.topics[1]!.slice(-40)}` as `0x${string}`
+
+    testLogger.info(
+      `Token ${symbol} deployed via factory at ${tokenAddress} (tx: ${hash})`,
+    )
+    return tokenAddress
+  } catch (error) {
+    testLogger.error("Factory token deployment failed:", error)
     throw error
   }
 }

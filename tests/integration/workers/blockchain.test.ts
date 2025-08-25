@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test"
 import { eq } from "drizzle-orm"
 import { notifications, users } from "../../../src/server/db/schema"
 import { scheduleJob } from "../../../src/server/db/worker"
@@ -7,6 +15,8 @@ import {
   cleanupBlockchainTestContext,
   createBlockchainTestContext,
   deployMockERC20,
+  deployTokenFactory,
+  deployTokenViaFactory,
   mineBlocks,
   transferERC20,
 } from "../../helpers/blockchain"
@@ -78,6 +88,16 @@ describe("Worker Blockchain Integration Tests", () => {
   })
 
   describe("Blockchain Event Monitoring", () => {
+    beforeEach(async () => {
+      // Clean database before each test
+      await setupTestDatabase()
+    })
+
+    afterEach(async () => {
+      // Clean database after each test
+      await setupTestDatabase()
+    })
+
     test("should monitor ERC20 transfer events and create notifications", async () => {
       // Create test user for the token sender (account[0] - the one with initial token supply)
       // The sendToken filter creates notifications for the sender, not recipient
@@ -106,18 +126,19 @@ describe("Worker Blockchain Integration Tests", () => {
       })
       testLogger.info(`✅ Token deployed at ${tokenAddress}`)
 
-      // Note: We don't need to schedule a watchChain job manually
-      // The worker automatically schedules a recurring watchChain job every 3 seconds
+      // Manually schedule persistent watchChain job to set up filters
       testLogger.info(
-        "📝 Using system's automatic watchChain job (runs every 3 seconds)",
+        "🔧 Scheduling watchChain job to set up blockchain filters...",
       )
+      const filterSetupJob = await scheduleJob(serverContext.serverApp, {
+        type: "watchChain",
+        userId: 0,
+        persistent: true,
+      })
+      testLogger.info(`✅ Scheduled filter setup job ${filterSetupJob.id}`)
 
-      // Wait for the first watchChain job to run and create blockchain event filters
-      // This ensures filters are set up before we do any transfers
-      testLogger.info(
-        "⏳ Waiting for watchChain job to run and create blockchain filters...",
-      )
-      await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait 5 seconds for first run
+      // Wait for the job to execute and create filters
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Perform a token transfer FROM our test user's wallet (this will trigger notifications)
       const recipient = blockchainContext.anvil.accounts[1] as `0x${string}`
@@ -127,9 +148,6 @@ describe("Worker Blockchain Integration Tests", () => {
         `💸 Transferring ${transferAmount.toString()} tokens from ${testUser.wallet} to ${recipient}`,
       )
 
-      // Note: The deployMockERC20 helper deploys to account[0] with initial supply
-      // The test user is account[0] (token owner), so the transfer is FROM the test user
-      // This should trigger the sendToken filter notifications for the test user
       await transferERC20(
         blockchainContext,
         tokenAddress,
@@ -137,16 +155,23 @@ describe("Worker Blockchain Integration Tests", () => {
         transferAmount,
       )
 
-      // Mine blocks to ensure the transaction is processed
-      await mineBlocks(blockchainContext, 3)
-      testLogger.info("⛏️  Mined blocks to process transaction")
+      // Mine a block to ensure the transaction is included
+      await mineBlocks(blockchainContext, 1)
+      testLogger.info("✅ Token transfer completed and block mined")
 
-      // Give the worker some time to process the transfer events via the automatic watchChain job
-      // The system watchChain job runs every 3 seconds, so we wait at least 6-9 seconds to ensure it runs
+      // Manually schedule persistent watchChain job to process the events
       testLogger.info(
-        "⏳ Waiting for automatic watchChain job to process transfer events and create notifications...",
+        "🔧 Scheduling watchChain job to process transfer events...",
       )
-      await new Promise((resolve) => setTimeout(resolve, 12000)) // Wait 12 seconds to be safe
+      const eventProcessJob = await scheduleJob(serverContext.serverApp, {
+        type: "watchChain",
+        userId: 0,
+        persistent: true,
+      })
+      testLogger.info(`✅ Scheduled event processing job ${eventProcessJob.id}`)
+
+      // Wait for the job to process the events
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Check that notifications were created for the transfer event
       const userNotifications = await serverContext.serverApp.db
@@ -161,17 +186,143 @@ describe("Worker Blockchain Integration Tests", () => {
       expect(userNotifications.length).toBeGreaterThan(0)
 
       // Verify notification data relates to the token transfer
-      const transferNotification = userNotifications.find(
-        (n) =>
-          JSON.stringify(n.data).includes("Transfer") ||
-          JSON.stringify(n.data).includes("token_transfer") ||
-          JSON.stringify(n.data).includes(tokenAddress.slice(0, 10)),
-      )
+      // Note: The type is stored in the data JSON field, not as a direct property
+      const transferNotification = userNotifications.find((n) => {
+        const data = n.data as any
+        return data.type === "token_transfer"
+      })
+
       expect(transferNotification).toBeDefined()
+
+      // Parse notification data to verify details
+      const notificationData = transferNotification!.data as any
+      expect(notificationData.type).toBe("token_transfer")
+      expect(notificationData.tokenAddress).toBe(tokenAddress.toLowerCase())
+      expect(notificationData.from.toLowerCase()).toBe(sender.toLowerCase())
+      expect(notificationData.to.toLowerCase()).toBe(recipient.toLowerCase())
+      expect(notificationData.amount).toBe(transferAmount.toString())
+      expect(notificationData.tokenSymbol).toBe("TEST")
+      expect(notificationData.tokenName).toBe("Test Token")
+      expect(notificationData.transactionHash).toBeDefined()
+
+      testLogger.info("✅ Transfer notification verified:", {
+        type: notificationData.type,
+        tokenSymbol: notificationData.tokenSymbol,
+        amount: notificationData.amount,
+        from: notificationData.from,
+        to: notificationData.to,
+      })
+    })
+
+    test("should monitor token creation events and create notifications", async () => {
+      // Create test user for the token creator (account[0] - the one creating tokens)
+      // The createToken filter creates notifications for the creator
+      const creator = blockchainContext.anvil.accounts[0] as `0x${string}`
+      const [testUser] = await serverContext.serverApp.db
+        .insert(users)
+        .values({
+          wallet: creator.toLowerCase(),
+        })
+        .returning()
+
+      if (!testUser) {
+        throw new Error("Failed to create test user")
+      }
+
       testLogger.info(
-        "✅ Transfer notification found:",
-        transferNotification?.data,
+        `👤 Created test user ${testUser.id} with wallet ${testUser.wallet}`,
       )
+
+      // Deploy TestTokenFactory
+      testLogger.info("🏭 Deploying TestTokenFactory...")
+      const factoryAddress = await deployTokenFactory(blockchainContext)
+      testLogger.info(`✅ Factory deployed at ${factoryAddress}`)
+
+      // Manually schedule persistent watchChain job to set up filters
+      testLogger.info(
+        "🔧 Scheduling watchChain job to set up blockchain filters...",
+      )
+      const filterSetupJob = await scheduleJob(serverContext.serverApp, {
+        type: "watchChain",
+        userId: 0,
+        persistent: true,
+      })
+      testLogger.info(`✅ Scheduled filter setup job ${filterSetupJob.id}`)
+
+      // Wait for the job to execute and create filters
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      // Deploy a token via the factory (this triggers mint from 0x0 to the creator)
+      // The createToken filter watches for Transfer events from address(0) (minting)
+      testLogger.info("🪙 Deploying token via factory...")
+      const tokenAddress = await deployTokenViaFactory(
+        blockchainContext,
+        factoryAddress,
+        {
+          name: "Factory Created Token",
+          symbol: "FCT",
+          decimals: 18,
+          initialSupply: 500000n * 10n ** 18n,
+        },
+      )
+      // Mine a block to ensure the transaction is included
+      await mineBlocks(blockchainContext, 1)
+      testLogger.info(`✅ Token created at ${tokenAddress} and block mined`)
+
+      // Manually schedule persistent watchChain job to process the events
+      testLogger.info(
+        "🔧 Scheduling watchChain job to process token creation events...",
+      )
+      const eventProcessJob = await scheduleJob(serverContext.serverApp, {
+        type: "watchChain",
+        userId: 0,
+        persistent: true,
+      })
+      testLogger.info(`✅ Scheduled event processing job ${eventProcessJob.id}`)
+
+      // Wait for the job to process the events
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      // Check that notifications were created for the token creation event
+      const userNotifications = await serverContext.serverApp.db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, testUser.id))
+
+      testLogger.info(
+        `📬 Found ${userNotifications.length} notifications for user ${testUser.id}`,
+      )
+
+      expect(userNotifications.length).toBeGreaterThan(0)
+
+      // Verify notification data relates to the token creation
+      // Note: The type is stored in the data JSON field, not as a direct property
+      const creationNotification = userNotifications.find((n) => {
+        const data = n.data as any
+        return data.type === "token_created"
+      })
+
+      expect(creationNotification).toBeDefined()
+
+      // Parse notification data to verify details
+      const notificationData = creationNotification!.data as any
+      expect(notificationData.type).toBe("token_created")
+      expect(notificationData.tokenAddress).toBe(tokenAddress.toLowerCase())
+      expect(notificationData.creator.toLowerCase()).toBe(creator.toLowerCase())
+      expect(notificationData.tokenSymbol).toBe("FCT")
+      expect(notificationData.tokenName).toBe("Factory Created Token")
+      expect(notificationData.initialSupply).toBe(
+        (500000n * 10n ** 18n).toString(),
+      )
+      expect(notificationData.transactionHash).toBeDefined()
+
+      testLogger.info("✅ Token creation notification verified:", {
+        type: notificationData.type,
+        tokenSymbol: notificationData.tokenSymbol,
+        tokenName: notificationData.tokenName,
+        creator: notificationData.creator,
+        initialSupply: notificationData.initialSupply,
+      })
     })
 
     test.skip("should handle multiple token contracts being monitored", async () => {

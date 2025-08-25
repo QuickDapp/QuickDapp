@@ -22,6 +22,7 @@ export interface WorkerJobConfig<T = unknown> {
   autoRescheduleOnFailure?: boolean
   autoRescheduleOnFailureDelay?: number
   removeDelay?: number
+  persistent?: boolean
 }
 
 const dateFrom = (timestamp: number): Date => new Date(timestamp)
@@ -86,6 +87,7 @@ export const scheduleJob = async <T = unknown>(
     autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
     autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
     removeDelay: job.removeDelay || 0,
+    persistent: !!job.persistent,
   } satisfies NewWorkerJob
 
   const [newJob] = await serverApp.db
@@ -121,6 +123,7 @@ export const scheduleCronJob = async <T = unknown>(
     autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
     autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
     removeDelay: job.removeDelay || 0,
+    persistent: !!job.persistent,
   } satisfies NewWorkerJob
 
   const [newJob] = await serverApp.db
@@ -297,6 +300,7 @@ export const rescheduleCronJob = async (
     autoRescheduleOnFailure: job.autoRescheduleOnFailure,
     autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay,
     removeDelay: job.removeDelay,
+    persistent: job.persistent, // Preserve persistent flag
     rescheduledFromJob: job.id,
   } satisfies NewWorkerJob
 
@@ -319,6 +323,7 @@ export const removeOldJobs = async (
   const conditions = [
     lte(workerJobs.removeAt, new Date()),
     isNotNull(workerJobs.started),
+    eq(workerJobs.persistent, false), // Only remove non-persistent jobs
   ]
 
   if (exclude && exclude.length > 0) {

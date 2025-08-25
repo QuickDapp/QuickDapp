@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
+import { serverConfig } from "../../../shared/config/server"
 import { fetchTokenMetadata } from "../../../shared/contracts"
 import { users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
@@ -22,12 +23,15 @@ export const createFilter: ChainFilterModule["createFilter"] = (
   try {
     // Create a filter for Transfer events from address(0) (minting events)
     // This effectively catches token creation/initial minting
+    // Use "earliest" in test environments to capture all events
+    const fromBlock = serverConfig.NODE_ENV === "test" ? "earliest" : "latest"
+
     return chainClient.createEventFilter({
       event: ERC20_MINT_EVENT,
       args: {
         from: "0x0000000000000000000000000000000000000000",
       },
-      fromBlock: "latest",
+      fromBlock,
     })
   } catch (error) {
     console.error("createToken filter: Failed to create filter:", error)

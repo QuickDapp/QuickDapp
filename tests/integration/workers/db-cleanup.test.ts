@@ -130,4 +130,56 @@ describe("Worker Database Cleanup", () => {
       .where(inArray(workerJobs.id, oldJobIds))
     expect(remainingJobs).toHaveLength(0)
   })
+
+  test("should not remove persistent jobs even when old", async () => {
+    // Create both persistent and non-persistent old jobs
+    const persistentJob = await scheduleJob(serverContext.serverApp, {
+      type: "removeOldWorkerJobs",
+      userId: 1,
+      removeDelay: -1000, // Already expired
+      persistent: true, // Mark as persistent
+    })
+
+    const nonPersistentJob = await scheduleJob(serverContext.serverApp, {
+      type: "removeOldWorkerJobs",
+      userId: 2,
+      removeDelay: -1000, // Already expired
+      persistent: false, // Non-persistent (default)
+    })
+
+    // Mark both as completed and set removeAt to past date
+    const pastDate = new Date(Date.now() - 2000) // 2 seconds ago
+
+    for (const job of [persistentJob, nonPersistentJob]) {
+      await serverContext.serverApp.db
+        .update(workerJobs)
+        .set({
+          started: new Date(),
+          finished: new Date(),
+          success: true,
+          removeAt: pastDate, // Mark for removal
+        })
+        .where(eq(workerJobs.id, job.id))
+    }
+
+    // Verify both jobs exist before cleanup
+    const jobsBeforeCleanup = await serverContext.serverApp.db
+      .select()
+      .from(workerJobs)
+      .where(inArray(workerJobs.id, [persistentJob.id, nonPersistentJob.id]))
+    expect(jobsBeforeCleanup).toHaveLength(2)
+
+    // Run cleanup
+    await removeOldJobs(serverContext.serverApp, { exclude: [] })
+
+    // Verify only the persistent job remains
+    const remainingJobs = await serverContext.serverApp.db
+      .select()
+      .from(workerJobs)
+      .where(inArray(workerJobs.id, [persistentJob.id, nonPersistentJob.id]))
+
+    expect(remainingJobs).toHaveLength(1)
+    expect(remainingJobs[0]!.id).toBe(persistentJob.id)
+    expect(remainingJobs[0]!.persistent).toBe(true)
+  })
 })

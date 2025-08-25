@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./Dialog"
+import { ErrorMessageBox } from "./ErrorMessageBox"
 import { Form, Input, Label } from "./Form"
 
 interface CreateTokenFormData {
@@ -37,6 +38,7 @@ export function CreateTokenDialog() {
   })
   const [errors, setErrors] = React.useState<FormErrors>({})
   const [txHash, setTxHash] = React.useState<string>()
+  const [submitError, setSubmitError] = React.useState<Error | null>(null)
 
   const createToken = useCreateToken()
   const txStatus = useTransactionStatus(txHash as `0x${string}`)
@@ -74,6 +76,9 @@ export function CreateTokenDialog() {
       return
     }
 
+    // Clear any previous errors
+    setSubmitError(null)
+
     try {
       const result = await createToken.mutateAsync({
         name: formData.name.trim(),
@@ -83,8 +88,12 @@ export function CreateTokenDialog() {
       })
 
       setTxHash(result.hash)
+      console.log("txHash", result.hash)
     } catch (error) {
       console.error("Failed to create token:", error)
+      setSubmitError(
+        error instanceof Error ? error : new Error("Failed to create token"),
+      )
     }
   }
 
@@ -110,7 +119,38 @@ export function CreateTokenDialog() {
     })
     setErrors({})
     setTxHash(undefined)
+    setSubmitError(null)
   }, [])
+
+  // Helper to convert error messages to user-friendly text
+  const getErrorMessage = (error: Error): string => {
+    const message = error.message.toLowerCase()
+
+    if (
+      message.includes("erc20invalidinput") ||
+      message.includes("invalid input")
+    ) {
+      return "Invalid token parameters. Please check that decimals are greater than 0 and all fields are filled correctly."
+    }
+
+    if (message.includes("user rejected") || message.includes("user denied")) {
+      return "Transaction was cancelled by user."
+    }
+
+    if (
+      message.includes("insufficient funds") ||
+      message.includes("insufficient balance")
+    ) {
+      return "Insufficient funds to create token. You need ETH to pay for gas fees."
+    }
+
+    if (message.includes("network")) {
+      return "Network error. Please check your connection and try again."
+    }
+
+    // Return original message if we can't parse it
+    return error.message || "Failed to create token"
+  }
 
   const handleOpenChange = React.useCallback(
     (newOpen: boolean) => {
@@ -183,6 +223,17 @@ export function CreateTokenDialog() {
           </div>
         ) : (
           <Form onSubmit={handleSubmit}>
+            {submitError && (
+              <ErrorMessageBox
+                title="Failed to Create Token"
+                message={getErrorMessage(submitError)}
+                error={submitError}
+                onDismiss={() => setSubmitError(null)}
+                onRetry={() => setSubmitError(null)}
+                className="mb-4"
+              />
+            )}
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" required>
