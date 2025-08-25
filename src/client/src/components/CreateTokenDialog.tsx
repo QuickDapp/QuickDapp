@@ -185,8 +185,6 @@ export function CreateTokenDialog() {
     [isSubmitting, txHash],
   )
 
-  console.log("txStatus", txStatus)
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>

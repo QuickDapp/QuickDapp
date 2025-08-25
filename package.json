@@ -76,7 +76,7 @@
     "react-router-dom": "^6.28.0",
     "siwe": "^3.0.0",
     "tailwind-merge": "^2.5.4",
-    "viem": "^2.33.3",
-    "wagmi": "^2.16.4"
+    "viem": "^2.35.1",
+    "wagmi": "^2.16.5"
   }
 }

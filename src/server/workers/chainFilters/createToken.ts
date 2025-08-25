@@ -63,7 +63,7 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         continue
       }
 
-      log.debug(
+      log.info(
         `Processing token creation: ${tokenAddress}, initial mint to: ${to}, amount: ${value}`,
       )
 
@@ -79,7 +79,7 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         .limit(1)
 
       if (!user) {
-        log.debug(`No user found for wallet ${creatorAddress}`)
+        log.warn(`No user found for wallet ${creatorAddress}`)
         continue
       }
 
@@ -114,12 +114,6 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
 
       log.info(
         `Created notification for user ${user.id} for new token creation`,
-      )
-
-      // In v2, this would also send an email notification
-      // For v3, we'll add a TODO comment for future implementation
-      log.debug(
-        `TODO: Send email notification for token creation to user ${user.id}`,
       )
     } catch (error) {
       log.error("Error processing token creation event:", error)

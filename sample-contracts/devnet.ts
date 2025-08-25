@@ -16,7 +16,7 @@ console.log("")
 
 // Start Anvil with the configuration
 try {
-  await $`anvil --chain-id 31337 --block-time 1 --host 0.0.0.0`
+  await $`anvil --chain-id 31337 --block-time 1 --host 127.0.0.1`
 } catch (error) {
   console.error("❌ Failed to start Anvil:")
   console.error("   Make sure Foundry is installed: https://book.getfoundry.sh/")

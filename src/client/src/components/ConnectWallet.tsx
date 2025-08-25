@@ -80,7 +80,6 @@ export function ConnectWallet({ showNetwork = false }: ConnectWalletProps) {
                           )}
                         </div>
                       )}
-                      {chain.name}
                     </Button>
                     <Button
                       onClick={openAccountModal}

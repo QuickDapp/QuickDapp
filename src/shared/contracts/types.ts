@@ -35,6 +35,7 @@ export interface TransactionRequest {
   abi: Abi
   functionName: string
   args?: readonly unknown[]
+  value?: bigint
 }
 
 /**

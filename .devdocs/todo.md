@@ -1,0 +1,4 @@
+- create token not working - transaction not getting through to anvil
+- fix blockchain token watching test
+- DONE get notification alerts showing up
+- binary build + docker container

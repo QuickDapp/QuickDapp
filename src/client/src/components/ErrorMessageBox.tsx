@@ -31,28 +31,33 @@ export const ErrorMessageBox = memo(function ErrorMessageBox({
     <div
       className={cn(
         "border border-red-700 bg-red-800/20 rounded-lg p-4 text-red-100",
+        "max-w-full overflow-hidden",
         className,
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 min-w-0">
         <div className="flex-shrink-0 text-red-400 text-lg">❌</div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-red-100 mb-1">{title}</h3>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <h3 className="font-medium text-red-100 mb-1 break-words">{title}</h3>
 
           {displayMessage && (
-            <p className="text-sm text-red-200 mb-3">{displayMessage}</p>
+            <div className="text-sm text-red-200 mb-3 max-h-32 overflow-y-auto">
+              <p className="break-all whitespace-pre-wrap">{displayMessage}</p>
+            </div>
           )}
 
-          {children}
+          <div className="min-w-0">{children}</div>
 
           {details && showDetails && (
-            <details className="mt-3">
+            <details className="mt-3 min-w-0">
               <summary className="cursor-pointer text-xs text-red-300 hover:text-red-200 mb-2">
                 Technical Details
               </summary>
-              <pre className="text-xs text-red-300 bg-red-900/30 p-2 rounded overflow-auto max-h-32 whitespace-pre-wrap">
-                {details}
-              </pre>
+              <div className="text-xs text-red-300 bg-red-900/30 p-2 rounded max-h-32 overflow-auto">
+                <pre className="whitespace-pre-wrap break-all min-w-0">
+                  {details}
+                </pre>
+              </div>
             </details>
           )}
 

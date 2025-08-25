@@ -85,7 +85,7 @@ export function NotificationsDialog({
 
   const queryClient = useQueryClient()
 
-  // Fetch notifications
+  // Fetch notifications - simple query without complex caching logic
   const {
     data: notificationsData,
     isLoading,
@@ -100,9 +100,12 @@ export function NotificationsDialog({
       return response.getMyNotifications
     },
     enabled: open,
+    // Disable caching to always get fresh data
+    refetchOnMount: "always",
+    staleTime: 0,
   })
 
-  // Update all notifications when new data comes in
+  // Simple: just update notifications when data comes in
   React.useEffect(() => {
     if (notificationsData) {
       if (pageParam.startIndex === 0) {
@@ -118,7 +121,7 @@ export function NotificationsDialog({
     }
   }, [notificationsData, pageParam.startIndex])
 
-  // Mark notification as read mutation
+  // Mark notification as read mutation - just update local state, no complex invalidation
   const markAsReadMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await getGraphQLClient().request<{
@@ -127,8 +130,7 @@ export function NotificationsDialog({
       return response.markNotificationAsRead
     },
     onSuccess: () => {
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      // Simple: just invalidate unread count, local state already updated
       queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] })
     },
   })
@@ -142,13 +144,12 @@ export function NotificationsDialog({
       return response.markAllNotificationsAsRead
     },
     onSuccess: () => {
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] })
       // Update local state to mark all as read
       setAllNotifications((prev) =>
         prev.map((notification) => ({ ...notification, read: true })),
       )
+      // Just invalidate unread count
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] })
     },
   })
 
@@ -178,11 +179,10 @@ export function NotificationsDialog({
     }
   }, [notificationsData, allNotifications.length])
 
-  // Reset pagination when dialog opens
+  // Simple: just reset pagination when dialog opens
   React.useEffect(() => {
     if (open) {
       setPageParam({ startIndex: 0, perPage: 20 })
-      setAllNotifications([])
     }
   }, [open])
 

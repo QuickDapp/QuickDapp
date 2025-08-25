@@ -35,7 +35,7 @@ export const Header: FC<HeaderProps> = ({ className }) => {
       </a>
       <div className="flex flex-row justify-end items-center gap-2">
         {isAuthenticated && <NotificationsIndicator />}
-        <div className="ml-4">
+        <div>
           <ConnectWallet showNetwork={true} />
         </div>
       </div>

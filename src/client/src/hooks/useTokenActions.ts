@@ -2,8 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { type Address, parseUnits } from "viem"
 import {
   useAccount,
+  usePublicClient,
   useWaitForTransactionReceipt,
-  useWriteContract,
+  useWalletClient,
 } from "wagmi"
 import {
   createContractWrite,
@@ -31,13 +32,22 @@ export interface TransferTokenParams {
  */
 export function useCreateToken() {
   const { address } = useAccount()
-  const { writeContractAsync } = useWriteContract()
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (params: CreateTokenParams) => {
       if (!address) {
         throw new Error("Wallet not connected")
+      }
+
+      if (!publicClient) {
+        throw new Error("Public client not available")
+      }
+
+      if (!walletClient) {
+        throw new Error("Wallet client not available")
       }
 
       const factory = getFactoryContractInfo()
@@ -57,8 +67,12 @@ export function useCreateToken() {
         ],
       )
 
-      const hash = await writeContract(contractCall, writeContractAsync)
-      return { hash, params }
+      const receipt = await writeContract(
+        publicClient,
+        walletClient,
+        contractCall,
+      )
+      return { hash: receipt.transactionHash, params }
     },
     onSuccess: () => {
       // Invalidate and refetch token-related queries
@@ -72,13 +86,22 @@ export function useCreateToken() {
  */
 export function useTransferToken() {
   const { address } = useAccount()
-  const { writeContractAsync } = useWriteContract()
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (params: TransferTokenParams) => {
       if (!address) {
         throw new Error("Wallet not connected")
+      }
+
+      if (!publicClient) {
+        throw new Error("Public client not available")
+      }
+
+      if (!walletClient) {
+        throw new Error("Wallet client not available")
       }
 
       const amountWei = parseUnits(params.amount, params.decimals)
@@ -91,8 +114,12 @@ export function useTransferToken() {
         [params.to as Address, amountWei],
       )
 
-      const hash = await writeContract(contractCall, writeContractAsync)
-      return { hash, params }
+      const receipt = await writeContract(
+        publicClient,
+        walletClient,
+        contractCall,
+      )
+      return { hash: receipt.transactionHash, params }
     },
     onSuccess: () => {
       // Invalidate and refetch token-related queries
