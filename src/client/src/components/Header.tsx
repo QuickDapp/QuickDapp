@@ -1,8 +1,10 @@
 import type { FC } from "react"
+import { useAuthContext } from "../contexts/AuthContext"
 import logoSvg from "../images/logo.svg"
 import { cn } from "../utils/cn"
 import { ConnectWallet } from "./ConnectWallet"
 import styles from "./Header.module.css"
+import { NotificationsIndicator } from "./NotificationsIndicator"
 
 const Logo: FC = () => (
   <img src={logoSvg} alt="QuickDapp Logo" className="w-8 h-8" />
@@ -13,6 +15,8 @@ interface HeaderProps {
 }
 
 export const Header: FC<HeaderProps> = ({ className }) => {
+  const { isAuthenticated } = useAuthContext()
+
   return (
     <header
       className={cn(
@@ -29,8 +33,9 @@ export const Header: FC<HeaderProps> = ({ className }) => {
           <Logo />
         </span>
       </a>
-      <div className="flex flex-row justify-end items-center">
-        <div className="ml-6">
+      <div className="flex flex-row justify-end items-center gap-2">
+        {isAuthenticated && <NotificationsIndicator />}
+        <div className="ml-4">
           <ConnectWallet showNetwork={true} />
         </div>
       </div>
