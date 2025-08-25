@@ -1,6 +1,6 @@
 import type { PublicClient } from "viem"
 import { decodeFunctionResult, encodeFunctionData } from "viem"
-import { getMulticall3Info } from "../../../../shared/contracts"
+import { getMulticall3Info } from "./index"
 import type {
   BatchCallResult,
   ContractCall,

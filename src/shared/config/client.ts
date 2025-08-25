@@ -52,11 +52,7 @@ export const clientConfig: ClientConfig =
 
 // Validate critical client configuration on startup
 export function validateClientConfig() {
-  const requiredForClient = [
-    "BASE_URL",
-    "CHAIN_RPC_ENDPOINT",
-    "WALLETCONNECT_PROJECT_ID",
-  ]
+  const requiredForClient = ["BASE_URL", "CHAIN_RPC_ENDPOINT"]
 
   const missing = requiredForClient.filter((key) => {
     const value = clientConfig[key as keyof ClientConfig]
@@ -67,5 +63,13 @@ export function validateClientConfig() {
     throw new Error(
       `Missing required client environment variables: ${missing.join(", ")}`,
     )
+  }
+
+  // Validate WALLETCONNECT_PROJECT_ID separately to allow placeholder values
+  if (
+    !clientConfig.WALLETCONNECT_PROJECT_ID ||
+    clientConfig.WALLETCONNECT_PROJECT_ID.trim() === ""
+  ) {
+    throw new Error("WALLETCONNECT_PROJECT_ID is required")
   }
 }

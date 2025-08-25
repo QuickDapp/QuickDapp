@@ -6,10 +6,11 @@ import {
   useWriteContract,
 } from "wagmi"
 import {
+  createContractWrite,
   getERC20ContractInfo,
   getFactoryContractInfo,
+  writeContract,
 } from "../../../shared/contracts"
-import { createContractWrite, writeContract } from "../lib/contracts"
 
 export interface CreateTokenParams {
   name: string

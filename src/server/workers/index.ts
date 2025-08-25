@@ -6,6 +6,12 @@ import { scheduleJob } from "../db/worker"
 import { LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import type { ServerApp } from "../types"
+import {
+  type BroadcastMessage,
+  type SendToUserMessage,
+  type WorkerIPCMessage,
+  WorkerIPCMessageType,
+} from "./ipc-types"
 
 export interface WorkerJob {
   id: string
@@ -63,19 +69,46 @@ class WorkerProcess {
       this.logger.error(`Worker ${this.workerId} error:`, error)
     })
 
-    this.process.on("message", (message: any) => {
-      if (message?.type === "worker-started") {
-        this.logger.info(
-          `Worker ${this.workerId} started (PID: ${message.pid})`,
-        )
-      } else if (message?.type === "worker-shutdown") {
-        this.logger.info(
-          `Worker ${this.workerId} shutdown (PID: ${message.pid})`,
-        )
-      } else if (message?.type === "worker-error") {
-        this.logger.error(`Worker ${this.workerId} error: ${message.error}`)
-      } else if (message?.type === "heartbeat") {
-        this.logger.debug(`Worker ${this.workerId} heartbeat`)
+    this.process.on("message", (message: WorkerIPCMessage) => {
+      switch (message.type) {
+        case WorkerIPCMessageType.WorkerStarted:
+          this.logger.info(
+            `Worker ${this.workerId} started (PID: ${message.pid})`,
+          )
+          break
+        case WorkerIPCMessageType.WorkerShutdown:
+          this.logger.info(
+            `Worker ${this.workerId} shutdown (PID: ${message.pid})`,
+          )
+          break
+        case WorkerIPCMessageType.WorkerError:
+          this.logger.error(`Worker ${this.workerId} error: ${message.error}`)
+          break
+        case WorkerIPCMessageType.Heartbeat:
+          this.logger.debug(`Worker ${this.workerId} heartbeat`)
+          break
+        case WorkerIPCMessageType.SendToUser: {
+          const sendToUserMsg = message as SendToUserMessage
+          this.logger.debug(
+            `Worker ${this.workerId} sending message to user ${sendToUserMsg.userId}`,
+          )
+          this.serverApp.socketManager.sendToUser(
+            sendToUserMsg.userId,
+            sendToUserMsg.message,
+          )
+          break
+        }
+        case WorkerIPCMessageType.Broadcast: {
+          const broadcastMsg = message as BroadcastMessage
+          this.logger.debug(`Worker ${this.workerId} broadcasting message`)
+          this.serverApp.socketManager.broadcast(broadcastMsg.message)
+          break
+        }
+        default:
+          this.logger.warn(
+            `Unknown message type from worker ${this.workerId}:`,
+            message.type,
+          )
       }
     })
   }

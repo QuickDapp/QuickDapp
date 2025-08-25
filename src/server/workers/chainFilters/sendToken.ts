@@ -1,9 +1,8 @@
-import fs from "node:fs"
-import path from "node:path"
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
 import { serverConfig } from "../../../shared/config/server"
-import { notifications, users } from "../../db/schema"
+import { fetchTokenMetadata } from "../../../shared/contracts"
+import { users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
 // Standard ERC20 Transfer event ABI
@@ -77,57 +76,43 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         continue
       }
 
-      // Get token information
-      let tokenInfo = { name: "Unknown Token", symbol: "UNK", decimals: 18 }
+      // Get token information from the blockchain using public client
+      // If this fails, the whole job should fail since we need accurate token data
+      const metadata = await fetchTokenMetadata(
+        tokenAddress,
+        serverApp.publicClient,
+      )
 
-      try {
-        // Load ERC20 ABI to read token info
-        const contractPath = path.join(
-          path.dirname(__filename),
-          "../../../tests/helpers/contracts/out/TestToken.sol/TestToken.json",
-        )
-
-        if (fs.existsSync(contractPath)) {
-          // Contract artifact exists - for a proper implementation,
-          // you'd query the actual chain client here
-          // For now, we'll use default values
-          tokenInfo = {
-            name: "Test Token",
-            symbol: "TEST",
-            decimals: 18,
-          }
-        }
-      } catch (error) {
-        log.warn("Failed to get token info:", error)
+      const tokenInfo = {
+        name: metadata.name,
+        symbol: metadata.symbol,
+        decimals: metadata.decimals,
       }
+
+      log.debug(
+        `Fetched token metadata for ${tokenAddress}: ${metadata.symbol} (${metadata.name}) with ${metadata.decimals} decimals`,
+      )
 
       // Format amount (convert from wei)
       const amount = Number(value) / Math.pow(10, tokenInfo.decimals)
       const formattedAmount = amount.toFixed(2)
 
-      // Create notification for the user
+      // Create notification for the user using the new serverApp method
       try {
-        const insertResult = await serverApp.db
-          .insert(notifications)
-          .values({
-            userId: user.id,
-            data: {
-              type: "token_transfer",
-              message: `Sent ${formattedAmount} ${tokenInfo.symbol} (${tokenInfo.name}) to ${to}`,
-              transactionHash,
-              tokenAddress,
-              from,
-              to,
-              amount: value.toString(),
-              tokenSymbol: tokenInfo.symbol,
-              tokenName: tokenInfo.name,
-            },
-          })
-          .returning()
+        await serverApp.createNotification(user.id, {
+          type: "token_transfer",
+          message: `Sent ${formattedAmount} ${tokenInfo.symbol} (${tokenInfo.name}) to ${to}`,
+          transactionHash,
+          tokenAddress,
+          from,
+          to,
+          amount: value.toString(),
+          tokenSymbol: tokenInfo.symbol,
+          tokenName: tokenInfo.name,
+        })
 
         log.info(
-          `Successfully created notification for user ${user.id} for token transfer:`,
-          insertResult[0]?.id,
+          `Successfully created notification for user ${user.id} for token transfer`,
         )
       } catch (notificationError) {
         log.error(

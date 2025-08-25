@@ -9,34 +9,51 @@
 
 import { createServerApp } from "../bootstrap"
 import { LOG_CATEGORIES } from "../lib/errors"
+import { createLogger } from "../lib/logger"
+import { WorkerIPCMessageType } from "./ipc-types"
+import { WorkerSocketManager } from "./socket-manager"
 import { runWorker } from "./worker"
 
 const main = async () => {
   try {
-    // Create the server app context for the worker (without worker manager to avoid circular dependency)
-    const serverAppBase = await createServerApp({ includeWorkerManager: false })
+    const logger = createLogger("worker")
 
-    // Add placeholder properties for compatibility
-    const serverApp = {
-      ...serverAppBase,
+    // Create worker-side SocketManager
+    const socketManager = new WorkerSocketManager(logger)
+
+    // Create the server app context for the worker (without worker manager to avoid circular dependency)
+    const serverApp = await createServerApp({
+      includeWorkerManager: false,
+      socketManager,
+    })
+
+    // Override logger to use the worker-specific one
+    const workerApp = {
+      ...serverApp,
       app: null as any, // Workers don't need the Elysia app
       workerManager: null as any, // Workers don't need the worker manager
+      createLogger: (category: string) =>
+        createLogger(`${LOG_CATEGORIES.WORKER}-${category}`),
     }
-
-    const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER)
 
     logger.info("Worker process starting")
 
     // Send startup message to parent process
     if (process.send) {
-      process.send({ type: "worker-started", pid: process.pid })
+      process.send({
+        type: WorkerIPCMessageType.WorkerStarted,
+        pid: process.pid,
+      })
     }
 
     // Set up graceful shutdown
     const shutdown = async () => {
       logger.info("Worker process shutting down")
       if (process.send) {
-        process.send({ type: "worker-shutdown", pid: process.pid })
+        process.send({
+          type: WorkerIPCMessageType.WorkerShutdown,
+          pid: process.pid,
+        })
       }
       process.exit(0)
     }
@@ -45,12 +62,12 @@ const main = async () => {
     process.on("SIGINT", shutdown)
 
     // Start the worker loop
-    await runWorker(serverApp)
+    await runWorker(workerApp)
   } catch (err: any) {
     console.error("Worker process error:", err)
     if (process.send) {
       process.send({
-        type: "worker-error",
+        type: WorkerIPCMessageType.WorkerError,
         error: err.message,
         pid: process.pid,
       })

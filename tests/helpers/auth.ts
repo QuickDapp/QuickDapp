@@ -284,8 +284,12 @@ function createMockServerApp(): ServerApp {
     rootLogger,
     createLogger: (category: string) => rootLogger.child(category),
     workerManager: {} as any,
+    socketManager: {} as any,
     publicClient: {} as any,
     walletClient: {} as any,
+    createNotification: async () => {
+      // Mock implementation for tests
+    },
   }
 }
 

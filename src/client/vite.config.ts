@@ -7,7 +7,7 @@ import { defineConfig } from "vite"
 // Import clientConfig from shared client.ts (this runs in Node.js context)
 const { clientConfig } = require("../shared/config/client.ts")
 
-// Plugin to inject config into HTML
+// Plugin to inject config into HTML (for production builds)
 function injectConfig(): Plugin {
   return {
     name: "inject-config",
@@ -31,6 +31,10 @@ function injectConfig(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), injectConfig()],
+  // Define global constants that will be replaced at build time
+  define: {
+    "globalThis.__CONFIG__": JSON.stringify(clientConfig),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),

@@ -1,5 +1,5 @@
 import type { Address, PublicClient } from "viem"
-import { getERC20ContractInfo } from "../../../../shared/contracts"
+import { getERC20ContractInfo } from "./index"
 import { batchContractReads, extractSuccessfulResults } from "./multicall"
 import { createContractCall, readContract } from "./reader"
 import type { ContractCall, TokenMetadata, TokenWithBalance } from "./types"

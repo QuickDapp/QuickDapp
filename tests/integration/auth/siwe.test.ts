@@ -41,8 +41,12 @@ describe("SIWE Authentication Tests", () => {
     rootLogger: createRootLogger(),
     createLogger: (category: string) => createRootLogger().child(category),
     workerManager: {} as any,
+    socketManager: {} as any,
     publicClient: {} as any,
     walletClient: {} as any,
+    createNotification: async () => {
+      // Mock implementation for tests
+    },
   }
 
   beforeAll(async () => {

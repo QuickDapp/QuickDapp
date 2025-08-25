@@ -9,6 +9,7 @@ import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
 import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
+import { createWebSocket, SocketManager } from "./ws"
 
 // Create and start the server
 export const createApp = async (
@@ -51,10 +52,14 @@ export const createApp = async (
 
   logger.info("Starting QuickDapp server...")
 
+  // Create SocketManager
+  const socketManager = new SocketManager(logger)
+
   // Create ServerApp with worker manager
   const bootstrapResult = await createServerApp({
     includeWorkerManager: true,
     workerCountOverride: options.workerCountOverride,
+    socketManager,
   })
 
   // Create base Elysia app
@@ -131,6 +136,9 @@ export const createApp = async (
   // Add GraphQL endpoint
   app.use(createGraphQLHandler(serverApp))
 
+  // Add WebSocket endpoint
+  app.use(createWebSocket(serverApp))
+
   // Serve static assets from Vite build
   const staticDir = path.join(import.meta.dir, "static")
   app.use(
@@ -142,7 +150,7 @@ export const createApp = async (
   )
 
   // Serve index.html for SPA routes (catch-all for frontend routing)
-  app.get("/*", async ({ set, path: requestPath }) => {
+  app.get("/*", async ({ set }) => {
     const staticClientDir = path.join(staticDir, "client")
 
     // Read and serve index.html (config should be injected during build)

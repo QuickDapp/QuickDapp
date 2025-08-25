@@ -22,13 +22,29 @@ const getSupportedChains = (chainName: string) => {
   }
 }
 
+// Track if we've already shown the warning to avoid duplicates
+let hasShownPlaceholderWarning = false
+
 export const createWeb3Config = (clientConfig: ClientConfig) => {
   const supportedChains = getSupportedChains(clientConfig.CHAIN)
   const chains = supportedChains as any // Type assertion to work around RainbowKit type constraints
 
+  // Handle placeholder WALLETCONNECT_PROJECT_ID
+  let projectId = clientConfig.WALLETCONNECT_PROJECT_ID
+  if (projectId === "your_walletconnect_project_id") {
+    if (!hasShownPlaceholderWarning) {
+      console.warn(
+        "⚠️  Using placeholder WALLETCONNECT_PROJECT_ID - wallet connection may not work properly",
+      )
+      hasShownPlaceholderWarning = true
+    }
+    // Use a dummy ID that won't cause RainbowKit to fail
+    projectId = "00000000000000000000000000000000"
+  }
+
   return getDefaultConfig({
     appName: clientConfig.APP_NAME,
-    projectId: clientConfig.WALLETCONNECT_PROJECT_ID,
+    projectId,
     chains,
     transports: {
       [chains[0].id]: http(clientConfig.CHAIN_RPC_ENDPOINT),

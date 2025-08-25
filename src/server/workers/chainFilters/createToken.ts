@@ -1,8 +1,7 @@
-import fs from "node:fs"
-import path from "node:path"
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
-import { notifications, users } from "../../db/schema"
+import { fetchTokenMetadata } from "../../../shared/contracts"
+import { users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
 // For token creation, we'll monitor contract deployments
@@ -80,47 +79,33 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         continue
       }
 
-      // Get token information
-      let tokenInfo = { name: "Unknown Token", symbol: "UNK", decimals: 18 }
+      // Get token information from the blockchain using public client
+      // If this fails, the whole job should fail since we need accurate token data
+      const metadata = await fetchTokenMetadata(
+        tokenAddress,
+        serverApp.publicClient,
+      )
 
-      try {
-        // Load ERC20 ABI to read token info
-        const contractPath = path.join(
-          process.cwd(),
-          "tests/helpers/contracts/out/TestToken.sol/TestToken.json",
-        )
-
-        if (fs.existsSync(contractPath)) {
-          const contractArtifact = JSON.parse(
-            fs.readFileSync(contractPath, "utf8"),
-          )
-          const _abi = contractArtifact.abi
-
-          // For a proper implementation, you'd query the actual chain client here
-          // For now, we'll use default values
-          tokenInfo = {
-            name: "New Test Token",
-            symbol: "NEW",
-            decimals: 18,
-          }
-        }
-      } catch (error) {
-        log.warn("Failed to get token info:", error)
+      const tokenInfo = {
+        name: metadata.name,
+        symbol: metadata.symbol,
+        decimals: metadata.decimals,
       }
 
-      // Create notification for the user
-      await serverApp.db.insert(notifications).values({
-        userId: user.id,
-        data: {
-          type: "token_created",
-          message: `Created new token ${tokenInfo.symbol} (${tokenInfo.name}) at ${tokenAddress}`,
-          transactionHash,
-          tokenAddress,
-          creator: creatorAddress,
-          initialSupply: value.toString(),
-          tokenSymbol: tokenInfo.symbol,
-          tokenName: tokenInfo.name,
-        },
+      log.debug(
+        `Fetched token metadata for ${tokenAddress}: ${metadata.symbol} (${metadata.name}) with ${metadata.decimals} decimals`,
+      )
+
+      // Create notification for the user using the new serverApp method
+      await serverApp.createNotification(user.id, {
+        type: "token_created",
+        message: `Created new token ${tokenInfo.symbol} (${tokenInfo.name}) at ${tokenAddress}`,
+        transactionHash,
+        tokenAddress,
+        creator: creatorAddress,
+        initialSupply: value.toString(),
+        tokenSymbol: tokenInfo.symbol,
+        tokenName: tokenInfo.name,
       })
 
       log.info(

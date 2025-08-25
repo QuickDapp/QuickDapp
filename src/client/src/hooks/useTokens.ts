@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
 import type { Address } from "viem"
 import { useAccount, usePublicClient } from "wagmi"
-import { getFactoryContractInfo } from "../../../shared/contracts"
 import {
   fetchMultipleTokensWithBalances,
   fetchTokenWithBalance,
+  getFactoryContractInfo,
   readContract,
-} from "../lib/contracts"
-import type { TokenWithBalance } from "../lib/contracts/types"
+  type TokenWithBalance,
+} from "../../../shared/contracts"
 
 export interface Token extends TokenWithBalance {
   createdAt?: string
