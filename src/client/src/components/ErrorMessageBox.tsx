@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { memo, type ReactNode } from "react"
 import { cn } from "../utils/cn"
 
 export interface ErrorMessageBoxProps {
@@ -13,7 +13,7 @@ export interface ErrorMessageBoxProps {
   showDetails?: boolean
 }
 
-export function ErrorMessageBox({
+export const ErrorMessageBox = memo(function ErrorMessageBox({
   title = "Something went wrong",
   message,
   error,
@@ -89,4 +89,4 @@ export function ErrorMessageBox({
       </div>
     </div>
   )
-}
+})

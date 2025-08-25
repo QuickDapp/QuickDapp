@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react"
 import { formatUnits } from "viem"
 import type { Token } from "../hooks/useTokens"
 import { useMyTokens } from "../hooks/useTokens"
@@ -10,8 +11,11 @@ interface TokenCardProps {
   token: Token
 }
 
-function TokenCard({ token }: TokenCardProps) {
-  const formattedBalance = formatUnits(BigInt(token.balance), token.decimals)
+const TokenCard = memo(function TokenCard({ token }: TokenCardProps) {
+  const formattedBalance = useMemo(
+    () => formatUnits(BigInt(token.balance), token.decimals),
+    [token.balance, token.decimals],
+  )
 
   return (
     <SendTokenDialog token={token}>
@@ -47,7 +51,7 @@ function TokenCard({ token }: TokenCardProps) {
       </div>
     </SendTokenDialog>
   )
-}
+})
 
 function LoadingSkeleton() {
   return (

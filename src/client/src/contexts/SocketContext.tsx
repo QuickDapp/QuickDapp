@@ -1,5 +1,13 @@
 import type { ReactNode } from "react"
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import {
   type WebSocketMessage,
   WebSocketMessageType,
@@ -119,24 +127,30 @@ export function SocketProvider({ children }: SocketProviderProps) {
     }, 100) // 100ms debounce delay
   }, [isLoading, authToken])
 
-  const subscribe = (
-    type: WebSocketMessageType,
-    handler: (message: WebSocketMessage) => void,
-  ) => {
-    if (!socketRef.current) {
-      console.warn(
-        "SocketProvider: Attempted to subscribe but socket not available",
-      )
-      return () => {} // Return no-op unsubscribe
-    }
+  const subscribe = useCallback(
+    (
+      type: WebSocketMessageType,
+      handler: (message: WebSocketMessage) => void,
+    ) => {
+      if (!socketRef.current) {
+        console.warn(
+          "SocketProvider: Attempted to subscribe but socket not available",
+        )
+        return () => {} // Return no-op unsubscribe
+      }
 
-    return socketRef.current.subscribe(type, handler)
-  }
+      return socketRef.current.subscribe(type, handler)
+    },
+    [],
+  )
 
-  const contextValue: SocketContextValue = {
-    connected,
-    subscribe,
-  }
+  const contextValue = useMemo(
+    (): SocketContextValue => ({
+      connected,
+      subscribe,
+    }),
+    [connected, subscribe],
+  )
 
   return (
     <SocketContext.Provider value={contextValue}>

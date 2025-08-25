@@ -8,6 +8,22 @@ export interface ButtonProps
   loading?: boolean
 }
 
+const BUTTON_VARIANTS = {
+  default: "bg-anchor text-black hover:bg-anchor/90",
+  outline: "border border-anchor text-anchor hover:bg-anchor hover:text-black",
+  ghost: "hover:bg-accent hover:text-accent-foreground",
+  error: "bg-red-600 text-white hover:bg-red-700",
+} as const
+
+const BUTTON_SIZES = {
+  sm: "h-8 px-3 text-sm",
+  default: "h-10 px-4 py-2",
+  lg: "h-11 px-8 text-lg",
+} as const
+
+const BASE_CLASSES =
+  "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-anchor focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -21,26 +37,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const baseClasses =
-      "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-anchor focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-
-    const variants = {
-      default: "bg-anchor text-black hover:bg-anchor/90",
-      outline:
-        "border border-anchor text-anchor hover:bg-anchor hover:text-black",
-      ghost: "hover:bg-accent hover:text-accent-foreground",
-      error: "bg-red-600 text-white hover:bg-red-700",
-    }
-
-    const sizes = {
-      sm: "h-8 px-3 text-sm",
-      default: "h-10 px-4 py-2",
-      lg: "h-11 px-8 text-lg",
-    }
-
     return (
       <button
-        className={cn(baseClasses, variants[variant], sizes[size], className)}
+        className={cn(
+          BASE_CLASSES,
+          BUTTON_VARIANTS[variant],
+          BUTTON_SIZES[size],
+          className,
+        )}
         ref={ref}
         disabled={disabled || loading}
         {...props}

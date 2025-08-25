@@ -1,6 +1,20 @@
 import * as React from "react"
 import { cn } from "../utils/cn"
 
+const TOAST_TYPE_STYLES = {
+  default: "bg-slate-800 border-slate-700",
+  success: "bg-green-800 border-green-700",
+  error: "bg-red-800 border-red-700",
+  warning: "bg-yellow-800 border-yellow-700",
+} as const
+
+const TOAST_ICON_MAP = {
+  default: "ℹ️",
+  success: "✅",
+  error: "❌",
+  warning: "⚠️",
+} as const
+
 export interface Toast {
   id: string
   title?: string
@@ -87,43 +101,34 @@ interface ToastItemProps {
   onClose: () => void
 }
 
-function ToastItem({ toast, onClose }: ToastItemProps) {
+const ToastItem = React.memo(function ToastItem({
+  toast,
+  onClose,
+}: ToastItemProps) {
   const [isVisible, setIsVisible] = React.useState(false)
 
   React.useEffect(() => {
     setTimeout(() => setIsVisible(true), 10)
   }, [])
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     setIsVisible(false)
     setTimeout(onClose, 150)
-  }
-
-  const typeStyles = {
-    default: "bg-slate-800 border-slate-700",
-    success: "bg-green-800 border-green-700",
-    error: "bg-red-800 border-red-700",
-    warning: "bg-yellow-800 border-yellow-700",
-  }
-
-  const iconMap = {
-    default: "ℹ️",
-    success: "✅",
-    error: "❌",
-    warning: "⚠️",
-  }
+  }, [onClose])
 
   return (
     <div
       className={cn(
         "border rounded-lg p-4 shadow-lg transition-all duration-150 transform",
         isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
-        typeStyles[toast.type || "default"],
+        TOAST_TYPE_STYLES[toast.type || "default"],
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2 flex-1">
-          <span className="text-lg">{iconMap[toast.type || "default"]}</span>
+          <span className="text-lg">
+            {TOAST_ICON_MAP[toast.type || "default"]}
+          </span>
           <div className="flex-1 min-w-0">
             {toast.title && (
               <h4 className="font-medium text-white text-sm">{toast.title}</h4>
@@ -142,4 +147,4 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       </div>
     </div>
   )
-}
+})

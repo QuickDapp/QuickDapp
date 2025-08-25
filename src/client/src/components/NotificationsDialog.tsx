@@ -162,11 +162,11 @@ export function NotificationsDialog({
     markAsReadMutation.mutate(id)
   }
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = React.useCallback(() => {
     markAllAsReadMutation.mutate()
-  }
+  }, [markAllAsReadMutation])
 
-  const loadMore = () => {
+  const loadMore = React.useCallback(() => {
     if (
       notificationsData &&
       allNotifications.length < notificationsData.total
@@ -176,7 +176,7 @@ export function NotificationsDialog({
         startIndex: allNotifications.length,
       }))
     }
-  }
+  }, [notificationsData, allNotifications.length])
 
   // Reset pagination when dialog opens
   React.useEffect(() => {
@@ -186,9 +186,16 @@ export function NotificationsDialog({
     }
   }, [open])
 
-  const hasUnreadNotifications = allNotifications.some((n) => !n.read)
-  const canLoadMore =
-    notificationsData && allNotifications.length < notificationsData.total
+  const hasUnreadNotifications = React.useMemo(
+    () => allNotifications.some((n) => !n.read),
+    [allNotifications],
+  )
+
+  const canLoadMore = React.useMemo(
+    () =>
+      notificationsData && allNotifications.length < notificationsData.total,
+    [notificationsData, allNotifications.length],
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

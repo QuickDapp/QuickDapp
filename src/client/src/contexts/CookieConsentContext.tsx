@@ -1,5 +1,12 @@
 import type { ReactNode } from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { CookieConsentBanner } from "../components/CookieConsentBanner"
 
 export interface CookieConsentContextValue {
@@ -36,30 +43,33 @@ export function CookieConsentProvider({
     setConsent(storedConsent as "accepted" | "declined" | null)
   }, [storageKey])
 
-  const acceptCookies = () => {
+  const acceptCookies = useCallback(() => {
     localStorage.setItem(storageKey, "accepted")
     setConsent("accepted")
-  }
+  }, [storageKey])
 
-  const declineCookies = () => {
+  const declineCookies = useCallback(() => {
     localStorage.setItem(storageKey, "declined")
     setConsent("declined")
-  }
+  }, [storageKey])
 
-  const resetConsent = () => {
+  const resetConsent = useCallback(() => {
     localStorage.removeItem(storageKey)
     setConsent(null)
-  }
+  }, [storageKey])
 
-  const contextValue: CookieConsentContextValue = {
-    consent,
-    hasConsented: consent !== null,
-    isAccepted: consent === "accepted",
-    isDeclined: consent === "declined",
-    acceptCookies,
-    declineCookies,
-    resetConsent,
-  }
+  const contextValue = useMemo(
+    (): CookieConsentContextValue => ({
+      consent,
+      hasConsented: consent !== null,
+      isAccepted: consent === "accepted",
+      isDeclined: consent === "declined",
+      acceptCookies,
+      declineCookies,
+      resetConsent,
+    }),
+    [consent, acceptCookies, declineCookies, resetConsent],
+  )
 
   return (
     <CookieConsentContext.Provider value={contextValue}>

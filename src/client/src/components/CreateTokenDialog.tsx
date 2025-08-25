@@ -44,7 +44,7 @@ export function CreateTokenDialog() {
   const txStatus = useTransactionStatus(txHash as `0x${string}`)
   const queryClient = useQueryClient()
 
-  const validateForm = (): boolean => {
+  const validateForm = React.useCallback((): boolean => {
     const newErrors: FormErrors = {}
 
     if (!formData.name.trim()) {
@@ -67,35 +67,38 @@ export function CreateTokenDialog() {
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }
+  }, [formData])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = React.useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
 
-    if (!validateForm()) {
-      return
-    }
+      if (!validateForm()) {
+        return
+      }
 
-    // Clear any previous errors
-    setSubmitError(null)
+      // Clear any previous errors
+      setSubmitError(null)
 
-    try {
-      const result = await createToken.mutateAsync({
-        name: formData.name.trim(),
-        symbol: formData.symbol.trim().toUpperCase(),
-        decimals: formData.decimals,
-        initialSupply: formData.initialSupply,
-      })
+      try {
+        const result = await createToken.mutateAsync({
+          name: formData.name.trim(),
+          symbol: formData.symbol.trim().toUpperCase(),
+          decimals: formData.decimals,
+          initialSupply: formData.initialSupply,
+        })
 
-      setTxHash(result.hash)
-      console.log("txHash", result.hash)
-    } catch (error) {
-      console.error("Failed to create token:", error)
-      setSubmitError(
-        error instanceof Error ? error : new Error("Failed to create token"),
-      )
-    }
-  }
+        setTxHash(result.hash)
+        console.log("txHash", result.hash)
+      } catch (error) {
+        console.error("Failed to create token:", error)
+        setSubmitError(
+          error instanceof Error ? error : new Error("Failed to create token"),
+        )
+      }
+    },
+    [validateForm, createToken, formData],
+  )
 
   const handleInputChange =
     (field: keyof CreateTokenFormData) =>
@@ -123,7 +126,7 @@ export function CreateTokenDialog() {
   }, [])
 
   // Helper to convert error messages to user-friendly text
-  const getErrorMessage = (error: Error): string => {
+  const getErrorMessage = React.useCallback((error: Error): string => {
     const message = error.message.toLowerCase()
 
     if (
@@ -150,7 +153,7 @@ export function CreateTokenDialog() {
 
     // Return original message if we can't parse it
     return error.message || "Failed to create token"
-  }
+  }, [])
 
   const handleOpenChange = React.useCallback(
     (newOpen: boolean) => {
@@ -172,8 +175,17 @@ export function CreateTokenDialog() {
     }
   }, [txStatus.isSuccess, handleOpenChange, queryClient])
 
-  const isSubmitting = createToken.isPending || txStatus.isLoading
-  const canSubmit = !isSubmitting && !txHash
+  const isSubmitting = React.useMemo(
+    () => createToken.isPending || txStatus.isLoading,
+    [createToken.isPending, txStatus.isLoading],
+  )
+
+  const canSubmit = React.useMemo(
+    () => !isSubmitting && !txHash,
+    [isSubmitting, txHash],
+  )
+
+  console.log("txStatus", txStatus)
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
