@@ -1,6 +1,6 @@
 import * as LabelPrimitive from "@radix-ui/react-label"
 import * as React from "react"
-import { cn } from "../../utils/cn"
+import { cn } from "../utils/cn"
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {

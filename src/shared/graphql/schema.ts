@@ -40,6 +40,11 @@ export const typeDefs = gql`
     error: String
   }
 
+  type ValidateTokenResult {
+    valid: Boolean!
+    wallet: String
+  }
+
   # Token-related types
   type Token {
     address: String!
@@ -91,6 +96,9 @@ export const typeDefs = gql`
     # Health check queries (no auth required)
     health: String!
     version: String!
+    
+    # Token validation (requires auth header, but validates it)
+    validateToken: ValidateTokenResult!
     
     # User-specific queries (auth required)
     getMyNotifications(pageParam: PageParam!): NotificationsResponse! @auth

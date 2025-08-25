@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import { useCreateToken, useTransactionStatus } from "../hooks/useTokenActions"
-import { Button } from "./ui/Button"
+import { Button } from "./Button"
 import {
   Dialog,
   DialogContent,
@@ -10,8 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/Dialog"
-import { Form, Input, Label } from "./ui/Form"
+} from "./Dialog"
+import { Form, Input, Label } from "./Form"
 
 interface CreateTokenFormData {
   name: string

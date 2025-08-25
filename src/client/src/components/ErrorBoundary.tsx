@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Component } from "react"
+import { ErrorMessageBox } from "./ErrorMessageBox"
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -39,37 +40,21 @@ export class ErrorBoundary extends Component<
         return this.props.fallback
       }
 
+      const handleRetry = () => {
+        this.setState({ hasError: false, error: null, errorInfo: null })
+        window.location.reload()
+      }
+
       return (
-        <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
-          <div className="max-w-md mx-auto p-8 text-center">
-            <h1 className="text-2xl font-bold mb-4 text-red-400">
-              Something went wrong
-            </h1>
-            <div className="bg-gray-900 p-4 rounded mb-4 text-left">
-              <p className="text-sm text-gray-300 mb-2">Error:</p>
-              <pre className="text-xs text-red-300 whitespace-pre-wrap">
-                {this.state.error?.message}
-              </pre>
-            </div>
-            <button
-              onClick={() => {
-                this.setState({ hasError: false, error: null, errorInfo: null })
-                window.location.reload()
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Reload App
-            </button>
-            <div className="mt-4">
-              <details className="text-xs text-gray-400">
-                <summary className="cursor-pointer mb-2">
-                  Technical Details
-                </summary>
-                <pre className="text-left bg-gray-800 p-2 rounded overflow-auto max-h-32">
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </details>
-            </div>
+        <div className="flex items-center justify-center min-h-screen bg-background text-foreground p-4">
+          <div className="max-w-md mx-auto">
+            <ErrorMessageBox
+              title="Application Error"
+              message="Something went wrong and the application crashed."
+              error={this.state.error || undefined}
+              details={this.state.errorInfo?.componentStack}
+              onRetry={handleRetry}
+            />
           </div>
         </div>
       )

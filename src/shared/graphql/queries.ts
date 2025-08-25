@@ -33,3 +33,12 @@ export const GET_MY_UNREAD_NOTIFICATIONS_COUNT = gql`
     getMyUnreadNotificationsCount
   }
 `
+
+export const VALIDATE_TOKEN = gql`
+  query ValidateToken {
+    validateToken {
+      valid
+      wallet
+    }
+  }
+`

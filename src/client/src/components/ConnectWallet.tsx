@@ -1,5 +1,5 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { Button } from "./ui/Button"
+import { Button } from "./Button"
 
 interface ConnectWalletProps {
   showNetwork?: boolean

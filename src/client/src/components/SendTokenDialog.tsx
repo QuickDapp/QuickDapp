@@ -6,7 +6,7 @@ import {
   useTransferToken,
 } from "../hooks/useTokenActions"
 import type { Token } from "../hooks/useTokens"
-import { Button } from "./ui/Button"
+import { Button } from "./Button"
 import {
   Dialog,
   DialogContent,
@@ -15,8 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/Dialog"
-import { Form, Input, Label } from "./ui/Form"
+} from "./Dialog"
+import { Form, Input, Label } from "./Form"
 
 interface SendTokenDialogProps {
   token: Token

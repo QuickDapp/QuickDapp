@@ -32,6 +32,34 @@ export function createResolvers(serverApp: ServerApp) {
       health: () => "OK",
       version: () => serverConfig.APP_VERSION,
 
+      // Token validation (requires auth header, but validates it)
+      validateToken: async (
+        _: unknown,
+        __: unknown,
+        context: GraphQLContext,
+      ) => {
+        try {
+          if (context.user) {
+            return {
+              valid: true,
+              wallet: context.user.wallet,
+            }
+          } else {
+            return {
+              valid: false,
+              wallet: null,
+            }
+          }
+        } catch (error) {
+          const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+          logger.error("Error validating token:", error)
+          return {
+            valid: false,
+            wallet: null,
+          }
+        }
+      },
+
       // User notifications (auth required)
       getMyNotifications: async (
         _: unknown,

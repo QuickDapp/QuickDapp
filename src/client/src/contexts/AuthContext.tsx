@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
 } from "react"
 import { useAccount, useSignMessage } from "wagmi"
@@ -14,6 +15,7 @@ import {
   AUTHENTICATE_WITH_SIWE,
   GENERATE_SIWE_MESSAGE,
 } from "../../../shared/graphql/mutations"
+import { VALIDATE_TOKEN } from "../../../shared/graphql/queries"
 
 interface SiweMessageResult {
   message: string
@@ -33,9 +35,31 @@ const STORAGE_KEYS = {
   AUTH_WALLET: "auth_wallet",
 } as const
 
+// Helper functions for localStorage operations
+const saveAuthToStorage = (token: string, wallet: string) => {
+  console.log("Saving auth to localStorage:", { token, wallet })
+  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token)
+  localStorage.setItem(STORAGE_KEYS.AUTH_WALLET, wallet)
+}
+
+const getAuthFromStorage = () => {
+  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  const wallet = localStorage.getItem(STORAGE_KEYS.AUTH_WALLET)
+  console.log("Getting auth from localStorage:", { token, wallet })
+  return { token, wallet }
+}
+
+const clearAuthFromStorage = () => {
+  console.log("Clearing auth from localStorage")
+  localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.AUTH_WALLET)
+}
+
 // Auth status enum
 enum AuthStatus {
   IDLE = "idle",
+  RESTORING = "restoring",
+  WAITING_FOR_WALLET = "waiting_for_wallet",
   AUTHENTICATING = "authenticating",
   AUTHENTICATED = "authenticated",
   REJECTED = "rejected",
@@ -49,23 +73,30 @@ enum AuthActionType {
   AUTH_REJECTED = "AUTH_REJECTED",
   AUTH_ERROR = "AUTH_ERROR",
   LOGOUT = "LOGOUT",
-  RESTORE_AUTH = "RESTORE_AUTH",
+  RESTORE_START = "RESTORE_START",
+  RESTORE_SUCCESS = "RESTORE_SUCCESS",
   RESTORE_COMPLETE = "RESTORE_COMPLETE",
+  WALLET_READY = "WALLET_READY",
   RESET_TO_IDLE = "RESET_TO_IDLE",
 }
 
 // State Machine Definition
 type AuthState =
-  | { status: AuthStatus.IDLE; hasRestoredAuth: boolean }
-  | { status: AuthStatus.AUTHENTICATING; hasRestoredAuth: boolean }
+  | { status: AuthStatus.IDLE }
+  | { status: AuthStatus.RESTORING }
+  | {
+      status: AuthStatus.WAITING_FOR_WALLET
+      token: string
+      wallet: string
+    }
+  | { status: AuthStatus.AUTHENTICATING }
   | {
       status: AuthStatus.AUTHENTICATED
       token: string
       wallet: string
-      hasRestoredAuth: boolean
     }
-  | { status: AuthStatus.REJECTED; error: string; hasRestoredAuth: boolean }
-  | { status: AuthStatus.ERROR; error: string; hasRestoredAuth: boolean }
+  | { status: AuthStatus.REJECTED; error: string }
+  | { status: AuthStatus.ERROR; error: string }
 
 type AuthAction =
   | { type: AuthActionType.AUTH_START }
@@ -76,11 +107,13 @@ type AuthAction =
   | { type: AuthActionType.AUTH_REJECTED; payload: { error: string } }
   | { type: AuthActionType.AUTH_ERROR; payload: { error: string } }
   | { type: AuthActionType.LOGOUT }
+  | { type: AuthActionType.RESTORE_START }
   | {
-      type: AuthActionType.RESTORE_AUTH
+      type: AuthActionType.RESTORE_SUCCESS
       payload: { token: string; wallet: string }
     }
   | { type: AuthActionType.RESTORE_COMPLETE }
+  | { type: AuthActionType.WALLET_READY }
   | { type: AuthActionType.RESET_TO_IDLE }
 
 // Error handling utilities
@@ -113,58 +146,56 @@ const getAuthErrorMessage = (error: unknown): string => {
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
     case AuthActionType.AUTH_START:
-      return {
-        status: AuthStatus.AUTHENTICATING,
-        hasRestoredAuth: state.hasRestoredAuth,
-      }
+      return { status: AuthStatus.AUTHENTICATING }
 
     case AuthActionType.AUTH_SUCCESS:
       return {
         status: AuthStatus.AUTHENTICATED,
         token: action.payload.token,
         wallet: action.payload.wallet,
-        hasRestoredAuth: state.hasRestoredAuth,
       }
 
     case AuthActionType.AUTH_REJECTED:
       return {
         status: AuthStatus.REJECTED,
         error: action.payload.error,
-        hasRestoredAuth: state.hasRestoredAuth,
       }
 
     case AuthActionType.AUTH_ERROR:
       return {
         status: AuthStatus.ERROR,
         error: action.payload.error,
-        hasRestoredAuth: state.hasRestoredAuth,
       }
 
     case AuthActionType.LOGOUT:
-      return {
-        status: AuthStatus.IDLE,
-        hasRestoredAuth: state.hasRestoredAuth,
-      }
+      return { status: AuthStatus.IDLE }
 
-    case AuthActionType.RESTORE_AUTH:
+    case AuthActionType.RESTORE_START:
+      return { status: AuthStatus.RESTORING }
+
+    case AuthActionType.RESTORE_SUCCESS:
       return {
-        status: AuthStatus.AUTHENTICATED,
+        status: AuthStatus.WAITING_FOR_WALLET,
         token: action.payload.token,
         wallet: action.payload.wallet,
-        hasRestoredAuth: true,
       }
 
     case AuthActionType.RESTORE_COMPLETE:
-      return {
-        ...state,
-        hasRestoredAuth: true,
+      return { status: AuthStatus.IDLE }
+
+    case AuthActionType.WALLET_READY:
+      // Only transition from WAITING_FOR_WALLET to AUTHENTICATED
+      if (state.status === AuthStatus.WAITING_FOR_WALLET) {
+        return {
+          status: AuthStatus.AUTHENTICATED,
+          token: state.token,
+          wallet: state.wallet,
+        }
       }
+      return state
 
     case AuthActionType.RESET_TO_IDLE:
-      return {
-        status: AuthStatus.IDLE,
-        hasRestoredAuth: state.hasRestoredAuth,
-      }
+      return { status: AuthStatus.IDLE }
 
     default:
       return state
@@ -173,7 +204,6 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 const initialState: AuthState = {
   status: AuthStatus.IDLE,
-  hasRestoredAuth: false,
 }
 
 interface AuthContextValue {
@@ -202,6 +232,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [lastRejectedAddress, setLastRejectedAddress] = useState<string | null>(
     null,
   )
+  const [wasConnected, setWasConnected] = useState(false)
+  const restorationStarted = useRef(false)
   const { address, isConnected, connector, status } = useAccount()
   const { signMessageAsync } = useSignMessage()
 
@@ -264,8 +296,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLastRejectedAddress(null)
 
           // Persist to localStorage and set GraphQL client token
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, result.token)
-          localStorage.setItem(STORAGE_KEYS.AUTH_WALLET, payload.wallet)
+          saveAuthToStorage(result.token, payload.wallet)
           setAuthToken(result.token)
         } else {
           dispatch({
@@ -308,21 +339,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuthToken(null)
     setLastRejectedAddress(null)
     dispatch({ type: AuthActionType.LOGOUT })
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.AUTH_WALLET)
+    clearAuthFromStorage()
   }, [])
 
   // Restore authentication from localStorage
-  const restoreAuth = useCallback(() => {
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-    const wallet = localStorage.getItem(STORAGE_KEYS.AUTH_WALLET)
+  const restoreAuth = useCallback(async () => {
+    dispatch({ type: AuthActionType.RESTORE_START })
+
+    const { token, wallet } = getAuthFromStorage()
+
     if (token && wallet) {
       console.log("Restoring auth from localStorage for wallet:", wallet)
-      setAuthToken(token)
-      dispatch({
-        type: AuthActionType.RESTORE_AUTH,
-        payload: { token, wallet },
-      })
+
+      try {
+        // Validate the token with the server
+        console.log("Validating stored token with server...")
+        setAuthToken(token) // Set token before making the request
+
+        const graphqlClient = getGraphQLClient()
+        const response = (await graphqlClient.request(VALIDATE_TOKEN)) as {
+          validateToken: { valid: boolean; wallet: string | null }
+        }
+
+        if (response.validateToken.valid && response.validateToken.wallet) {
+          console.log(
+            "Token is valid, restoring auth for wallet:",
+            response.validateToken.wallet,
+          )
+          dispatch({
+            type: AuthActionType.RESTORE_SUCCESS,
+            payload: { token, wallet: response.validateToken.wallet },
+          })
+        } else {
+          console.log("Token is invalid, clearing stored auth")
+          // Token is invalid, clear it
+          clearAuthFromStorage()
+          setAuthToken(null)
+          dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+        }
+      } catch (error) {
+        console.log("Error validating token, clearing stored auth:", error)
+        // Error validating token, clear it
+        clearAuthFromStorage()
+        setAuthToken(null)
+        dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+      }
     } else {
       dispatch({ type: AuthActionType.RESTORE_COMPLETE })
     }
@@ -334,7 +395,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [authState.status],
   )
   const isAuthenticating = useMemo(
-    () => authState.status === AuthStatus.AUTHENTICATING,
+    () =>
+      authState.status === AuthStatus.AUTHENTICATING ||
+      authState.status === AuthStatus.RESTORING,
     [authState.status],
   )
   const userRejectedAuth = useMemo(
@@ -342,62 +405,65 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [authState.status],
   )
 
-  // Helper to check if auto-authentication should happen
-  const shouldAutoAuthenticate = useMemo(() => {
-    // Don't auto-authenticate if the current address was rejected
+  // Effect 1: Token restoration (runs once on mount)
+  useEffect(() => {
+    if (authState.status === AuthStatus.IDLE && !restorationStarted.current) {
+      restorationStarted.current = true
+      restoreAuth().catch((error) => {
+        console.error("Error during auth restoration:", error)
+        dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+      })
+    }
+  }, [authState.status, restoreAuth])
+
+  // Effect 2: Track wallet connection state
+  useEffect(() => {
+    if (isConnected && !wasConnected) {
+      setWasConnected(true)
+    } else if (!isConnected && wasConnected) {
+      setWasConnected(false)
+    }
+  }, [isConnected, wasConnected])
+
+  // Effect 3: Handle wallet ready state
+  useEffect(() => {
+    if (
+      authState.status === AuthStatus.WAITING_FOR_WALLET &&
+      isConnected &&
+      address &&
+      status === "connected"
+    ) {
+      console.log("Wallet is ready, transitioning to authenticated")
+      dispatch({ type: AuthActionType.WALLET_READY })
+    }
+  }, [authState.status, isConnected, address, status])
+
+  // Effect 4: Handle wallet disconnection (only after being connected)
+  useEffect(() => {
+    if (
+      !isConnected &&
+      wasConnected &&
+      isAuthenticated &&
+      authState.status === AuthStatus.AUTHENTICATED
+    ) {
+      console.log("Wallet disconnected after being connected, logging out")
+      logout()
+    }
+  }, [isConnected, wasConnected, isAuthenticated, authState.status, logout])
+
+  // Effect 5: Handle auto-authentication for new users
+  useEffect(() => {
     const addressWasRejected = lastRejectedAddress === address
 
-    return !!(
-      authState.hasRestoredAuth &&
+    if (
+      authState.status === AuthStatus.IDLE &&
       isConnected &&
       address &&
       status === "connected" &&
       connector &&
-      !isAuthenticated &&
-      !isAuthenticating &&
       !addressWasRejected
-    )
-  }, [
-    authState.hasRestoredAuth,
-    isConnected,
-    address,
-    status,
-    connector,
-    isAuthenticated,
-    isAuthenticating,
-    lastRejectedAddress,
-  ])
-
-  // Combined wallet connection and auth management effect
-  useEffect(() => {
-    // 1. Restore auth on mount (only once)
-    if (!authState.hasRestoredAuth) {
-      restoreAuth()
-      return
-    }
-
-    // 2. Handle wallet disconnection - auto logout
-    if (!isConnected && isAuthenticated) {
-      console.log("Wallet disconnected, logging out")
-      logout()
-      return
-    }
-
-    // 3. Reset rejection tracking when address changes (different wallet connected)
-    if (address && lastRejectedAddress && lastRejectedAddress !== address) {
-      console.log("Different wallet connected, clearing rejection tracking")
-      setLastRejectedAddress(null)
-      // Don't return here - allow auto-authentication to proceed
-    }
-
-    // 4. Auto-authenticate when wallet is ready (but not if current address was rejected)
-    if (shouldAutoAuthenticate && address) {
-      console.log(
-        "Auto-authenticating with wallet:",
-        address,
-        "status:",
-        status,
-      )
+    ) {
+      console.log("Auto-authenticating new user with wallet:", address)
       // Add a small delay to ensure connector is fully ready
       const timeoutId = setTimeout(() => {
         authenticate(address)
@@ -405,17 +471,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return () => clearTimeout(timeoutId)
     }
   }, [
-    authState.hasRestoredAuth,
+    authState.status,
     isConnected,
     address,
     status,
-    isAuthenticated,
+    connector,
     lastRejectedAddress,
-    shouldAutoAuthenticate,
-    restoreAuth,
-    logout,
     authenticate,
   ])
+
+  // Effect 6: Reset rejection tracking when address changes
+  useEffect(() => {
+    if (address && lastRejectedAddress && lastRejectedAddress !== address) {
+      console.log("Different wallet connected, clearing rejection tracking")
+      setLastRejectedAddress(null)
+    }
+  }, [address, lastRejectedAddress])
 
   // Memoized error derivation
   const error = useMemo(() => {
@@ -423,22 +494,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
       authState.status === AuthStatus.ERROR ||
       authState.status === AuthStatus.REJECTED
     ) {
-      return new Error("error" in authState ? authState.error : "Unknown error")
+      return new Error(authState.error)
     }
     return null
   }, [authState])
 
   // Memoized token and wallet derivation
   const authToken = useMemo(() => {
-    return authState.status === AuthStatus.AUTHENTICATED
-      ? authState.token
-      : null
+    if (
+      authState.status === AuthStatus.AUTHENTICATED ||
+      authState.status === AuthStatus.WAITING_FOR_WALLET
+    ) {
+      return authState.token
+    }
+    return null
   }, [authState])
 
   const walletAddress = useMemo(() => {
-    return authState.status === AuthStatus.AUTHENTICATED
-      ? authState.wallet
-      : null
+    if (
+      authState.status === AuthStatus.AUTHENTICATED ||
+      authState.status === AuthStatus.WAITING_FOR_WALLET
+    ) {
+      return authState.wallet
+    }
+    return null
   }, [authState])
 
   const contextValue = useMemo(

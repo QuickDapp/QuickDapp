@@ -2,9 +2,9 @@ import { formatUnits } from "viem"
 import type { Token } from "../hooks/useTokens"
 import { useMyTokens } from "../hooks/useTokens"
 import { cn } from "../utils/cn"
+import { Button } from "./Button"
 import { SendTokenDialog } from "./SendTokenDialog"
 import styles from "./TokenList.module.css"
-import { Button } from "./ui/Button"
 
 interface TokenCardProps {
   token: Token

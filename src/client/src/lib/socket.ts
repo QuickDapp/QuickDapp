@@ -1,3 +1,4 @@
+import { clientConfig } from "../../../shared/config/client"
 import {
   type WebSocketMessage,
   WebSocketMessageType,
@@ -18,13 +19,28 @@ export class Socket {
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
   private isConnected = false
+  private isReconnecting = false
   private url: string
   private token?: string
   private readyPromise: Promise<void> | null = null
 
   constructor(url?: string) {
-    this.url = url || `ws://${window.location.host}/ws`
+    this.url = url || this.getWebSocketUrl()
     this.connect()
+  }
+
+  private getWebSocketUrl(): string {
+    // In development mode with Vite dev server, use the current host which will be proxied
+    // In production, use BASE_URL from client config
+    if (clientConfig.NODE_ENV === "development") {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+      return `${protocol}//${window.location.host}/ws`
+    }
+
+    // Production: Use BASE_URL from client config
+    const baseUrl = new URL(clientConfig.BASE_URL)
+    const protocol = baseUrl.protocol === "https:" ? "wss:" : "ws:"
+    return `${protocol}//${baseUrl.host}/ws`
   }
 
   connect(token?: string) {
@@ -36,13 +52,21 @@ export class Socket {
       return
     }
 
+    // Prevent multiple simultaneous connection attempts
+    if (this.isReconnecting) {
+      return
+    }
+
+    this.isReconnecting = true
+
     this.readyPromise = new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.url)
 
         this.ws.onopen = () => {
-          console.log("WebSocket connected")
+          console.log(`WebSocket connected to ${this.url}`)
           this.isConnected = true
+          this.isReconnecting = false
           this.reconnectAttempts = 0
 
           // Send registration message
@@ -63,18 +87,26 @@ export class Socket {
           }
         }
 
-        this.ws.onclose = () => {
-          console.log("WebSocket disconnected")
+        this.ws.onclose = (event) => {
+          console.log(
+            `WebSocket disconnected (code: ${event.code}, reason: ${event.reason || "none"})`,
+          )
           this.isConnected = false
+          this.isReconnecting = false
           this.attemptReconnect()
         }
 
         this.ws.onerror = (error) => {
-          console.error("WebSocket error:", error)
+          console.error(`WebSocket error (url: ${this.url}):`, error)
+          this.isReconnecting = false
           reject(error)
         }
       } catch (error) {
-        console.error("Failed to create WebSocket connection:", error)
+        console.error(
+          `Failed to create WebSocket connection to ${this.url}:`,
+          error,
+        )
+        this.isReconnecting = false
         reject(error)
         this.attemptReconnect()
       }
@@ -124,6 +156,25 @@ export class Socket {
     }
   }
 
+  /**
+   * Force reconnection with new token (e.g., after authentication)
+   */
+  reconnectWithToken(token?: string) {
+    console.log("WebSocket: Forcing reconnection with new token")
+    if (token) {
+      this.token = token
+    }
+
+    // Disconnect current connection
+    this.disconnect()
+
+    // Reset reconnection attempts for fresh start
+    this.reconnectAttempts = 0
+
+    // Reconnect with new token
+    this.connect(this.token)
+  }
+
   private send(message: any) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message))
@@ -139,13 +190,15 @@ export class Socket {
 
   private attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error("Max reconnection attempts reached")
+      console.error(
+        `Max reconnection attempts reached (${this.maxReconnectAttempts}). WebSocket connection failed permanently.`,
+      )
       return
     }
 
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts)
     console.log(
-      `Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`,
+      `Attempting to reconnect to ${this.url} in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`,
     )
 
     setTimeout(() => {
