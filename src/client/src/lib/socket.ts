@@ -1,3 +1,4 @@
+import ReconnectingWebSocket from "reconnecting-websocket"
 import { clientConfig } from "../../../shared/config/client"
 import {
   type WebSocketMessage,
@@ -13,13 +14,8 @@ export interface SocketEventHandler {
  * WebSocket client for real-time communication with the server
  */
 export class Socket {
-  private ws: WebSocket | null = null
+  private ws!: ReconnectingWebSocket
   private handlers: SocketEventHandler[] = []
-  private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
-  private reconnectDelay = 1000
-  private isConnected = false
-  private isReconnecting = false
   private url: string
   private token?: string
   private readyPromise: Promise<void> | null = null
@@ -48,26 +44,28 @@ export class Socket {
       this.token = token
     }
 
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.ws && this.ws.readyState === ReconnectingWebSocket.OPEN) {
       return
     }
 
-    // Prevent multiple simultaneous connection attempts
-    if (this.isReconnecting) {
-      return
+    // Close existing connection if any
+    if (this.ws) {
+      this.ws.close()
     }
-
-    this.isReconnecting = true
 
     this.readyPromise = new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.url)
+        this.ws = new ReconnectingWebSocket(this.url, [], {
+          maxReconnectionDelay: 10000,
+          minReconnectionDelay: 1000,
+          reconnectionDelayGrowFactor: 1.3,
+          connectionTimeout: 4000,
+          maxRetries: Infinity,
+          debug: false,
+        })
 
         this.ws.onopen = () => {
           console.log(`WebSocket connected to ${this.url}`)
-          this.isConnected = true
-          this.isReconnecting = false
-          this.reconnectAttempts = 0
 
           // Send registration message
           this.send({
@@ -91,14 +89,10 @@ export class Socket {
           console.log(
             `WebSocket disconnected (code: ${event.code}, reason: ${event.reason || "none"})`,
           )
-          this.isConnected = false
-          this.isReconnecting = false
-          this.attemptReconnect()
         }
 
         this.ws.onerror = (error) => {
           console.error(`WebSocket error (url: ${this.url}):`, error)
-          this.isReconnecting = false
           reject(error)
         }
       } catch (error) {
@@ -106,9 +100,7 @@ export class Socket {
           `Failed to create WebSocket connection to ${this.url}:`,
           error,
         )
-        this.isReconnecting = false
         reject(error)
-        this.attemptReconnect()
       }
     })
   }
@@ -116,8 +108,6 @@ export class Socket {
   disconnect() {
     if (this.ws) {
       this.ws.close()
-      this.ws = null
-      this.isConnected = false
     }
   }
 
@@ -138,7 +128,7 @@ export class Socket {
   }
 
   get connected(): boolean {
-    return this.isConnected
+    return this.ws?.readyState === ReconnectingWebSocket.OPEN
   }
 
   onceReady(): Promise<void> {
@@ -147,7 +137,7 @@ export class Socket {
 
   setJwtToken(token?: string) {
     this.token = token
-    if (this.isConnected && this.ws) {
+    if (this.connected && this.ws) {
       // Re-register with new token
       this.send({
         type: "register",
@@ -165,18 +155,13 @@ export class Socket {
       this.token = token
     }
 
-    // Disconnect current connection
+    // Disconnect and reconnect with new token
     this.disconnect()
-
-    // Reset reconnection attempts for fresh start
-    this.reconnectAttempts = 0
-
-    // Reconnect with new token
     this.connect(this.token)
   }
 
   private send(message: any) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.ws?.readyState === ReconnectingWebSocket.OPEN) {
       this.ws.send(JSON.stringify(message))
     }
   }
@@ -186,24 +171,5 @@ export class Socket {
       (h) => h.type === message.type,
     )
     matchingHandlers.forEach((h) => h.handler(message))
-  }
-
-  private attemptReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error(
-        `Max reconnection attempts reached (${this.maxReconnectAttempts}). WebSocket connection failed permanently.`,
-      )
-      return
-    }
-
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts)
-    console.log(
-      `Attempting to reconnect to ${this.url} in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`,
-    )
-
-    setTimeout(() => {
-      this.reconnectAttempts++
-      this.connect(this.token)
-    }, delay)
   }
 }

@@ -1,6 +1,7 @@
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type { Elysia } from "elysia"
 import type { PublicClient, WalletClient } from "viem"
+import type { NotificationData } from "../shared/notifications/types"
 import type { ISocketManager } from "../shared/websocket/socket-manager"
 import type * as schema from "./db/schema"
 import type { createLogger, Logger } from "./lib/logger"
@@ -28,5 +29,8 @@ export type ServerApp = {
   /** Wallet client for transactions (using server private key) */
   walletClient: WalletClient
   /** Create a notification for a user and send via WebSocket */
-  createNotification: (userId: number, notificationData: any) => Promise<void>
+  createNotification: (
+    userId: number,
+    notificationData: NotificationData,
+  ) => Promise<void>
 }

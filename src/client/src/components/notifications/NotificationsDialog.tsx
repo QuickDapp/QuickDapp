@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { format } from "date-fns"
 import * as React from "react"
-import { getGraphQLClient } from "../../../shared/graphql/client"
+import { getGraphQLClient } from "../../../../shared/graphql/client"
 import {
   MARK_ALL_NOTIFICATIONS_AS_READ,
   MARK_NOTIFICATION_AS_READ,
-} from "../../../shared/graphql/mutations"
-import { GET_MY_NOTIFICATIONS } from "../../../shared/graphql/queries"
-import { cn } from "../utils/cn"
-import { Button } from "./Button"
+} from "../../../../shared/graphql/mutations"
+import { GET_MY_NOTIFICATIONS } from "../../../../shared/graphql/queries"
+import type { NotificationData } from "../../../../shared/notifications/types"
+import {
+  type NotificationFromSocket,
+  useNotifications,
+} from "../../hooks/useNotifications"
+import { Button } from "../Button"
 import {
   Dialog,
   DialogContent,
@@ -16,9 +19,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./Dialog"
-import { Loading } from "./Loading"
-import { useOnceVisibleInViewport } from "./OnceVisibleInViewport"
+} from "../Dialog"
+import { Loading } from "../Loading"
+import { useOnceVisibleInViewport } from "../OnceVisibleInViewport"
+import { NotificationItem } from "./NotificationComponents"
 
 // Helper component for load more trigger
 function LoadMoreTrigger({
@@ -55,7 +59,7 @@ function LoadMoreTrigger({
 interface Notification {
   id: number
   userId: number
-  data: Record<string, any>
+  data: NotificationData
   createdAt: string
   read: boolean
 }
@@ -69,11 +73,13 @@ interface NotificationsResponse {
 interface NotificationsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onUnreadCountChange?: (count: number) => void
 }
 
 export function NotificationsDialog({
   open,
   onOpenChange,
+  onUnreadCountChange,
 }: NotificationsDialogProps) {
   const [pageParam, setPageParam] = React.useState({
     startIndex: 0,
@@ -84,6 +90,27 @@ export function NotificationsDialog({
   >([])
 
   const queryClient = useQueryClient()
+
+  // Subscribe to real-time notifications when dialog is open
+  useNotifications({
+    onNotificationReceived: React.useCallback(
+      (notification: NotificationFromSocket) => {
+        if (open) {
+          // Add new notification to the beginning of the list and update unread count
+          setAllNotifications((prev) => {
+            const newNotifications = [notification, ...prev]
+            // Update unread count if the new notification is unread
+            if (!notification.read && onUnreadCountChange) {
+              const unreadCount = newNotifications.filter((n) => !n.read).length
+              onUnreadCountChange(unreadCount)
+            }
+            return newNotifications
+          })
+        }
+      },
+      [open, onUnreadCountChange],
+    ),
+  })
 
   // Fetch notifications - simple query without complex caching logic
   const {
@@ -111,6 +138,13 @@ export function NotificationsDialog({
       if (pageParam.startIndex === 0) {
         // First page - replace all notifications
         setAllNotifications(notificationsData.notifications)
+        // Update unread count in parent component
+        if (onUnreadCountChange) {
+          const unreadCount = notificationsData.notifications.filter(
+            (n) => !n.read,
+          ).length
+          onUnreadCountChange(unreadCount)
+        }
       } else {
         // Additional pages - append to existing notifications
         setAllNotifications((prev) => [
@@ -119,7 +153,7 @@ export function NotificationsDialog({
         ])
       }
     }
-  }, [notificationsData, pageParam.startIndex])
+  }, [notificationsData, pageParam.startIndex, onUnreadCountChange])
 
   // Mark notification as read mutation - just update local state, no complex invalidation
   const markAsReadMutation = useMutation({
@@ -148,6 +182,10 @@ export function NotificationsDialog({
       setAllNotifications((prev) =>
         prev.map((notification) => ({ ...notification, read: true })),
       )
+      // Update unread count in parent component
+      if (onUnreadCountChange) {
+        onUnreadCountChange(0)
+      }
       // Just invalidate unread count
       queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] })
     },
@@ -161,6 +199,14 @@ export function NotificationsDialog({
       ),
     )
     markAsReadMutation.mutate(id)
+
+    // Update unread count in parent component
+    if (onUnreadCountChange) {
+      const updatedUnreadCount = allNotifications.filter(
+        (n) => !n.read && n.id !== id,
+      ).length
+      onUnreadCountChange(updatedUnreadCount)
+    }
   }
 
   const handleMarkAllAsRead = React.useCallback(() => {
@@ -229,36 +275,17 @@ export function NotificationsDialog({
             </div>
           ) : (
             <div className="space-y-2">
-              {allNotifications.map((notification, index) => (
-                <div
+              {allNotifications.map((notification) => (
+                <NotificationItem
                   key={notification.id}
-                  className={cn(
-                    "p-3 rounded-lg border cursor-pointer transition-colors",
-                    notification.read
-                      ? "bg-slate-800 border-slate-700 text-slate-300"
-                      : "bg-slate-700 border-slate-600 text-white hover:bg-slate-600",
-                  )}
+                  id={notification.id}
+                  data={notification.data}
+                  createdAt={notification.createdAt}
+                  read={notification.read}
                   onClick={() =>
                     !notification.read && handleMarkAsRead(notification.id)
                   }
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        {notification.data.message || "Notification"}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {format(
-                          new Date(notification.createdAt),
-                          "MMM d, yyyy 'at' h:mm a",
-                        )}
-                      </p>
-                    </div>
-                    {!notification.read && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1" />
-                    )}
-                  </div>
-                </div>
+                />
               ))}
 
               {canLoadMore && (

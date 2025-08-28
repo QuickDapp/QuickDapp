@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import { getGraphQLClient } from "../../../shared/graphql/client"
-import { GET_MY_UNREAD_NOTIFICATIONS_COUNT } from "../../../shared/graphql/queries"
-import { Button } from "./Button"
+import { getGraphQLClient } from "../../../../shared/graphql/client"
+import { GET_MY_UNREAD_NOTIFICATIONS_COUNT } from "../../../../shared/graphql/queries"
+import {
+  type NotificationFromSocket,
+  useNotifications,
+} from "../../hooks/useNotifications"
+import { Button } from "../Button"
+import { Svg } from "../Svg"
 import { NotificationsDialog } from "./NotificationsDialog"
-import { Svg } from "./Svg"
 
 // Bell icon component
 function BellIcon({ className }: { className?: string }) {
@@ -27,8 +31,10 @@ export function NotificationsIndicator({
   className,
 }: NotificationsIndicatorProps) {
   const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [localUnreadCount, setLocalUnreadCount] = React.useState<number>(0)
 
-  const { data: unreadCount, isLoading } = useQuery({
+  // Initial unread count from GraphQL
+  const { data: serverUnreadCount, isLoading } = useQuery({
     queryKey: ["unreadNotificationsCount"],
     queryFn: async () => {
       const response = await getGraphQLClient().request<{
@@ -36,8 +42,35 @@ export function NotificationsIndicator({
       }>(GET_MY_UNREAD_NOTIFICATIONS_COUNT)
       return response.getMyUnreadNotificationsCount
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    // Reduced interval since we have real-time updates
+    refetchInterval: 120000, // Refetch every 2 minutes as fallback
   })
+
+  // Update local count when server data changes
+  React.useEffect(() => {
+    if (typeof serverUnreadCount === "number") {
+      setLocalUnreadCount(serverUnreadCount)
+    }
+  }, [serverUnreadCount])
+
+  // Subscribe to real-time notifications
+  useNotifications({
+    onNotificationReceived: React.useCallback(
+      (notification: NotificationFromSocket) => {
+        // Only increment count for unread notifications
+        if (!notification.read) {
+          setLocalUnreadCount((prev) => prev + 1)
+        }
+      },
+      [],
+    ),
+  })
+
+  const handleUnreadCountChange = React.useCallback((newCount: number) => {
+    setLocalUnreadCount(newCount)
+  }, [])
+
+  const displayCount = localUnreadCount
 
   return (
     <>
@@ -50,14 +83,18 @@ export function NotificationsIndicator({
           disabled={isLoading}
         >
           <BellIcon className="h-5 w-5" />
-          {unreadCount && unreadCount > 0 && (
+          {displayCount && displayCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
-              {unreadCount > 99 ? "99+" : unreadCount}
+              {displayCount > 99 ? "99+" : displayCount}
             </span>
           )}
         </Button>
       </div>
-      <NotificationsDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <NotificationsDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onUnreadCountChange={handleUnreadCountChange}
+      />
     </>
   )
 }

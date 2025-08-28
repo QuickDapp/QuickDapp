@@ -1,6 +1,7 @@
 import Elysia, { t } from "elysia"
 import type { ISocketManager } from "../../shared/websocket/socket-manager"
 import type { WebSocketMessage } from "../../shared/websocket/types"
+import { WebSocketMessageType } from "../../shared/websocket/types"
 import { AuthService } from "../auth/index"
 import type { Logger } from "../lib/logger"
 import type { ServerApp } from "../types"
@@ -18,6 +19,17 @@ export const createWebSocket = (serverApp: ServerApp) => {
       type: t.String(),
       data: t.Unknown(),
     }),
+    open(ws) {
+      log.debug(`Client WebSocket opened: ${ws.id}`)
+
+      // Send connected message immediately
+      ws.send({
+        type: WebSocketMessageType.Connected,
+        data: {
+          message: "WebSocket connection established",
+        },
+      })
+    },
     close(ws) {
       log.debug(`Client disconnected: ${ws.id}`)
       ;(serverApp.socketManager as SocketManager).deregister(ws.id)
@@ -26,7 +38,7 @@ export const createWebSocket = (serverApp: ServerApp) => {
       const { type, jwtToken } = message
       ;(async () => {
         if (type === "register") {
-          log.debug(`Client connected: ${ws.id}`)
+          log.debug(`Client registering: ${ws.id}`)
 
           // Register client with socket manager
           ;(serverApp.socketManager as SocketManager).registerClient(ws, ws.id)
@@ -34,20 +46,28 @@ export const createWebSocket = (serverApp: ServerApp) => {
           // If JWT token provided, authenticate and associate with user
           if (jwtToken) {
             try {
-              const user = await authService.verifyToken(jwtToken)
-              if (user?.wallet) {
-                // For now, use wallet address as user identifier
-                // In a real app, you'd map wallet to user ID from database
-                const userIdHash = user.wallet.toLowerCase().slice(2, 10) // Simple hash for demo
-                const userId = parseInt(userIdHash, 16) % 1000000 // Convert to reasonable number
-                ;(serverApp.socketManager as SocketManager).registerUser(
-                  ws.id,
-                  userId,
-                )
-                log.debug(
-                  `Client ${ws.id} authenticated as user ${userId} (${user.wallet})`,
-                )
+              const authenticatedUser = await authService.verifyToken(jwtToken)
+              if (!authenticatedUser?.id) {
+                throw new Error("Authenticated user missing ID")
               }
+              // Register using user ID from auth service
+              ;(serverApp.socketManager as SocketManager).registerUser(
+                ws.id,
+                authenticatedUser.id,
+              )
+
+              // Send registered message to confirm successful authentication
+              ws.send({
+                type: WebSocketMessageType.Registered,
+                data: {
+                  userId: authenticatedUser.id,
+                  message: "Successfully registered with user ID",
+                },
+              })
+
+              log.debug(
+                `Client ${ws.id} successfully registered as user ${authenticatedUser.id} (${authenticatedUser.wallet})`,
+              )
             } catch (err) {
               log.error(`Error verifying JWT token`, err)
             }

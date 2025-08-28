@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
 import { serverConfig } from "../../../shared/config/server"
 import { fetchTokenMetadata } from "../../../shared/contracts"
+import { NotificationType } from "../../../shared/notifications/types"
 import { users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
@@ -100,7 +101,7 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
       // Create notification for the user using the new serverApp method
       try {
         await serverApp.createNotification(user.id, {
-          type: "token_transfer",
+          type: NotificationType.TOKEN_TRANSFER,
           message: `Sent ${formattedAmount} ${tokenInfo.symbol} (${tokenInfo.name}) to ${to}`,
           transactionHash,
           tokenAddress,

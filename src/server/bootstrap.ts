@@ -1,6 +1,7 @@
 import { createPublicClient, createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { serverConfig } from "../shared/config/server"
+import type { NotificationData } from "../shared/notifications/types"
 import type { ISocketManager } from "../shared/websocket/socket-manager"
 import { WebSocketMessageType } from "../shared/websocket/types"
 import { dbManager } from "./db/connection"
@@ -18,7 +19,7 @@ const createNotificationFunction = (
   socketManager: ISocketManager,
   logger: any,
 ) => {
-  return async (userId: number, notificationData: any) => {
+  return async (userId: number, notificationData: NotificationData) => {
     try {
       // Insert notification into database
       const [notification] = await db

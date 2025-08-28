@@ -184,7 +184,7 @@ export function createResolvers(serverApp: ServerApp) {
           return {
             success: true,
             token: authResult.token,
-            wallet: authResult.wallet,
+            wallet: authResult.user.wallet,
             error: null,
           }
         } catch (error) {

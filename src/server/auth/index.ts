@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql"
 import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
 import { serverConfig } from "../../shared/config/server"
+import { getUser } from "../db/users"
 import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import type { ServerApp } from "../types"
@@ -12,12 +13,12 @@ function getJwtSecret(): Uint8Array {
 }
 
 export interface AuthenticatedUser {
+  id: number
   wallet: string
 }
 
 export interface AuthenticationResult {
   token: string
-  wallet: string
   user: AuthenticatedUser
 }
 
@@ -29,6 +30,13 @@ export class AuthService {
 
   constructor(private serverApp: ServerApp) {
     this.logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+  }
+
+  /**
+   * Get user by wallet address
+   */
+  async getUserByWallet(wallet: string) {
+    return await getUser(this.serverApp.db, wallet)
   }
 
   /**
@@ -61,10 +69,19 @@ export class AuthService {
         })
       }
 
-      // Create JWT token with microsecond precision for uniqueness
+      // Get user from database
+      const dbUser = await this.getUserByWallet(siwe.address)
+      if (!dbUser) {
+        throw new GraphQLError("User not found", {
+          extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
+        })
+      }
+
+      // Create JWT token with user ID and wallet
       const now = Date.now()
       const token = await new SignJWT({
-        wallet: siwe.address.toLowerCase(),
+        userId: dbUser.id,
+        wallet: dbUser.wallet,
         iat: Math.floor(now / 1000),
         // Add microsecond precision to ensure uniqueness in concurrent requests
         iatMs: now,
@@ -76,7 +93,8 @@ export class AuthService {
         .sign(getJwtSecret())
 
       const user: AuthenticatedUser = {
-        wallet: siwe.address.toLowerCase(),
+        id: dbUser.id,
+        wallet: dbUser.wallet,
       }
 
       this.logger.debug(
@@ -85,7 +103,6 @@ export class AuthService {
 
       return {
         token,
-        wallet: siwe.address.toLowerCase(),
         user,
       }
     } catch (error) {
@@ -151,15 +168,23 @@ export class AuthService {
 
       const { payload } = await jwtVerify(token, getJwtSecret())
 
-      if (!payload.wallet || typeof payload.wallet !== "string") {
-        this.logger.debug(`Token payload missing wallet:`, payload)
+      if (
+        !payload.userId ||
+        typeof payload.userId !== "number" ||
+        !payload.wallet ||
+        typeof payload.wallet !== "string"
+      ) {
+        this.logger.debug(`Token payload missing userId or wallet:`, payload)
         throw new GraphQLError("Invalid token payload", {
           extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
         })
       }
 
-      this.logger.debug(`Token verified for wallet: ${payload.wallet}`)
+      this.logger.debug(
+        `Token verified for user ${payload.userId} (${payload.wallet})`,
+      )
       return {
+        id: payload.userId,
         wallet: payload.wallet,
       }
     } catch (error) {

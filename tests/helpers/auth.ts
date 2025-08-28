@@ -17,6 +17,7 @@ import { AuthService } from "../../src/server/auth"
 import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
 import { serverConfig } from "../../src/shared/config/server"
+import type { NotificationData } from "../../src/shared/notifications/types"
 import { testLogger } from "./logger"
 
 export interface TestWallet {
@@ -287,7 +288,10 @@ function createMockServerApp(): ServerApp {
     socketManager: {} as any,
     publicClient: {} as any,
     walletClient: {} as any,
-    createNotification: async () => {
+    createNotification: async (
+      userId: number,
+      notificationData: NotificationData,
+    ) => {
       // Mock implementation for tests
     },
   }

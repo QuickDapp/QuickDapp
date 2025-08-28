@@ -4,7 +4,7 @@ import logoSvg from "../images/logo.svg"
 import { cn } from "../utils/cn"
 import { ConnectWallet } from "./ConnectWallet"
 import styles from "./Header.module.css"
-import { NotificationsIndicator } from "./NotificationsIndicator"
+import { NotificationsIndicator } from "./notifications/NotificationsIndicator"
 
 const Logo: FC = () => (
   <img src={logoSvg} alt="QuickDapp Logo" className="w-8 h-8" />

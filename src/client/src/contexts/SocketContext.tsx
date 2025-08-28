@@ -9,6 +9,8 @@ import {
   useState,
 } from "react"
 import {
+  type ConnectedMessage,
+  type RegisteredMessage,
   type WebSocketMessage,
   WebSocketMessageType,
 } from "../../../shared/websocket/types"
@@ -66,7 +68,28 @@ export function SocketProvider({ children }: SocketProviderProps) {
         checkConnectionStatus()
       })
 
+    // Handle connection messages
+    const unsubscribeConnected = socket.subscribe(
+      WebSocketMessageType.Connected,
+      (message: WebSocketMessage) => {
+        const connectedMessage = message as ConnectedMessage
+        console.log("WebSocket connected:", connectedMessage.data.message)
+      },
+    )
+
+    const unsubscribeRegistered = socket.subscribe(
+      WebSocketMessageType.Registered,
+      (message: WebSocketMessage) => {
+        const registeredMessage = message as RegisteredMessage
+        console.log(
+          `WebSocket registered with user ID ${registeredMessage.data.userId}: ${registeredMessage.data.message}`,
+        )
+      },
+    )
+
     return () => {
+      unsubscribeConnected()
+      unsubscribeRegistered()
       clearInterval(interval)
       if (authChangeTimeoutRef.current) {
         clearTimeout(authChangeTimeoutRef.current)

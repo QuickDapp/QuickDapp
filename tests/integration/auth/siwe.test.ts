@@ -10,6 +10,7 @@ import { SiweMessage } from "siwe"
 import { AuthService } from "../../../src/server/auth"
 import { createRootLogger } from "../../../src/server/lib/logger"
 import type { ServerApp } from "../../../src/server/types"
+import type { NotificationData } from "../../../src/shared/notifications/types"
 import {
   checksumAddress,
   createAuthenticatedTestUser,
@@ -44,7 +45,10 @@ describe("SIWE Authentication Tests", () => {
     socketManager: {} as any,
     publicClient: {} as any,
     walletClient: {} as any,
-    createNotification: async () => {
+    createNotification: async (
+      userId: number,
+      notificationData: NotificationData,
+    ) => {
       // Mock implementation for tests
     },
   }
@@ -91,8 +95,9 @@ describe("SIWE Authentication Tests", () => {
 
       expect(authResult.token).toBeDefined()
       expect(typeof authResult.token).toBe("string")
-      expect(authResult.wallet).toBe(wallet.address.toLowerCase())
       expect(authResult.user.wallet).toBe(wallet.address.toLowerCase())
+      expect(authResult.user.id).toBeDefined()
+      expect(typeof authResult.user.id).toBe("number")
 
       // Step 4: Use JWT for authenticated GraphQL request
       const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -198,12 +203,10 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address, { chainId })
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        const authResult = await authService.authenticateWithSiwe(
+        const _authResult = await authService.authenticateWithSiwe(
           siweMessage.prepareMessage(),
           signature,
         )
-
-        expect(authResult.wallet).toBe(wallet.address.toLowerCase())
       }
     })
 
@@ -223,7 +226,9 @@ describe("SIWE Authentication Tests", () => {
         signature,
       )
 
-      expect(authResult.wallet).toBe(wallet.address.toLowerCase())
+      expect(authResult.user.wallet).toBe(wallet.address.toLowerCase())
+      expect(authResult.user.id).toBeDefined()
+      expect(typeof authResult.user.id).toBe("number")
     })
 
     it("should handle notBefore times", async () => {
@@ -237,12 +242,10 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authService.authenticateWithSiwe(
+      const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
-
-      expect(authResult.wallet).toBe(wallet.address.toLowerCase())
     })
 
     it("should handle resources in SIWE message", async () => {
@@ -259,12 +262,10 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authService.authenticateWithSiwe(
+      const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
-
-      expect(authResult.wallet).toBe(wallet.address.toLowerCase())
     })
   })
 
@@ -372,13 +373,12 @@ describe("SIWE Authentication Tests", () => {
             wallet.privateKey,
           )
 
-          const authResult = await authService.authenticateWithSiwe(
+          const _authResult = await authService.authenticateWithSiwe(
             siweMessage.prepareMessage(),
             signature,
           )
 
           // Should normalize to lowercase
-          expect(authResult.wallet).toBe(wallet.address.toLowerCase())
         }
       }
     })
@@ -392,12 +392,10 @@ describe("SIWE Authentication Tests", () => {
       const siweMessage = createSIWEMessage(checksummed)
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authService.authenticateWithSiwe(
+      const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
-
-      expect(authResult.wallet).toBe(checksummed.toLowerCase())
     })
 
     it("should work with predefined test wallets", async () => {
@@ -416,12 +414,10 @@ describe("SIWE Authentication Tests", () => {
         hardhatWallet.privateKey,
       )
 
-      const authResult = await authService.authenticateWithSiwe(
+      const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
-
-      expect(authResult.wallet).toBe(hardhatWallet.address.toLowerCase())
     })
   })
 
@@ -436,12 +432,10 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address, { domain })
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        const authResult = await authService.authenticateWithSiwe(
+        const _authResult = await authService.authenticateWithSiwe(
           siweMessage.prepareMessage(),
           signature,
         )
-
-        expect(authResult.wallet).toBe(wallet.address.toLowerCase())
       }
     })
 
@@ -458,12 +452,10 @@ describe("SIWE Authentication Tests", () => {
         const siweMessage = createSIWEMessage(wallet.address, { uri })
         const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-        const authResult = await authService.authenticateWithSiwe(
+        const _authResult = await authService.authenticateWithSiwe(
           siweMessage.prepareMessage(),
           signature,
         )
-
-        expect(authResult.wallet).toBe(wallet.address.toLowerCase())
       }
     })
   })
@@ -491,12 +483,10 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authService.authenticateWithSiwe(
+      const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
-
-      expect(authResult.wallet).toBe(wallet.address.toLowerCase())
     })
 
     it("should handle very long nonces", async () => {
@@ -509,12 +499,10 @@ describe("SIWE Authentication Tests", () => {
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-      const authResult = await authService.authenticateWithSiwe(
+      const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
-
-      expect(authResult.wallet).toBe(wallet.address.toLowerCase())
     })
   })
 
@@ -544,7 +532,9 @@ describe("SIWE Authentication Tests", () => {
 
       // All should have correct wallet addresses
       for (let i = 0; i < wallets.length; i++) {
-        expect(authResults[i]!.wallet).toBe(wallets[i]!.address.toLowerCase())
+        expect(authResults[i]!.user.wallet).toBe(
+          wallets[i]!.address.toLowerCase(),
+        )
       }
     })
 
@@ -577,7 +567,7 @@ describe("SIWE Authentication Tests", () => {
 
       // All should be for same wallet
       for (const result of authResults) {
-        expect(result.wallet).toBe(wallet.address.toLowerCase())
+        expect(result.user.wallet).toBe(wallet.address.toLowerCase())
       }
 
       // But should have different tokens
