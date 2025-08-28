@@ -36,11 +36,11 @@ describe("Worker Database Cleanup", () => {
       // Setup test database
       await setupTestDatabase()
 
-      // Start Anvil blockchain instance for deployMulticall3 job
+      // Start testnet blockchain instance for deployMulticall3 job
       testLogger.info("🔗 Starting test blockchain...")
       blockchainContext = await createBlockchainTestContext()
       testLogger.info(
-        `✅ Test blockchain started at ${blockchainContext.anvil.url}`,
+        `✅ Test blockchain started at ${blockchainContext.testnet.url}`,
       )
 
       // Start test server

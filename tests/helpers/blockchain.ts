@@ -9,23 +9,104 @@ import { serverConfig } from "../../src/shared/config/server"
 import { getMulticall3Info } from "../../src/shared/contracts"
 import { testLogger } from "./logger"
 
-export interface AnvilInstance {
+// Abstract base class for blockchain node adapters
+abstract class NodeAdapter {
+  abstract startCommand(): { command: string; args: string[]; options?: any }
+  abstract isReady(output: string): boolean
+  abstract mineRPCMethod(): string
+  abstract setNextBlockTimestampRPCMethod(): string
+}
+
+class AnvilAdapter extends NodeAdapter {
+  constructor(private port: number) {
+    super()
+  }
+
+  startCommand() {
+    return {
+      command: "anvil",
+      args: [
+        "--port",
+        this.port.toString(),
+        "--accounts",
+        "10",
+        "--balance",
+        "10000",
+        "--gas-price",
+        "1000000000", // 1 gwei
+        "--block-time",
+        "1",
+      ],
+      options: {},
+    }
+  }
+
+  isReady(output: string): boolean {
+    return output.includes("Listening on")
+  }
+
+  mineRPCMethod(): string {
+    return "anvil_mine"
+  }
+
+  setNextBlockTimestampRPCMethod(): string {
+    return "anvil_setNextBlockTimestamp"
+  }
+}
+
+class HardhatAdapter extends NodeAdapter {
+  constructor(private port: number) {
+    super()
+  }
+
+  startCommand() {
+    return {
+      command: "bun",
+      args: [
+        "hardhat",
+        "node",
+        "--hostname",
+        "127.0.0.1",
+        "--port",
+        this.port.toString(),
+      ],
+      options: {
+        cwd: "/Users/ram/dev/quickdapp/quickdapp-v3/sample-contracts",
+      },
+    }
+  }
+
+  isReady(output: string): boolean {
+    return output.includes("Started HTTP and WebSocket JSON-RPC server")
+  }
+
+  mineRPCMethod(): string {
+    return "hardhat_mine"
+  }
+
+  setNextBlockTimestampRPCMethod(): string {
+    return "evm_setNextBlockTimestamp"
+  }
+}
+
+export interface TestnetInstance {
   process: ChildProcess
   url: string
   chainId: number
   accounts: string[]
   privateKeys: string[]
+  adapter: NodeAdapter
 }
 
 export interface BlockchainTestContext {
-  anvil: AnvilInstance
+  testnet: TestnetInstance
   publicClient: ReturnType<typeof createPublicClient>
   walletClient: ReturnType<typeof createWalletClient>
   testAccount: ReturnType<typeof privateKeyToAccount>
   erc20Address?: `0x${string}`
 }
 
-// Default Anvil test accounts (same as hardhat)
+// Default testnet accounts (same as hardhat)
 const DEFAULT_PRIVATE_KEYS = [
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
@@ -54,77 +135,78 @@ const getTestBlockchainPort = (): number => {
 }
 
 /**
- * Starts an Anvil instance for testing
+ * Starts a testnet instance for testing
  * Uses the port from serverConfig.CHAIN_RPC_ENDPOINT if no port is provided
+ * @param port Optional port number
+ * @param nodeType Type of node to use (defaults to 'hardhat')
  */
-export const startAnvil = async (port?: number): Promise<AnvilInstance> => {
+export const startTestnet = async (
+  port?: number,
+  nodeType: "anvil" | "hardhat" = "hardhat",
+): Promise<TestnetInstance> => {
   const testPort = port ?? getTestBlockchainPort()
-  testLogger.info(`Starting Anvil on port ${testPort}`)
+  testLogger.info(`Starting ${nodeType} testnet on port ${testPort}`)
+
+  const adapter =
+    nodeType === "anvil"
+      ? new AnvilAdapter(testPort)
+      : new HardhatAdapter(testPort)
+  const { command, args, options } = adapter.startCommand()
 
   return new Promise((resolve, reject) => {
-    const anvilProcess = spawn("anvil", [
-      "--port",
-      testPort.toString(),
-      "--accounts",
-      "10",
-      "--balance",
-      "10000",
-      "--gas-price",
-      "1000000000", // 1 gwei
-      "--block-time",
-      "1",
-    ])
+    const testnetProcess = spawn(command, args, options)
 
     let isResolved = false
     const timeout = setTimeout(() => {
       if (!isResolved) {
         isResolved = true
-        anvilProcess.kill()
-        reject(new Error("Anvil failed to start within timeout"))
+        testnetProcess.kill()
+        reject(new Error("Testnet failed to start within timeout"))
       }
     }, 10000) // 10 second timeout
 
-    anvilProcess.stdout?.on("data", (data) => {
+    testnetProcess.stdout?.on("data", (data) => {
       const output = data.toString()
 
-      // Look for the "Listening on" message to know Anvil is ready
-      if (output.includes("Listening on") && !isResolved) {
+      // Use adapter to check if testnet is ready
+      if (adapter.isReady(output) && !isResolved) {
         isResolved = true
         clearTimeout(timeout)
 
-        const anvilInstance = {
-          process: anvilProcess,
+        const testnetInstance = {
+          process: testnetProcess,
           url: `http://127.0.0.1:${testPort}`,
           chainId: foundry.id,
           accounts: DEFAULT_PRIVATE_KEYS.map(
             (pk) => privateKeyToAccount(pk as `0x${string}`).address,
           ),
           privateKeys: DEFAULT_PRIVATE_KEYS,
+          adapter: adapter,
         }
 
-        // Deploy Multicall3 immediately after Anvil starts
-        deployMulticall3ToAnvil(anvilInstance)
+        // Deploy Multicall3 immediately after testnet starts
+        deployMulticall3ToTestnet(testnetInstance)
           .then(() => {
-            resolve(anvilInstance)
+            resolve(testnetInstance)
           })
           .catch((error) => {
-            testLogger.error("Failed to deploy Multicall3 to Anvil:", error)
-            resolve(anvilInstance) // Continue even if Multicall3 deployment fails
+            testLogger.error("Failed to deploy Multicall3 to testnet:", error)
+            resolve(testnetInstance) // Continue even if Multicall3 deployment fails
           })
       }
     })
 
-    anvilProcess.stderr?.on("data", (data) => {
+    testnetProcess.stderr?.on("data", (data) => {
       const error = data.toString()
       if (!isResolved && error.includes("Error")) {
         isResolved = true
         clearTimeout(timeout)
-        anvilProcess.kill()
-        reject(new Error(`Anvil error: ${error}`))
+        testnetProcess.kill()
+        reject(new Error(`Testnet error: ${error}`))
       }
     })
 
-    anvilProcess.on("error", (error) => {
+    testnetProcess.on("error", (error) => {
       if (!isResolved) {
         isResolved = true
         clearTimeout(timeout)
@@ -135,25 +217,25 @@ export const startAnvil = async (port?: number): Promise<AnvilInstance> => {
 }
 
 /**
- * Stops an Anvil instance
+ * Stops a testnet instance
  */
-export const stopAnvil = async (anvil: AnvilInstance): Promise<void> => {
+export const stopTestnet = async (testnet: TestnetInstance): Promise<void> => {
   return new Promise((resolve) => {
-    if (anvil.process.killed) {
+    if (testnet.process.killed) {
       resolve()
       return
     }
 
-    anvil.process.on("exit", () => {
+    testnet.process.on("exit", () => {
       resolve()
     })
 
-    anvil.process.kill("SIGTERM")
+    testnet.process.kill("SIGTERM")
 
     // Force kill after 5 seconds if it doesn't exit gracefully
     setTimeout(() => {
-      if (!anvil.process.killed) {
-        anvil.process.kill("SIGKILL")
+      if (!testnet.process.killed) {
+        testnet.process.kill("SIGKILL")
       }
       resolve()
     }, 5000)
@@ -161,28 +243,30 @@ export const stopAnvil = async (anvil: AnvilInstance): Promise<void> => {
 }
 
 /**
- * Deploys Multicall3 to Anvil immediately after startup
+ * Deploys Multicall3 to testnet immediately after startup
  */
-const deployMulticall3ToAnvil = async (anvil: AnvilInstance): Promise<void> => {
+const deployMulticall3ToTestnet = async (
+  testnet: TestnetInstance,
+): Promise<void> => {
   try {
     const multicall3Info = getMulticall3Info()
 
     testLogger.info(
-      `Deploying Multicall3 to Anvil at ${multicall3Info.contract}`,
+      `Deploying Multicall3 to testnet at ${multicall3Info.contract}`,
     )
 
-    // Create clients for this Anvil instance
+    // Create clients for this testnet instance
     const publicClient = createPublicClient({
       chain: foundry,
-      transport: http(anvil.url),
+      transport: http(testnet.url),
     })
 
     const testAccount = privateKeyToAccount(
-      anvil.privateKeys[0] as `0x${string}`,
+      testnet.privateKeys[0] as `0x${string}`,
     )
     const walletClient = createWalletClient({
       chain: foundry,
-      transport: http(anvil.url),
+      transport: http(testnet.url),
       account: testAccount,
     })
 
@@ -193,11 +277,11 @@ const deployMulticall3ToAnvil = async (anvil: AnvilInstance): Promise<void> => {
       })
 
       if (bytecode && bytecode.length > 5) {
-        testLogger.info("✅ Multicall3 already deployed on Anvil")
+        testLogger.info("✅ Multicall3 already deployed on testnet")
         return
       }
     } catch {
-      testLogger.debug("Multicall3 not found on Anvil, will deploy")
+      testLogger.debug("Multicall3 not found on testnet, will deploy")
     }
 
     // Fund the sender address with the required ETH
@@ -230,7 +314,7 @@ const deployMulticall3ToAnvil = async (anvil: AnvilInstance): Promise<void> => {
 
       if (bytecode && bytecode.length > 5) {
         testLogger.info(
-          `✅ Multicall3 deployed successfully to Anvil at ${multicall3Info.contract}`,
+          `✅ Multicall3 deployed successfully to testnet at ${multicall3Info.contract}`,
         )
         testLogger.info(`Transaction hash: ${deployTx}`)
       } else {
@@ -240,7 +324,7 @@ const deployMulticall3ToAnvil = async (anvil: AnvilInstance): Promise<void> => {
       throw new Error("Deployment transaction failed")
     }
   } catch (error) {
-    testLogger.error("Multicall3 deployment to Anvil failed:", error)
+    testLogger.error("Multicall3 deployment to testnet failed:", error)
     throw error
   }
 }
@@ -251,23 +335,25 @@ const deployMulticall3ToAnvil = async (anvil: AnvilInstance): Promise<void> => {
 export const createBlockchainTestContext = async (
   port?: number,
 ): Promise<BlockchainTestContext> => {
-  const anvil = await startAnvil(port)
+  const testnet = await startTestnet(port)
 
   const publicClient = createPublicClient({
     chain: foundry,
-    transport: http(anvil.url),
+    transport: http(testnet.url),
   })
 
-  const testAccount = privateKeyToAccount(anvil.privateKeys[0] as `0x${string}`)
+  const testAccount = privateKeyToAccount(
+    testnet.privateKeys[0] as `0x${string}`,
+  )
 
   const walletClient = createWalletClient({
     chain: foundry,
-    transport: http(anvil.url),
+    transport: http(testnet.url),
     account: testAccount,
   })
 
   return {
-    anvil,
+    testnet,
     publicClient,
     walletClient,
     testAccount,
@@ -347,10 +433,10 @@ export const mineBlocks = async (
   context: BlockchainTestContext,
   blockCount: number,
 ): Promise<void> => {
-  // Use anvil's mine RPC method
+  // Use adapter's mine RPC method
   for (let i = 0; i < blockCount; i++) {
     await context.publicClient.request({
-      method: "anvil_mine" as any,
+      method: context.testnet.adapter.mineRPCMethod() as any,
       params: [],
     })
   }
@@ -364,7 +450,7 @@ export const setNextBlockTimestamp = async (
   timestamp: number,
 ): Promise<void> => {
   await context.publicClient.request({
-    method: "anvil_setNextBlockTimestamp" as any,
+    method: context.testnet.adapter.setNextBlockTimestampRPCMethod() as any,
     params: [timestamp],
   })
 }
@@ -615,5 +701,5 @@ export const deployTokenViaFactory = async (
 export const cleanupBlockchainTestContext = async (
   context: BlockchainTestContext,
 ): Promise<void> => {
-  await stopAnvil(context.anvil)
+  await stopTestnet(context.testnet)
 }

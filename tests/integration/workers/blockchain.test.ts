@@ -45,11 +45,11 @@ describe("Worker Blockchain Integration Tests", () => {
       serverContext = await startTestServer()
       await waitForServer(serverContext.url)
 
-      // Start Anvil blockchain instance (will use port from serverConfig)
+      // Start testnet blockchain instance (will use port from serverConfig)
       testLogger.info("🔗 Starting test blockchain...")
       blockchainContext = await createBlockchainTestContext()
       testLogger.info(
-        `✅ Test blockchain started at ${blockchainContext.anvil.url}`,
+        `✅ Test blockchain started at ${blockchainContext.testnet.url}`,
       )
 
       // Create and start test worker
@@ -60,7 +60,7 @@ describe("Worker Blockchain Integration Tests", () => {
       testLogger.error("❌ Blockchain test setup failed:", error)
       throw error
     }
-  }) // Longer timeout for Anvil startup
+  }) // Longer timeout for testnet startup
 
   afterAll(async () => {
     try {
@@ -101,7 +101,7 @@ describe("Worker Blockchain Integration Tests", () => {
     test("should monitor ERC20 transfer events and create notifications", async () => {
       // Create test user for the token sender (account[0] - the one with initial token supply)
       // The sendToken filter creates notifications for the sender, not recipient
-      const sender = blockchainContext.anvil.accounts[0] as `0x${string}`
+      const sender = blockchainContext.testnet.accounts[0] as `0x${string}`
       const [testUser] = await serverContext.serverApp.db
         .insert(users)
         .values({
@@ -141,7 +141,7 @@ describe("Worker Blockchain Integration Tests", () => {
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Perform a token transfer FROM our test user's wallet (this will trigger notifications)
-      const recipient = blockchainContext.anvil.accounts[1] as `0x${string}`
+      const recipient = blockchainContext.testnet.accounts[1] as `0x${string}`
       const transferAmount = 1000n * 10n ** 18n
 
       testLogger.info(
@@ -217,7 +217,7 @@ describe("Worker Blockchain Integration Tests", () => {
     test("should monitor token creation events and create notifications", async () => {
       // Create test user for the token creator (account[0] - the one creating tokens)
       // The createToken filter creates notifications for the creator
-      const creator = blockchainContext.anvil.accounts[0] as `0x${string}`
+      const creator = blockchainContext.testnet.accounts[0] as `0x${string}`
       const [testUser] = await serverContext.serverApp.db
         .insert(users)
         .values({
@@ -332,7 +332,7 @@ describe("Worker Blockchain Integration Tests", () => {
         .insert(users)
         .values([
           {
-            wallet: blockchainContext.anvil.accounts[0]!.toLowerCase(),
+            wallet: blockchainContext.testnet.accounts[0]!.toLowerCase(),
           },
         ])
         .returning()
@@ -357,8 +357,8 @@ describe("Worker Blockchain Integration Tests", () => {
       })
 
       // Perform transfers FROM the test user's wallet (account[0] that owns the tokens)
-      const recipient1 = blockchainContext.anvil.accounts[2] as `0x${string}`
-      const recipient2 = blockchainContext.anvil.accounts[3] as `0x${string}`
+      const recipient1 = blockchainContext.testnet.accounts[2] as `0x${string}`
+      const recipient2 = blockchainContext.testnet.accounts[3] as `0x${string}`
 
       testLogger.info("💸 Executing transfers on both tokens...")
 

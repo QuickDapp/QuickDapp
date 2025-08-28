@@ -1,4 +1,4 @@
-- create token not working - transaction not getting through to anvil
+- DONE create token not working - transaction not getting through to anvil
 - fix blockchain token watching test
-- DONE get notification alerts showing up
+- get notification alerts showing up - not getting number circle showing as soon as socket has a notification.
 - binary build + docker container
