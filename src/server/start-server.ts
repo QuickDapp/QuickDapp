@@ -174,7 +174,7 @@ export const createApp = async (
                 <p>The frontend hasn't been built yet. To start the frontend:</p>
                 <ol>
                   <li>Run <code>cd src/client && bun run dev</code> in another terminal</li>
-                  <li>Or build the frontend with <code>bun run build</code></li>
+                  <li>Or build the frontend with <code>bun run dev</code></li>
                 </ol>
                 <p>GraphQL endpoint: <a href="/graphql">/graphql</a></p>
                 <p>Health check: <a href="/health">/health</a></p>

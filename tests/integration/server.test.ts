@@ -133,12 +133,30 @@ describe("Server Integration Tests", () => {
   })
 
   describe("Error Handling", () => {
-    it("should return 404 for unknown routes", async () => {
+    it("should return 404 for non-existent assets", async () => {
       if (!testServer) throw new Error("Test server not initialized")
 
-      const response = await makeRequest(`${testServer.url}/nonexistent-route`)
+      const response = await makeRequest(
+        `${testServer.url}/assets/nonexistent-file.js`,
+      )
 
       expect(response.status).toBe(404)
+    })
+
+    it("should serve frontend HTML for unknown routes (SPA behavior)", async () => {
+      if (!testServer) throw new Error("Test server not initialized")
+
+      const response = await makeRequest(
+        `${testServer.url}/some-frontend-route`,
+      )
+
+      // Should return 200 and serve the SPA HTML
+      expect(response.status).toBe(200)
+      expect(response.headers.get("content-type")).toBe("text/html")
+
+      const html = await response.text()
+      expect(html).toContain("<!DOCTYPE html>")
+      expect(html).toContain('<div id="root"></div>')
     })
 
     it("should handle malformed requests gracefully", async () => {
