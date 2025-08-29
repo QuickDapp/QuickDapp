@@ -3,9 +3,11 @@
 import { existsSync } from "node:fs"
 import path from "node:path"
 import { spawn } from "bun"
-import { Command } from "commander"
-import { bootstrap } from "./shared/bootstrap"
-import type { ScriptOptions } from "./shared/script-runner"
+import {
+  createScriptRunner,
+  type ScriptOptions,
+  type SubcommandConfig,
+} from "./shared/script-runner"
 
 interface ProdOptions extends ScriptOptions {
   // No additional options needed - configuration comes from env
@@ -107,48 +109,22 @@ async function prodClientHandler(
   await vite.exited
 }
 
-async function runProd<T extends ScriptOptions = ScriptOptions>(
-  handler: (
-    options: T,
-    config: { rootFolder: string; env: string },
-  ) => Promise<void>,
-  options: T,
-): Promise<void> {
-  try {
-    // Bootstrap environment
-    const config = await bootstrap({
-      env: "production",
-      verbose: options.verbose || false,
-    })
+// Define subcommands
+const subcommands: SubcommandConfig[] = [
+  {
+    name: "client",
+    description: "Run client preview server only",
+    handler: prodClientHandler,
+  },
+]
 
-    // Run the actual handler
-    await handler(options, config)
-  } catch (error) {
-    console.error("❌ prod failed:", error)
-    process.exit(1)
-  }
-}
-
-// Set up Commander program with subcommands
-const program = new Command()
-
-program
-  .name("prod")
-  .description("Run QuickDapp in production mode")
-  .option("-v, --verbose", "enable verbose output")
-
-// Default command (no subcommand) - runs server
-program.action(async (options: ProdOptions) => {
-  await runProd(prodServerHandler, options)
-})
-
-// Client subcommand - runs client preview only
-program
-  .command("client")
-  .description("Run client preview server only")
-  .option("-v, --verbose", "enable verbose output")
-  .action(async (options: ProdOptions) => {
-    await runProd(prodClientHandler, options)
-  })
-
-program.parseAsync()
+// Create script runner with default server handler and optional client subcommand
+createScriptRunner(
+  {
+    name: "prod",
+    description: "Run QuickDapp in production mode",
+    env: "production",
+    subcommands,
+  },
+  prodServerHandler, // Default handler when no subcommand is specified
+)

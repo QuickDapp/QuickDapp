@@ -19,9 +19,7 @@
     "lint": "bun run typecheck && biome check .",
     "lint:fix": "bun run typecheck && biome check --write .",
     "format": "biome format --write .",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
+    "db": "bun run scripts/db.ts",
     "prepare": "husky",
     "postinstall": "husky install"
   },
@@ -29,6 +27,7 @@
     "@biomejs/biome": "^2.2.0",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@hiddentao/zip-json": "^1.0.3",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@openzeppelin/test-helpers": "^0.5.16",
     "@tailwindcss/vite": "^4.0.0-alpha.19",

@@ -8,6 +8,7 @@ export interface ServerConfig extends ClientConfig {
   HOST: string
   PORT: number
   WORKER_COUNT: number | "cpus"
+  STATIC_ASSETS_FOLDER?: string
 
   // Logging
   LOG_LEVEL: "trace" | "debug" | "info" | "warn" | "error"
@@ -42,6 +43,7 @@ export const serverConfig: ServerConfig = {
     env.get("WORKER_COUNT").default("1").asString() === "cpus"
       ? "cpus"
       : env.get("WORKER_COUNT").default(1).asInt(),
+  STATIC_ASSETS_FOLDER: env.get("STATIC_ASSETS_FOLDER").asString(),
 
   // Logging
   LOG_LEVEL: env

@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
-import { serverConfig } from "../../../shared/config/server"
 import { fetchTokenMetadata } from "../../../shared/contracts"
 import { NotificationType } from "../../../shared/notifications/types"
 import { users } from "../../db/schema"
@@ -15,6 +14,7 @@ const ERC20_MINT_EVENT = parseAbiItem(
 
 export const createFilter: ChainFilterModule["createFilter"] = (
   chainClient,
+  fromBlock,
 ) => {
   if (!chainClient) {
     console.warn("createToken filter: No chain client provided")
@@ -24,15 +24,15 @@ export const createFilter: ChainFilterModule["createFilter"] = (
   try {
     // Create a filter for Transfer events from address(0) (minting events)
     // This effectively catches token creation/initial minting
-    // Use "earliest" in test environments to capture all events
-    const fromBlock = serverConfig.NODE_ENV === "test" ? "earliest" : "latest"
+    // fromBlock is managed by watchChain.ts based on filter state
+    const blockToUse = fromBlock !== undefined ? fromBlock : "latest"
 
     return chainClient.createEventFilter({
       event: ERC20_MINT_EVENT,
       args: {
         from: "0x0000000000000000000000000000000000000000",
       },
-      fromBlock,
+      fromBlock: blockToUse,
     })
   } catch (error) {
     console.error("createToken filter: Failed to create filter:", error)

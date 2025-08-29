@@ -145,8 +145,9 @@ export const createApp = async (
   // Add WebSocket endpoint
   app.use(createWebSocket(serverApp))
 
-  // Serve static assets from Vite build
-  const staticDir = path.join(import.meta.dir, "static")
+  // Serve static assets from Vite build (or configurable location)
+  const staticDir =
+    serverConfig.STATIC_ASSETS_FOLDER || path.join(import.meta.dir, "static")
   app.use(
     staticPlugin({
       assets: staticDir,

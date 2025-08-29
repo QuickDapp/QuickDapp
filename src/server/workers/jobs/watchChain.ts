@@ -1,3 +1,5 @@
+import { serverConfig } from "../../../shared/config/server"
+import { getFilterState, updateFilterState } from "../../db/filterState"
 import * as createTokenFilter from "../chainFilters/createToken"
 import * as sendTokenFilter from "../chainFilters/sendToken"
 import type {
@@ -40,8 +42,33 @@ const recreateFilters = async (params: JobParams) => {
   for (const filterName in chainFilters) {
     try {
       const chainFilter = chainFilters[filterName]
+      let fromBlock: string | undefined
 
-      const filter = await chainFilter!.createFilter(client)
+      // Skip filter state in test environment - always use "earliest"
+      if (serverConfig.NODE_ENV !== "test") {
+        // Get the last processed block for this filter
+        const lastProcessedBlock = await getFilterState(serverApp, filterName)
+        if (lastProcessedBlock !== null) {
+          // Start from the next block after the last processed one
+          // Convert to hex format as required by Ethereum RPC
+          fromBlock = `0x${(lastProcessedBlock + 1).toString(16)}`
+          log.debug(
+            `Using saved filter state for ${filterName}: starting from block ${lastProcessedBlock + 1} (${fromBlock})`,
+          )
+        } else {
+          // No saved state, use "latest" for development/production
+          fromBlock = "latest"
+          log.debug(
+            `No saved filter state for ${filterName}, starting from latest block`,
+          )
+        }
+      } else {
+        // Test environment - let the filter use "earliest"
+        fromBlock = undefined
+        log.debug(`Test environment: ${filterName} will use earliest block`)
+      }
+
+      const filter = await chainFilter!.createFilter(client, fromBlock)
 
       if (filter) {
         activeFilters[filterName] = {
@@ -96,6 +123,16 @@ export const run: JobRunner = async (params: JobParams) => {
             filterLog,
             changes,
           )
+
+          // Update filter state with the highest block number processed
+          // Skip in test environment
+          if (serverConfig.NODE_ENV !== "test" && changes.length > 0) {
+            const maxBlockNumber = Math.max(
+              ...changes.map((change: any) => Number(change.blockNumber)),
+            )
+            await updateFilterState(serverApp, filterName, maxBlockNumber)
+            filterLog.debug(`Updated filter state to block ${maxBlockNumber}`)
+          }
         } else {
           filterLog.debug("No new events found")
         }

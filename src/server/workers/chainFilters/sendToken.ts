@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
-import { serverConfig } from "../../../shared/config/server"
 import { fetchTokenMetadata } from "../../../shared/contracts"
 import { NotificationType } from "../../../shared/notifications/types"
 import { users } from "../../db/schema"
@@ -13,6 +12,7 @@ const ERC20_TRANSFER_EVENT = parseAbiItem(
 
 export const createFilter: ChainFilterModule["createFilter"] = (
   chainClient,
+  fromBlock,
 ) => {
   if (!chainClient) {
     console.warn("sendToken filter: No chain client provided")
@@ -21,12 +21,12 @@ export const createFilter: ChainFilterModule["createFilter"] = (
 
   try {
     // Create a filter for all ERC20 Transfer events
-    // Use "earliest" in test environments to capture all events
-    const fromBlock = serverConfig.NODE_ENV === "test" ? "earliest" : "latest"
+    // fromBlock is managed by watchChain.ts based on filter state
+    const blockToUse = fromBlock !== undefined ? fromBlock : "latest"
 
     return chainClient.createEventFilter({
       event: ERC20_TRANSFER_EVENT,
-      fromBlock,
+      fromBlock: blockToUse,
     })
   } catch (error) {
     console.error("sendToken filter: Failed to create filter:", error)
