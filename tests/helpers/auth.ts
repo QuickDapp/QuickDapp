@@ -14,6 +14,7 @@ import {
   privateKeyToAccount,
 } from "viem/accounts"
 import { AuthService } from "../../src/server/auth"
+import { createUserIfNotExists } from "../../src/server/db/users"
 import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
 import { serverConfig } from "../../src/shared/config/server"
@@ -301,7 +302,12 @@ function createMockServerApp(): ServerApp {
  * Create a fully authenticated test user with real SIWE flow
  */
 export async function createAuthenticatedTestUser(
-  options: { domain?: string; chainId?: number; expirationTime?: string } = {},
+  options: {
+    domain?: string
+    chainId?: number
+    expirationTime?: string
+    serverApp?: ServerApp
+  } = {},
 ): Promise<AuthenticatedTestUser> {
   // Generate test wallet
   const wallet = generateTestWallet()
@@ -312,9 +318,14 @@ export async function createAuthenticatedTestUser(
   // Sign the message
   const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-  // Create mock ServerApp and AuthService
-  const mockServerApp = createMockServerApp()
-  const authService = new AuthService(mockServerApp)
+  // Use provided ServerApp or create mock one
+  const serverApp = options.serverApp || createMockServerApp()
+  const authService = new AuthService(serverApp)
+
+  // Create user in database if using real ServerApp
+  if (options.serverApp) {
+    await createUserIfNotExists(options.serverApp.db, wallet.address)
+  }
 
   // Authenticate through the real auth system to get JWT
   const { token } = await authService.authenticateWithSiwe(
@@ -335,11 +346,17 @@ export async function createAuthenticatedTestUser(
  */
 export async function createMultipleTestUsers(
   count: number,
+  options: {
+    domain?: string
+    chainId?: number
+    expirationTime?: string
+    serverApp?: ServerApp
+  } = {},
 ): Promise<AuthenticatedTestUser[]> {
   const users: AuthenticatedTestUser[] = []
 
   for (let i = 0; i < count; i++) {
-    const user = await createAuthenticatedTestUser()
+    const user = await createAuthenticatedTestUser(options)
     users.push(user)
   }
 

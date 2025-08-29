@@ -1,3 +1,2 @@
 - fix failing tests
-- get notification alerts showing up - not getting number circle showing as soon as socket has a notification.
 - binary build + docker container
