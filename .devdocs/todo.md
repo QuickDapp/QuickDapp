@@ -1,2 +1,3 @@
+- if route not found in frontend can we return 404?
 - fix failing tests
 - binary build + docker container

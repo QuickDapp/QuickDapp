@@ -62,7 +62,9 @@ describe("Database Integration Tests", () => {
 
   describe("User Creation Flow", () => {
     it("should create user on first authentication", async () => {
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Make a GraphQL request that triggers user creation
       const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -94,7 +96,9 @@ describe("Database Integration Tests", () => {
       })
 
       // Create authenticated session for same wallet
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Make GraphQL request
       const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -117,7 +121,9 @@ describe("Database Integration Tests", () => {
     })
 
     it("should handle multiple users correctly", async () => {
-      const users = await createMultipleTestUsers(3)
+      const users = await createMultipleTestUsers(3, {
+        serverApp: testServer.serverApp,
+      })
 
       // Each user should be able to access their data
       for (const user of users) {
@@ -151,7 +157,9 @@ describe("Database Integration Tests", () => {
       })
 
       // Create authenticated session (address should be normalized)
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       const response = await makeRequest(`${testServer.url}/graphql`, {
         ...createGraphQLRequest(
@@ -189,7 +197,9 @@ describe("Database Integration Tests", () => {
   describe("Notification Management", () => {
     it("should create and retrieve notifications", async () => {
       // Create authenticated user
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // First, trigger user creation
       await makeRequest(`${testServer.url}/graphql`, {
@@ -251,7 +261,9 @@ describe("Database Integration Tests", () => {
     })
 
     it("should return correct unread count", async () => {
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize user
       await makeRequest(`${testServer.url}/graphql`, {
@@ -297,7 +309,9 @@ describe("Database Integration Tests", () => {
     })
 
     it("should handle pagination correctly", async () => {
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize user
       await makeRequest(`${testServer.url}/graphql`, {
@@ -385,7 +399,9 @@ describe("Database Integration Tests", () => {
     })
 
     it("should mark single notification as read", async () => {
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize user
       await makeRequest(`${testServer.url}/graphql`, {
@@ -436,7 +452,9 @@ describe("Database Integration Tests", () => {
     })
 
     it("should mark all notifications as read", async () => {
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize user
       await makeRequest(`${testServer.url}/graphql`, {
@@ -512,8 +530,12 @@ describe("Database Integration Tests", () => {
   describe("Data Ownership Validation", () => {
     it("should prevent users from seeing other users' notifications", async () => {
       // Create two users
-      const user1 = await createAuthenticatedTestUser()
-      const user2 = await createAuthenticatedTestUser()
+      const user1 = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
+      const user2 = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize both users
       await makeRequest(`${testServer.url}/graphql`, {
@@ -584,8 +606,12 @@ describe("Database Integration Tests", () => {
 
     it("should prevent users from modifying other users' notifications", async () => {
       // Create two users
-      const user1 = await createAuthenticatedTestUser()
-      const user2 = await createAuthenticatedTestUser()
+      const user1 = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
+      const user2 = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize users
       await makeRequest(`${testServer.url}/graphql`, {
@@ -650,8 +676,12 @@ describe("Database Integration Tests", () => {
 
     it("should isolate notification counts between users", async () => {
       // Create two users
-      const user1 = await createAuthenticatedTestUser()
-      const user2 = await createAuthenticatedTestUser()
+      const user1 = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
+      const user2 = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize users
       await makeRequest(`${testServer.url}/graphql`, {
@@ -722,7 +752,9 @@ describe("Database Integration Tests", () => {
 
   describe("Database State Management", () => {
     it("should handle empty database gracefully", async () => {
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Query empty database
       const response = await makeRequest(`${testServer.url}/graphql`, {
@@ -748,7 +780,9 @@ describe("Database Integration Tests", () => {
     })
 
     it("should maintain data consistency across operations", async () => {
-      const authenticatedUser = await createAuthenticatedTestUser()
+      const authenticatedUser = await createAuthenticatedTestUser({
+        serverApp: testServer.serverApp,
+      })
 
       // Initialize user
       await makeRequest(`${testServer.url}/graphql`, {

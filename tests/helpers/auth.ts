@@ -172,6 +172,7 @@ export async function createTestJWT(
   const jwtSecret = new TextEncoder().encode(secret)
 
   return await new SignJWT({
+    userId: 1, // Default test user ID
     wallet: wallet.toLowerCase(),
     iat: Math.floor(Date.now() / 1000),
     ...extraClaims,
@@ -198,6 +199,7 @@ export async function createMalformedJWT(
     | "invalid-signature"
     | "wrong-secret"
     | "missing-wallet"
+    | "missing-userId"
     | "invalid-format",
 ): Promise<string> {
   switch (type) {
@@ -221,6 +223,11 @@ export async function createMalformedJWT(
     case "missing-wallet":
       return await createTestJWT("0x1234567890123456789012345678901234567890", {
         extraClaims: { wallet: undefined },
+      })
+
+    case "missing-userId":
+      return await createTestJWT("0x1234567890123456789012345678901234567890", {
+        extraClaims: { userId: undefined },
       })
 
     case "invalid-format":
