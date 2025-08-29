@@ -5,16 +5,16 @@
  * creating test data, and cleaning up between tests.
  */
 
-import { sql } from "drizzle-orm"
-import { dbManager, schema } from "../../src/server/db/connection"
+import { dbManager, schema } from "@server/db/connection"
 import type {
   NewNotification,
   NewUser,
   NewWorkerJob,
   User,
-} from "../../src/server/db/schema"
-import { serverConfig } from "../../src/shared/config/server"
-import { testLogger } from "./logger"
+} from "@server/db/schema"
+import { serverConfig } from "@shared/config/server"
+import { testLogger } from "@tests/helpers/logger"
+import { sql } from "drizzle-orm"
 
 /**
  * Initialize the shared test database connection

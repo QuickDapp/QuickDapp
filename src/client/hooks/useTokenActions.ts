@@ -1,3 +1,9 @@
+import {
+  createContractWrite,
+  getERC20ContractInfo,
+  getFactoryContractInfo,
+  writeContract,
+} from "@shared/contracts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { type Address, parseUnits } from "viem"
 import {
@@ -6,12 +12,6 @@ import {
   useWaitForTransactionReceipt,
   useWalletClient,
 } from "wagmi"
-import {
-  createContractWrite,
-  getERC20ContractInfo,
-  getFactoryContractInfo,
-  writeContract,
-} from "../../../shared/contracts"
 
 export interface CreateTokenParams {
   name: string

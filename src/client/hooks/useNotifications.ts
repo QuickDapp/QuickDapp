@@ -1,6 +1,6 @@
+import type { NotificationReceivedMessage } from "@shared/websocket/types"
+import { WebSocketMessageType } from "@shared/websocket/types"
 import { useCallback, useEffect, useRef } from "react"
-import type { NotificationReceivedMessage } from "../../../shared/websocket/types"
-import { WebSocketMessageType } from "../../../shared/websocket/types"
 import { useSocket } from "../contexts/SocketContext"
 
 export interface NotificationFromSocket {

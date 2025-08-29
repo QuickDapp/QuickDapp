@@ -1,7 +1,7 @@
+import { getGraphQLClient } from "@shared/graphql/client"
+import { GET_MY_UNREAD_NOTIFICATIONS_COUNT } from "@shared/graphql/queries"
 import { useQuery } from "@tanstack/react-query"
 import * as React from "react"
-import { getGraphQLClient } from "../../../../shared/graphql/client"
-import { GET_MY_UNREAD_NOTIFICATIONS_COUNT } from "../../../../shared/graphql/queries"
 import {
   type NotificationFromSocket,
   useNotifications,

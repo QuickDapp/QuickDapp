@@ -1,9 +1,9 @@
-import ReconnectingWebSocket from "reconnecting-websocket"
-import { clientConfig } from "../../../shared/config/client"
+import { clientConfig } from "@shared/config/client"
 import {
   type WebSocketMessage,
   WebSocketMessageType,
-} from "../../../shared/websocket/types"
+} from "@shared/websocket/types"
+import ReconnectingWebSocket from "reconnecting-websocket"
 
 export interface SocketEventHandler {
   type: WebSocketMessageType

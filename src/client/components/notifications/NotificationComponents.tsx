@@ -1,9 +1,9 @@
-import { format } from "date-fns"
 import {
   NotificationType,
   type TokenCreatedNotificationData,
   type TokenTransferNotificationData,
-} from "../../../../shared/notifications/types"
+} from "@shared/notifications/types"
+import { format } from "date-fns"
 
 interface NotificationItemProps {
   id: number

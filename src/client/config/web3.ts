@@ -1,7 +1,7 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit"
+import type { ClientConfig } from "@shared/config/client"
 import { createPublicClient, http } from "viem"
 import { hardhat, mainnet, sepolia } from "wagmi/chains"
-import type { ClientConfig } from "../../../shared/config/client"
 
 // Define supported chains based on config
 const getSupportedChains = (chainName: string) => {

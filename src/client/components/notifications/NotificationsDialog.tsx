@@ -1,12 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import * as React from "react"
-import { getGraphQLClient } from "../../../../shared/graphql/client"
+import { getGraphQLClient } from "@shared/graphql/client"
 import {
   MARK_ALL_NOTIFICATIONS_AS_READ,
   MARK_NOTIFICATION_AS_READ,
-} from "../../../../shared/graphql/mutations"
-import { GET_MY_NOTIFICATIONS } from "../../../../shared/graphql/queries"
-import type { NotificationData } from "../../../../shared/notifications/types"
+} from "@shared/graphql/mutations"
+import { GET_MY_NOTIFICATIONS } from "@shared/graphql/queries"
+import type { NotificationData } from "@shared/notifications/types"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   type NotificationFromSocket,
   useNotifications,
@@ -34,7 +34,7 @@ function LoadMoreTrigger({
 }) {
   const { ref, hasBeenVisible } = useOnceVisibleInViewport()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (hasBeenVisible) {
       onLoadMore()
     }
@@ -76,40 +76,64 @@ interface NotificationsDialogProps {
   onUnreadCountChange?: (count: number) => void
 }
 
+// Utility function to remove duplicate notifications based on ID
+function deduplicateNotifications(
+  notifications: Notification[],
+): Notification[] {
+  const seen = new Set<number>()
+  return notifications.filter((notification) => {
+    if (seen.has(notification.id)) {
+      return false
+    }
+    seen.add(notification.id)
+    return true
+  })
+}
+
 export function NotificationsDialog({
   open,
   onOpenChange,
   onUnreadCountChange,
 }: NotificationsDialogProps) {
-  const [pageParam, setPageParam] = React.useState({
+  const [pageParam, setPageParam] = useState({
     startIndex: 0,
     perPage: 20,
   })
-  const [allNotifications, setAllNotifications] = React.useState<
-    Notification[]
-  >([])
+  const [allNotifications, setAllNotifications] = useState<Notification[]>([])
 
   const queryClient = useQueryClient()
 
+  // Memoized WebSocket notification handler
+  const handleNotificationReceived = useCallback(
+    (notification: NotificationFromSocket) => {
+      if (open) {
+        // Add new notification to the beginning of the list and update unread count
+        setAllNotifications((prev) => {
+          // Check if notification already exists to prevent duplicates
+          if (prev.some((n) => n.id === notification.id)) {
+            return prev
+          }
+
+          const newNotifications = deduplicateNotifications([
+            notification,
+            ...prev,
+          ])
+
+          // Update unread count if the new notification is unread
+          if (!notification.read && onUnreadCountChange) {
+            const unreadCount = newNotifications.filter((n) => !n.read).length
+            onUnreadCountChange(unreadCount)
+          }
+          return newNotifications
+        })
+      }
+    },
+    [open, onUnreadCountChange],
+  )
+
   // Subscribe to real-time notifications when dialog is open
   useNotifications({
-    onNotificationReceived: React.useCallback(
-      (notification: NotificationFromSocket) => {
-        if (open) {
-          // Add new notification to the beginning of the list and update unread count
-          setAllNotifications((prev) => {
-            const newNotifications = [notification, ...prev]
-            // Update unread count if the new notification is unread
-            if (!notification.read && onUnreadCountChange) {
-              const unreadCount = newNotifications.filter((n) => !n.read).length
-              onUnreadCountChange(unreadCount)
-            }
-            return newNotifications
-          })
-        }
-      },
-      [open, onUnreadCountChange],
-    ),
+    onNotificationReceived: handleNotificationReceived,
   })
 
   // Fetch notifications - simple query without complex caching logic
@@ -132,25 +156,35 @@ export function NotificationsDialog({
     staleTime: 0,
   })
 
-  // Simple: just update notifications when data comes in
-  React.useEffect(() => {
+  // Update notifications when data comes in with deduplication
+  useEffect(() => {
     if (notificationsData) {
       if (pageParam.startIndex === 0) {
-        // First page - replace all notifications
-        setAllNotifications(notificationsData.notifications)
-        // Update unread count in parent component
-        if (onUnreadCountChange) {
-          const unreadCount = notificationsData.notifications.filter(
-            (n) => !n.read,
-          ).length
-          onUnreadCountChange(unreadCount)
-        }
+        // First page - merge with existing real-time notifications from WebSocket
+        setAllNotifications((prev) => {
+          // Merge and deduplicate: keep WebSocket notifications that aren't in the fetched data
+          const merged = deduplicateNotifications([
+            ...prev,
+            ...notificationsData.notifications,
+          ])
+
+          // Update unread count in parent component
+          if (onUnreadCountChange) {
+            const unreadCount = merged.filter((n) => !n.read).length
+            onUnreadCountChange(unreadCount)
+          }
+
+          return merged
+        })
       } else {
-        // Additional pages - append to existing notifications
-        setAllNotifications((prev) => [
-          ...prev,
-          ...notificationsData.notifications,
-        ])
+        // Additional pages - append to existing notifications with deduplication
+        setAllNotifications((prev) => {
+          const merged = deduplicateNotifications([
+            ...prev,
+            ...notificationsData.notifications,
+          ])
+          return merged
+        })
       }
     }
   }, [notificationsData, pageParam.startIndex, onUnreadCountChange])
@@ -191,29 +225,34 @@ export function NotificationsDialog({
     },
   })
 
-  const handleMarkAsRead = (id: number) => {
-    // Optimistically update local state
-    setAllNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification,
-      ),
-    )
-    markAsReadMutation.mutate(id)
+  const handleMarkAsRead = useCallback(
+    (id: number) => {
+      // Optimistically update local state
+      setAllNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === id
+            ? { ...notification, read: true }
+            : notification,
+        ),
+      )
+      markAsReadMutation.mutate(id)
 
-    // Update unread count in parent component
-    if (onUnreadCountChange) {
-      const updatedUnreadCount = allNotifications.filter(
-        (n) => !n.read && n.id !== id,
-      ).length
-      onUnreadCountChange(updatedUnreadCount)
-    }
-  }
+      // Update unread count in parent component
+      if (onUnreadCountChange) {
+        const updatedUnreadCount = allNotifications.filter(
+          (n) => !n.read && n.id !== id,
+        ).length
+        onUnreadCountChange(updatedUnreadCount)
+      }
+    },
+    [markAsReadMutation, onUnreadCountChange, allNotifications],
+  )
 
-  const handleMarkAllAsRead = React.useCallback(() => {
+  const handleMarkAllAsRead = useCallback(() => {
     markAllAsReadMutation.mutate()
   }, [markAllAsReadMutation])
 
-  const loadMore = React.useCallback(() => {
+  const loadMore = useCallback(() => {
     if (
       notificationsData &&
       allNotifications.length < notificationsData.total
@@ -226,22 +265,36 @@ export function NotificationsDialog({
   }, [notificationsData, allNotifications.length])
 
   // Simple: just reset pagination when dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       setPageParam({ startIndex: 0, perPage: 20 })
     }
   }, [open])
 
-  const hasUnreadNotifications = React.useMemo(
+  const hasUnreadNotifications = useMemo(
     () => allNotifications.some((n) => !n.read),
     [allNotifications],
   )
 
-  const canLoadMore = React.useMemo(
+  const canLoadMore = useMemo(
     () =>
       notificationsData && allNotifications.length < notificationsData.total,
     [notificationsData, allNotifications.length],
   )
+
+  // Memoized notification items to prevent re-rendering
+  const notificationItems = useMemo(() => {
+    return allNotifications.map((notification) => (
+      <NotificationItem
+        key={notification.id}
+        id={notification.id}
+        data={notification.data}
+        createdAt={notification.createdAt}
+        read={notification.read}
+        onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+      />
+    ))
+  }, [allNotifications, handleMarkAsRead])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -275,18 +328,7 @@ export function NotificationsDialog({
             </div>
           ) : (
             <div className="space-y-2">
-              {allNotifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  id={notification.id}
-                  data={notification.data}
-                  createdAt={notification.createdAt}
-                  read={notification.read}
-                  onClick={() =>
-                    !notification.read && handleMarkAsRead(notification.id)
-                  }
-                />
-              ))}
+              {notificationItems}
 
               {canLoadMore && (
                 <LoadMoreTrigger onLoadMore={loadMore} isLoading={isLoading} />

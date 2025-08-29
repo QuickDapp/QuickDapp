@@ -1,3 +1,9 @@
+import { getGraphQLClient, setAuthToken } from "@shared/graphql/client"
+import {
+  AUTHENTICATE_WITH_SIWE,
+  GENERATE_SIWE_MESSAGE,
+} from "@shared/graphql/mutations"
+import { VALIDATE_TOKEN } from "@shared/graphql/queries"
 import type { ReactNode } from "react"
 import {
   createContext,
@@ -10,12 +16,6 @@ import {
   useState,
 } from "react"
 import { useAccount, useSignMessage } from "wagmi"
-import { getGraphQLClient, setAuthToken } from "../../../shared/graphql/client"
-import {
-  AUTHENTICATE_WITH_SIWE,
-  GENERATE_SIWE_MESSAGE,
-} from "../../../shared/graphql/mutations"
-import { VALIDATE_TOKEN } from "../../../shared/graphql/queries"
 
 interface SiweMessageResult {
   message: string
@@ -56,7 +56,7 @@ const clearAuthFromStorage = () => {
 }
 
 // Auth status enum
-enum AuthStatus {
+export enum AuthStatus {
   IDLE = "idle",
   RESTORING = "restoring",
   WAITING_FOR_WALLET = "waiting_for_wallet",

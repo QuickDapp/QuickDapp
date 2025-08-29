@@ -1,3 +1,9 @@
+import {
+  type ConnectedMessage,
+  type RegisteredMessage,
+  type WebSocketMessage,
+  WebSocketMessageType,
+} from "@shared/websocket/types"
 import type { ReactNode } from "react"
 import {
   createContext,
@@ -8,12 +14,6 @@ import {
   useRef,
   useState,
 } from "react"
-import {
-  type ConnectedMessage,
-  type RegisteredMessage,
-  type WebSocketMessage,
-  WebSocketMessageType,
-} from "../../../shared/websocket/types"
 import { Socket } from "../lib/socket"
 import { useAuthContext } from "./AuthContext"
 

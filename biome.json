@@ -63,6 +63,7 @@
         "useAsConstAssertion": "error",
         "useArrayLiterals": "off"
       },
+      "nursery": {},
       "suspicious": {
         "noAssignInExpressions": "error",
         "noAsyncPromiseExecutor": "error",
