@@ -14,10 +14,11 @@ contract TestToken is ERC20 {
         string memory name_,
         string memory symbol_,
         uint256 initialSupply_,
-        uint8 decimals_
+        uint8 decimals_,
+        address mintTo_
     ) ERC20(name_, symbol_) {
         _decimals = decimals_;
-        _mint(msg.sender, initialSupply_);
+        _mint(mintTo_, initialSupply_);
     }
 
     function decimals() public view virtual override returns (uint8) {

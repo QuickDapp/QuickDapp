@@ -30,16 +30,14 @@ contract TestTokenFactory {
         require(bytes(config.symbol).length > 0, "Symbol cannot be empty");
         require(config.decimals > 0, "Decimals must be greater than 0");
         
-        // Deploy new TestToken (initially mints to factory)
+        // Deploy new TestToken (mints directly to caller)
         TestToken token = new TestToken(
             config.name,
             config.symbol,
             initialBalance,
-            config.decimals
+            config.decimals,
+            msg.sender
         );
-        
-        // Transfer the initial supply from factory to the caller
-        token.transfer(msg.sender, initialBalance);
         
         // Track the token
         numERC20s++;
