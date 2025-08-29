@@ -27,10 +27,6 @@ export function createResolvers(serverApp: ServerApp) {
 
   return {
     Query: {
-      // Health check queries (no auth required)
-      health: () => "OK",
-      version: () => serverConfig.APP_VERSION,
-
       // Token validation (requires auth header, but validates it)
       validateToken: async (
         _: unknown,

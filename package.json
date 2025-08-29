@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "build": "bun run scripts/build.ts",
+    "prod": "bun run scripts/prod.ts",
     "test": "bun run scripts/test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "bun run typecheck && biome check .",

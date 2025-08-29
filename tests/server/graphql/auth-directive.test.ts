@@ -65,8 +65,12 @@ describe("Auth Directive Tests", () => {
     it("should identify operations that do NOT require auth", () => {
       const authOperations = authHelper.getAuthOperations()
 
-      // These operations should NOT require auth
-      const publicOperations = ["health", "version"]
+      // These operations should NOT require auth (validateToken doesn't require auth but validates tokens)
+      const publicOperations = [
+        "generateSiweMessage",
+        "authenticateWithSiwe",
+        "validateToken",
+      ]
 
       for (const op of publicOperations) {
         expect(authOperations).not.toContain(op)
@@ -84,8 +88,9 @@ describe("Auth Directive Tests", () => {
       expect(authHelper.requiresAuth("markAllNotificationsAsRead")).toBe(true)
 
       // Public operations
-      expect(authHelper.requiresAuth("health")).toBe(false)
-      expect(authHelper.requiresAuth("version")).toBe(false)
+      expect(authHelper.requiresAuth("generateSiweMessage")).toBe(false)
+      expect(authHelper.requiresAuth("authenticateWithSiwe")).toBe(false)
+      expect(authHelper.requiresAuth("validateToken")).toBe(false)
 
       // Non-existent operations
       expect(authHelper.requiresAuth("nonExistentOperation")).toBe(false)
@@ -102,7 +107,7 @@ describe("Auth Directive Tests", () => {
       // Multiple calls should return same result
       for (let i = 0; i < 10; i++) {
         expect(authHelper.requiresAuth("getMyNotifications")).toBe(true)
-        expect(authHelper.requiresAuth("health")).toBe(false)
+        expect(authHelper.requiresAuth("validateToken")).toBe(false)
       }
     })
   })
@@ -283,11 +288,14 @@ describe("Auth Directive Tests", () => {
     })
 
     describe("Public Operations", () => {
-      it("should allow health query without auth", async () => {
+      it("should allow validateToken query without auth token", async () => {
         const response = await makeRequest(`${testServer.url}/graphql`, {
           ...createGraphQLRequest(`
-            query Health {
-              health
+            query ValidateToken {
+              validateToken {
+                valid
+                wallet
+              }
             }
           `),
         })
@@ -295,54 +303,19 @@ describe("Auth Directive Tests", () => {
         const body = await response.json()
         expect(response.status).toBe(200)
         expect(body.errors).toBeUndefined()
-        expect(body.data.health).toBe("OK")
-      })
-
-      it("should allow version query without auth", async () => {
-        const response = await makeRequest(`${testServer.url}/graphql`, {
-          ...createGraphQLRequest(`
-            query Version {
-              version
-            }
-          `),
-        })
-
-        const body = await response.json()
-        expect(response.status).toBe(200)
-        expect(body.errors).toBeUndefined()
-        expect(body.data.version).toBeDefined()
-        expect(typeof body.data.version).toBe("string")
-      })
-
-      it("should allow public queries even with auth token present", async () => {
-        const authenticatedUser = await createSimpleAuthenticatedTestUser()
-
-        const response = await makeRequest(`${testServer.url}/graphql`, {
-          ...createGraphQLRequest(
-            `query PublicWithAuth {
-              health
-              version
-            }`,
-            {},
-            authenticatedUser.token,
-          ),
-        })
-
-        const body = await response.json()
-        expect(response.status).toBe(200)
-        expect(body.errors).toBeUndefined()
-        expect(body.data.health).toBe("OK")
-        expect(body.data.version).toBeDefined()
+        expect(body.data.validateToken.valid).toBe(false)
+        expect(body.data.validateToken.wallet).toBeNull()
       })
     })
 
     describe("Mixed Queries", () => {
-      it("should reject mixed queries with auth and public fields when not authenticated", async () => {
+      it("should reject mixed queries with validateToken and auth-required fields when not authenticated", async () => {
         const response = await makeRequest(`${testServer.url}/graphql`, {
           ...createGraphQLRequest(`
             query MixedQuery {
-              health
-              version
+              validateToken {
+                valid
+              }
               getMyUnreadNotificationsCount
             }
           `),
@@ -363,8 +336,9 @@ describe("Auth Directive Tests", () => {
         const response = await makeRequest(`${testServer.url}/graphql`, {
           ...createGraphQLRequest(
             `query MixedQuery {
-              health
-              version
+              validateToken {
+                valid
+              }
               getMyUnreadNotificationsCount
             }`,
             {},
@@ -379,8 +353,7 @@ describe("Auth Directive Tests", () => {
           // Should not be UNAUTHORIZED since we have valid token
           expect(body.errors[0].extensions.code).not.toBe("UNAUTHORIZED")
         } else {
-          expect(body.data.health).toBe("OK")
-          expect(body.data.version).toBeDefined()
+          expect(body.data.validateToken.valid).toBe(true)
           expect(typeof body.data.getMyUnreadNotificationsCount).toBe("number")
         }
       })

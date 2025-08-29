@@ -85,6 +85,26 @@ To get help on available options:
 bun run dev -h
 ```
 
+## Production
+
+### Build for Production
+
+```bash
+bun run build
+```
+
+### Run Production Server
+
+```bash
+# Run server with client being served (default)
+bun run prod
+
+# Run client preview server only
+bun run prod client
+```
+
+The production server will serve both the API and the built client application. For testing the client build separately, use the `client` subcommand which runs Vite's preview server.
+
 ## Testing
 
 ### Setup Test Database

@@ -112,6 +112,19 @@ describe("Server Integration Tests", () => {
       expect(data.version).toBeDefined()
     })
 
+    it("should respond to version endpoint", async () => {
+      if (!testServer) throw new Error("Test server not initialized")
+
+      const response = await makeRequest(`${testServer.url}/version`)
+
+      expect(response.status).toBe(200)
+
+      const data = await response.json()
+      expect(data.version).toBeDefined()
+      expect(data.name).toBe("QuickDapp")
+      expect(data.environment).toBeDefined()
+    })
+
     it("should handle favicon requests", async () => {
       if (!testServer) throw new Error("Test server not initialized")
 

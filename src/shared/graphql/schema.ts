@@ -52,10 +52,6 @@ export const typeDefs = gql`
   }
 
   type Query {
-    # Health check queries (no auth required)
-    health: String!
-    version: String!
-    
     # Token validation (requires auth header, but validates it)
     validateToken: ValidateTokenResult!
     

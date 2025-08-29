@@ -43,10 +43,10 @@ class WorkerProcess {
 
     // Fork the server entry point to create a worker
     // In development: use the TypeScript file
-    // In production: use the main entry point from package.json or the current executable
+    // In production: use the JavaScript file being executed
     const serverEntryPoint =
       serverConfig.NODE_ENV === "production"
-        ? process.argv[0] // Use the same executable (bun binary or node)
+        ? process.argv[1] || path.resolve(__dirname, "../index.js") // Use the script file, not the binary
         : path.resolve(__dirname, "../index.ts")
 
     this.process = fork(serverEntryPoint!, [], {

@@ -28,33 +28,19 @@ describe("GraphQL Authentication", () => {
   })
 
   describe("Unauthenticated requests", () => {
-    it("should allow health check without auth", async () => {
+    it("should allow validateToken without auth token", async () => {
       const response = await makeRequest(`${testServer.url}/graphql`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: `query { health }`,
+          query: `query { validateToken { valid wallet } }`,
         }),
       })
 
       const body = await response.json()
       expect(response.status).toBe(200)
-      expect(body.data.health).toBe("OK")
-      expect(body.errors).toBeUndefined()
-    })
-
-    it("should allow version query without auth", async () => {
-      const response = await makeRequest(`${testServer.url}/graphql`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `query { version }`,
-        }),
-      })
-
-      const body = await response.json()
-      expect(response.status).toBe(200)
-      expect(body.data.version).toBeDefined()
+      expect(body.data.validateToken.valid).toBe(false)
+      expect(body.data.validateToken.wallet).toBeNull()
       expect(body.errors).toBeUndefined()
     })
 
