@@ -122,7 +122,7 @@ export async function setupTestDatabase(): Promise<void> {
   try {
     // Ensure connection is active (singleton will reuse existing connection if available)
     if (!dbManager.isConnectionActive()) {
-      testLogger.warn("⚠️  Database not connected, initializing...")
+      testLogger.info("Database not connected, initializing...")
       await initTestDb()
     } else {
       testLogger.info("✅ Using existing database connection")

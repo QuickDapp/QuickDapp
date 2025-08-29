@@ -325,7 +325,7 @@ describe("Worker Blockchain Integration Tests", () => {
       })
     })
 
-    test.skip("should handle multiple token contracts being monitored", async () => {
+    test("should handle multiple token contracts being monitored", async () => {
       // Create a test user for the token sender (account[0] owns all deployed tokens)
       // Both token deployments will be owned by account[0], so transfers from account[0] will trigger notifications
       const [testUser] = await serverContext.serverApp.db
@@ -341,6 +341,24 @@ describe("Worker Blockchain Integration Tests", () => {
         throw new Error("Failed to create test user")
       }
 
+      testLogger.info(
+        `👤 Created test user ${testUser.id} with wallet ${testUser.wallet}`,
+      )
+
+      // Schedule initial watchChain job to set up filters
+      testLogger.info(
+        "🔧 Scheduling watchChain job to set up blockchain filters...",
+      )
+      const filterSetupJob = await scheduleJob(serverContext.serverApp, {
+        type: "watchChain",
+        userId: 0,
+        persistent: true,
+      })
+      testLogger.info(`✅ Scheduled filter setup job ${filterSetupJob.id}`)
+
+      // Wait for the job to execute and create filters
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
       // Deploy two different tokens
       testLogger.info("🪙 Deploying first test token...")
       const token1 = await deployMockERC20(blockchainContext, {
@@ -355,6 +373,26 @@ describe("Worker Blockchain Integration Tests", () => {
         symbol: "TK2",
         initialSupply: 750000n * 10n ** 18n,
       })
+
+      // Mine blocks to process token deployments
+      await mineBlocks(blockchainContext, 2)
+      testLogger.info("✅ Token deployments completed and blocks mined")
+
+      // Schedule watchChain job to process token creation events
+      testLogger.info(
+        "🔧 Scheduling watchChain job to process token creation events...",
+      )
+      const creationProcessJob = await scheduleJob(serverContext.serverApp, {
+        type: "watchChain",
+        userId: 0,
+        persistent: true,
+      })
+      testLogger.info(
+        `✅ Scheduled creation processing job ${creationProcessJob.id}`,
+      )
+
+      // Wait for the job to process the creation events
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Perform transfers FROM the test user's wallet (account[0] that owns the tokens)
       const recipient1 = blockchainContext.testnet.accounts[2] as `0x${string}`
@@ -379,14 +417,27 @@ describe("Worker Blockchain Integration Tests", () => {
       )
 
       // Mine blocks to process transactions
-      await mineBlocks(blockchainContext, 5)
-      testLogger.info("⛏️  Mined blocks to process transactions")
+      await mineBlocks(blockchainContext, 2)
+      testLogger.info("⛏️  Transfer transactions completed and blocks mined")
 
-      // Allow time for notifications to be created
-      testLogger.info("⏳ Waiting for worker to process all transfer events...")
-      await new Promise((resolve) => setTimeout(resolve, 12000))
+      // Schedule watchChain job to process transfer events
+      testLogger.info(
+        "🔧 Scheduling watchChain job to process transfer events...",
+      )
+      const transferProcessJob = await scheduleJob(serverContext.serverApp, {
+        type: "watchChain",
+        userId: 0,
+        persistent: true,
+      })
+      testLogger.info(
+        `✅ Scheduled transfer processing job ${transferProcessJob.id}`,
+      )
 
-      // Verify notifications for the test user (should have 2 notifications - one for each token transfer)
+      // Wait for the job to process the transfer events
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      // Verify notifications for the test user
+      // Should have 4 notifications: 2 token creations + 2 token transfers
       const userNotifications = await serverContext.serverApp.db
         .select()
         .from(notifications)
@@ -396,8 +447,38 @@ describe("Worker Blockchain Integration Tests", () => {
         `📬 Found ${userNotifications.length} notifications for user ${testUser.id}`,
       )
 
-      // Should have at least 2 notifications (one for each token transfer)
-      expect(userNotifications.length).toBeGreaterThanOrEqual(2)
+      // Should have at least 4 notifications (2 token creations + 2 token transfers)
+      expect(userNotifications.length).toBeGreaterThanOrEqual(4)
+
+      // Verify we have both creation and transfer notifications
+      const creationNotifications = userNotifications.filter((n) => {
+        const data = n.data as any
+        return data.type === "token_created"
+      })
+
+      const transferNotifications = userNotifications.filter((n) => {
+        const data = n.data as any
+        return data.type === "token_transfer"
+      })
+
+      testLogger.info(
+        `📊 Notification breakdown: ${creationNotifications.length} creations, ${transferNotifications.length} transfers`,
+      )
+
+      // Should have exactly 2 creation notifications (TK1 and TK2)
+      expect(creationNotifications.length).toBe(2)
+
+      // Should have exactly 2 transfer notifications (TK1 and TK2 transfers)
+      expect(transferNotifications.length).toBe(2)
+
+      // Verify the token symbols in notifications
+      const tokenSymbols = [
+        ...creationNotifications.map((n) => (n.data as any).tokenSymbol),
+        ...transferNotifications.map((n) => (n.data as any).tokenSymbol),
+      ]
+
+      expect(tokenSymbols).toContain("TK1")
+      expect(tokenSymbols).toContain("TK2")
     })
 
     test("should handle blockchain job scheduling gracefully", async () => {

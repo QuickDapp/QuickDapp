@@ -400,7 +400,13 @@ export const deployMockERC20 = async (
     const hash = await context.walletClient.deployContract({
       abi,
       bytecode,
-      args: [name, symbol, initialSupply, decimals],
+      args: [
+        name,
+        symbol,
+        initialSupply,
+        decimals,
+        context.testAccount.address,
+      ],
       account: context.testAccount,
       chain: foundry,
     })
