@@ -1,6 +1,5 @@
 import { GraphQLError } from "graphql"
 import { SiweMessage } from "siwe"
-import { type Address } from "viem"
 import { serverConfig } from "../../shared/config/server"
 import { type AuthenticatedUser, AuthService } from "../auth"
 import {
@@ -28,9 +27,33 @@ export function createResolvers(serverApp: ServerApp) {
 
   return {
     Query: {
-      // Health check queries (no auth required)
-      health: () => "OK",
-      version: () => serverConfig.APP_VERSION,
+      // Token validation (requires auth header, but validates it)
+      validateToken: async (
+        _: unknown,
+        __: unknown,
+        context: GraphQLContext,
+      ) => {
+        try {
+          if (context.user) {
+            return {
+              valid: true,
+              wallet: context.user.wallet,
+            }
+          } else {
+            return {
+              valid: false,
+              wallet: null,
+            }
+          }
+        } catch (error) {
+          const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+          logger.error("Error validating token:", error)
+          return {
+            valid: false,
+            wallet: null,
+          }
+        }
+      },
 
       // User notifications (auth required)
       getMyNotifications: async (
@@ -157,7 +180,7 @@ export function createResolvers(serverApp: ServerApp) {
           return {
             success: true,
             token: authResult.token,
-            wallet: authResult.wallet,
+            wallet: authResult.user.wallet,
             error: null,
           }
         } catch (error) {
@@ -253,93 +276,6 @@ export function createResolvers(serverApp: ServerApp) {
                 error instanceof Error ? error.message : String(error),
             },
           })
-        }
-      },
-
-      // Token mutations (auth required)
-      createToken: async (
-        _: unknown,
-        {
-          input,
-        }: {
-          input: {
-            name: string
-            symbol: string
-            decimals: number
-            initialSupply: string
-          }
-        },
-        context: GraphQLContext,
-      ) => {
-        try {
-          const userAddress = context.user!.wallet as Address
-
-          // Note: This is a simplified implementation
-          // In a real app, the frontend would handle the transaction signing
-          // and send the transaction hash to the server for confirmation
-
-          logger.info(`Token creation requested by user ${userAddress}`, {
-            name: input.name,
-            symbol: input.symbol,
-            decimals: input.decimals,
-            initialSupply: input.initialSupply,
-          })
-
-          // For now, return success with a placeholder response
-          // The actual implementation would involve the frontend handling the transaction
-          return {
-            success: true,
-            tokenAddress: null,
-            transactionHash: null,
-            error:
-              "Frontend integration required - tokens must be created through wallet interaction",
-          }
-        } catch (error) {
-          logger.error("Failed to create token:", error)
-          return {
-            success: false,
-            tokenAddress: null,
-            transactionHash: null,
-            error:
-              error instanceof Error ? error.message : "Failed to create token",
-          }
-        }
-      },
-
-      transferToken: async (
-        _: unknown,
-        {
-          input,
-        }: { input: { tokenAddress: string; to: string; amount: string } },
-        context: GraphQLContext,
-      ) => {
-        try {
-          const userAddress = context.user!.wallet as Address
-
-          logger.info(`Token transfer requested by user ${userAddress}`, {
-            tokenAddress: input.tokenAddress,
-            to: input.to,
-            amount: input.amount,
-          })
-
-          // For now, return success with a placeholder response
-          // The actual implementation would involve the frontend handling the transaction
-          return {
-            success: true,
-            transactionHash: null,
-            error:
-              "Frontend integration required - transfers must be done through wallet interaction",
-          }
-        } catch (error) {
-          logger.error("Failed to transfer token:", error)
-          return {
-            success: false,
-            transactionHash: null,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to transfer token",
-          }
         }
       },
     },

@@ -3,6 +3,7 @@
 import { existsSync } from "node:fs"
 import path from "node:path"
 import { spawn } from "bun"
+import { copyStaticSrc } from "./shared/copy-static-src"
 import { generateAbis } from "./shared/generate-abis"
 import { createScriptRunner, type ScriptOptions } from "./shared/script-runner"
 
@@ -24,6 +25,9 @@ async function devHandler(
     console.log("   cd sample-contracts && bun deploy.ts")
     console.log("")
   }
+
+  // Copy static-src to static
+  copyStaticSrc(config.rootFolder, true)
 
   // Generate ABIs
   console.log("🔧 Generating ABIs...")

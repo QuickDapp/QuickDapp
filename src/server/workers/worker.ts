@@ -1,3 +1,5 @@
+import { ONE_MINUTE, ONE_SECOND } from "../../shared/constants"
+import type { WebSocketMessage } from "../../shared/websocket/types"
 import {
   getNextPendingJob,
   getTotalPendingJobs,
@@ -10,12 +12,10 @@ import {
 } from "../db/worker"
 import { LOG_CATEGORIES } from "../lib/errors"
 import type { ServerApp } from "../types"
+import { WorkerIPCMessageType } from "./ipc-types"
 import { jobRegistry } from "./jobs/registry"
 import type { JobParams } from "./jobs/types"
 import { isValidJobType } from "./jobs/types"
-
-const ONE_SECOND = 1000
-const ONE_MINUTE = 60 * ONE_SECOND
 
 const setupDefaultJobs = async (serverApp: ServerApp) => {
   const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER)
@@ -64,6 +64,19 @@ const handleJob = async (params: JobParams): Promise<object | undefined> => {
   return await jobHandler.run(params)
 }
 
+/**
+ * Helper function for workers to send messages to users via WebSocket
+ */
+export function sendMessageToUser(userId: number, message: WebSocketMessage) {
+  if (process.send) {
+    process.send({
+      type: WorkerIPCMessageType.SendToUser,
+      userId,
+      message,
+    })
+  }
+}
+
 const dateBefore = (date: Date, now: number): boolean => {
   return date.getTime() <= now
 }
@@ -102,7 +115,7 @@ export const runWorker = async (serverApp: ServerApp) => {
               `job[${job.id}-${job.type}]${job.cronSchedule ? " (cron)" : ""}`,
             )
 
-            jobLogger.info(`Starting job execution for user ${job.userId}`)
+            jobLogger.debug(`Starting job execution for user ${job.userId}`)
             jobLogger.debug("Job data:", job.data)
 
             await markJobAsStarted(serverApp, job.id)
@@ -115,7 +128,7 @@ export const runWorker = async (serverApp: ServerApp) => {
               })
 
               await markJobAsSucceeded(serverApp, job.id, result)
-              jobLogger.info(`Job completed successfully`)
+              jobLogger.debug(`Job completed successfully`)
 
               // Reschedule cron job if needed
               if (job.cronSchedule) {
@@ -126,7 +139,7 @@ export const runWorker = async (serverApp: ServerApp) => {
                 )
               }
             } catch (err: any) {
-              jobLogger.info("Job execution failed:", err.message)
+              jobLogger.debug("Job execution failed:", err.message)
               jobLogger.debug("Full error details:", err)
 
               await markJobAsFailed(serverApp, job.id, { error: err.message })

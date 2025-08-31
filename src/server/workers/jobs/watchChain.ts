@@ -1,3 +1,4 @@
+import { serverConfig } from "../../../shared/config/server"
 import * as createTokenFilter from "../chainFilters/createToken"
 import * as sendTokenFilter from "../chainFilters/sendToken"
 import type {
@@ -32,16 +33,22 @@ const recreateFilters = async (params: JobParams) => {
     return
   }
 
-  log.info("Creating chain filters")
-
-  // Clear existing filters
-  Object.keys(activeFilters).forEach((key) => delete activeFilters[key])
+  if (Object.keys(activeFilters).length) {
+    log.info("Recreating chain filters")
+    // Clear existing filters
+    Object.keys(activeFilters).forEach((key) => delete activeFilters[key])
+  } else {
+    log.info("Creating chain filters")
+  }
 
   for (const filterName in chainFilters) {
     try {
       const chainFilter = chainFilters[filterName]
 
-      const filter = await chainFilter!.createFilter(client)
+      const filter = await chainFilter!.createFilter(
+        client,
+        serverConfig.NODE_ENV !== "test" ? "latest" : "earliest",
+      )
 
       if (filter) {
         activeFilters[filterName] = {
@@ -77,39 +84,36 @@ export const run: JobRunner = async (params: JobParams) => {
   }
 
   // Process each active filter
-  await Promise.all(
-    Object.keys(activeFilters).map(async (filterName) => {
-      const filterModule = activeFilters[filterName]!
-      const filterLog = log.child(filterName)
+  for (const filterName of Object.keys(activeFilters)) {
+    const filterModule = activeFilters[filterName]!
+    const filterLog = log.child(filterName)
 
-      try {
-        // Get filter changes from the blockchain
-        const changes = await client.getFilterChanges({
-          filter: filterModule.filter,
-        })
+    try {
+      // Get filter changes from the blockchain
+      const changes = await client.getFilterChanges({
+        filter: filterModule.filter,
+      })
 
-        if (changes && changes.length > 0) {
-          filterLog.debug(`Found ${changes.length} new events`)
+      if (changes && changes.length > 0) {
+        filterLog.debug(`Found ${changes.length} new events`)
 
-          await filterModule.chainFilter.processChanges(
-            serverApp,
-            filterLog,
-            changes,
-          )
-        } else {
-          filterLog.debug("No new events found")
-        }
-      } catch (err: any) {
-        filterLog.error(`Error processing filter:`, err)
-
-        // Sometimes filter fails because the node cluster has replaced the node
-        // Recreate filters to handle this
-        filterLog.info("Recreating filters due to error...")
-        filtersCreated = false // Force recreation on next run
-        await recreateFilters(params)
+        await filterModule.chainFilter.processChanges(
+          serverApp,
+          filterLog,
+          changes,
+        )
+      } else {
+        filterLog.debug("No new events found")
       }
-    }),
-  )
+    } catch (err: any) {
+      filterLog.error(`Error processing filter:`, err)
+
+      // Sometimes filter fails because the node cluster has replaced the node
+      // Recreate filters to handle this
+      filterLog.info("Recreating filters due to error...")
+      filtersCreated = false // Force recreation on next run
+    }
+  }
 }
 
 export const watchChainJob = {

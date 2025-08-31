@@ -23,6 +23,7 @@ export interface BootstrapOptions {
 export interface BootstrapResult {
   rootFolder: string
   env: string
+  parsedEnv: Record<string, string>
 }
 
 interface EnvFileInfo {
@@ -35,7 +36,10 @@ interface EnvFileInfo {
 /**
  * Load a single environment file
  */
-function loadEnvFile(fileInfo: EnvFileInfo, verbose: boolean): void {
+function loadEnvFile(
+  fileInfo: EnvFileInfo,
+  verbose: boolean,
+): Record<string, string> {
   const { name, path, required, override = false } = fileInfo
 
   if (existsSync(path)) {
@@ -45,25 +49,57 @@ function loadEnvFile(fileInfo: EnvFileInfo, verbose: boolean): void {
     } else if (verbose) {
       console.log(`✅ Loaded ${name}`)
     }
+    return result.parsed!
   } else if (required && verbose) {
     console.warn(`⚠️  ${name} file not found at ${path}`)
   } else if (verbose) {
     console.log(`ℹ️  No ${name} file found (optional)`)
   }
+
+  return {}
 }
 
 /**
  * Display environment information
  */
-function showEnvironmentInfo(verbose: boolean): void {
+function showEnvironmentInfo(
+  parsedEnv: Record<string, string>,
+  verbose: boolean,
+): void {
   if (!verbose) return
 
   console.log(`📊 Environment configured:`)
-  console.log(`   NODE_ENV: ${process.env.NODE_ENV}`)
-  console.log(
-    `   DATABASE_URL: ${process.env.DATABASE_URL?.replace(/:[^@]*@/, ":***@") || "not set"}`,
-  )
-  console.log(`   PORT: ${process.env.PORT}`)
+
+  // Sensitive keys that should be masked
+  const sensitiveKeys = new Set([
+    "DATABASE_URL",
+    "SESSION_ENCRYPTION_KEY",
+    "SERVER_WALLET_PRIVATE_KEY",
+    "MAILGUN_API_KEY",
+    "SENTRY_WORKER_DSN",
+    "SENTRY_AUTH_TOKEN",
+    "DIGITALOCEAN_ACCESS_TOKEN",
+    "WALLETCONNECT_PROJECT_ID",
+  ])
+
+  // Sort keys for consistent display
+  const sortedKeys = Object.keys(parsedEnv).sort()
+
+  for (const key of sortedKeys) {
+    const value = parsedEnv[key]
+    if (sensitiveKeys.has(key)) {
+      // Mask sensitive values
+      if (key === "DATABASE_URL") {
+        console.log(
+          `   ${key}: ${value?.replace(/:[^@]*@/, ":***@") || "not set"}`,
+        )
+      } else {
+        console.log(`   ${key}: ${value ? "***" : "not set"}`)
+      }
+    } else {
+      console.log(`   ${key}: ${value || "not set"}`)
+    }
+  }
   console.log("")
 }
 
@@ -103,8 +139,8 @@ export async function bootstrap(
         required: false,
         override: true,
       },
-      // Skip .env.local in test mode to avoid interference from local dev settings
-      ...(env !== "test"
+      // Skip .env.local in test and production modes to avoid interference from local dev settings
+      ...(env !== "test" && env !== "production"
         ? [
             {
               name: ".env.local",
@@ -116,15 +152,23 @@ export async function bootstrap(
         : []),
     ]
 
-    // Load all environment files
-    envFiles.forEach((fileInfo) => loadEnvFile(fileInfo, verbose))
+    // Load all environment files and collect parsed variables
+    const parsedEnv: Record<string, string> = {}
+
+    envFiles.forEach((fileInfo) => {
+      const fileEnv = loadEnvFile(fileInfo, verbose)
+      Object.assign(parsedEnv, fileEnv)
+    })
+
+    parsedEnv.NODE_ENV = env
 
     // Show configuration summary
-    showEnvironmentInfo(verbose)
+    showEnvironmentInfo(parsedEnv, verbose)
 
     return {
       rootFolder,
       env,
+      parsedEnv,
     }
   } catch (error) {
     console.error("💥 Bootstrap failed:", error)

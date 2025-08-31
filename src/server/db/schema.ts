@@ -59,6 +59,7 @@ export const workerJobs = pgTable("worker_jobs", {
     .notNull(),
   removeDelay: integer("remove_delay").default(0).notNull(),
   rescheduledFromJob: integer("rescheduled_from_job"),
+  persistent: boolean("persistent").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })

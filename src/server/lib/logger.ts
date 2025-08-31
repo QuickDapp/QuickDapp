@@ -37,10 +37,21 @@ export const createRootLogger = (
   return logger
 }
 
+// Create a worker-specific root logger
+export const createWorkerRootLogger = () => {
+  return createRootLogger(getLogLevel(serverConfig.WORKER_LOG_LEVEL))
+}
+
 // Create the root logger instance
 export const logger = createRootLogger()
 
 // Create loggers with categories
 export const createLogger = (category: string) => {
   return logger.child(category)
+}
+
+// Create worker-specific loggers with categories
+export const createWorkerLogger = (category: string) => {
+  const workerLogger = createWorkerRootLogger()
+  return workerLogger.child(category)
 }

@@ -1,27 +1,76 @@
+import { serverConfig } from "@shared/config/server"
+import type { NotificationData } from "@shared/notifications/types"
+import type { ISocketManager } from "@shared/websocket/socket-manager"
+import { WebSocketMessageType } from "@shared/websocket/types"
 import { createPublicClient, createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
-import { serverConfig } from "../shared/config/server"
 import { dbManager } from "./db/connection"
+import { notifications } from "./db/schema"
 import { getChain } from "./lib/chains"
 import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
 import { createWorkerManager } from "./workers"
 
 /**
+ * Create notification function that can be shared between server and worker
+ */
+const createNotificationFunction = (
+  db: any,
+  socketManager: ISocketManager,
+  logger: any,
+) => {
+  return async (userId: number, notificationData: NotificationData) => {
+    try {
+      // Insert notification into database
+      const [notification] = await db
+        .insert(notifications)
+        .values({
+          userId,
+          data: notificationData,
+        })
+        .returning()
+
+      if (notification) {
+        // Send WebSocket notification to user
+        await socketManager.sendToUser(userId, {
+          type: WebSocketMessageType.NotificationReceived,
+          data: {
+            id: notification.id,
+            userId: notification.userId,
+            data: notification.data,
+            createdAt: notification.createdAt.toISOString(),
+            read: notification.read,
+          },
+        })
+
+        logger.debug(
+          `Created and sent notification ${notification.id} to user ${userId}`,
+        )
+      }
+    } catch (error) {
+      logger.error(`Failed to create notification for user ${userId}:`, error)
+    }
+  }
+}
+
+/**
  * Creates a ServerApp instance with all necessary dependencies
  * This is shared between the main server process and worker processes
  */
-export const createServerApp = async (
-  options: {
-    includeWorkerManager?: boolean
-    workerCountOverride?: number
-  } = {},
-): Promise<
+export const createServerApp = async (options: {
+  includeWorkerManager?: boolean
+  workerCountOverride?: number
+  socketManager: ISocketManager
+}): Promise<
   Omit<ServerApp, "app" | "workerManager"> & {
     workerManager?: ServerApp["workerManager"]
   }
 > => {
-  const { includeWorkerManager = false, workerCountOverride } = options
+  const {
+    includeWorkerManager = false,
+    workerCountOverride,
+    socketManager,
+  } = options
 
   // Create logger
   const rootLogger = createLogger("server")
@@ -61,6 +110,12 @@ export const createServerApp = async (
     createLogger,
     publicClient,
     walletClient,
+    socketManager,
+    createNotification: createNotificationFunction(
+      db,
+      socketManager,
+      rootLogger,
+    ),
   }
 
   if (includeWorkerManager) {

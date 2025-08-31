@@ -1,8 +1,8 @@
-import fs from "node:fs"
-import path from "node:path"
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
-import { notifications, users } from "../../db/schema"
+import { fetchTokenMetadata } from "../../../shared/contracts"
+import { NotificationType } from "../../../shared/notifications/types"
+import { users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
 // For token creation, we'll monitor contract deployments
@@ -14,6 +14,7 @@ const ERC20_MINT_EVENT = parseAbiItem(
 
 export const createFilter: ChainFilterModule["createFilter"] = (
   chainClient,
+  fromBlock,
 ) => {
   if (!chainClient) {
     console.warn("createToken filter: No chain client provided")
@@ -21,14 +22,12 @@ export const createFilter: ChainFilterModule["createFilter"] = (
   }
 
   try {
-    // Create a filter for Transfer events from address(0) (minting events)
-    // This effectively catches token creation/initial minting
     return chainClient.createEventFilter({
       event: ERC20_MINT_EVENT,
       args: {
         from: "0x0000000000000000000000000000000000000000",
       },
-      fromBlock: "latest",
+      fromBlock,
     })
   } catch (error) {
     console.error("createToken filter: Failed to create filter:", error)
@@ -60,7 +59,7 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         continue
       }
 
-      log.debug(
+      log.info(
         `Processing token creation: ${tokenAddress}, initial mint to: ${to}, amount: ${value}`,
       )
 
@@ -76,61 +75,41 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         .limit(1)
 
       if (!user) {
-        log.debug(`No user found for wallet ${creatorAddress}`)
+        log.warn(`No user found for wallet ${creatorAddress}`)
         continue
       }
 
-      // Get token information
-      let tokenInfo = { name: "Unknown Token", symbol: "UNK", decimals: 18 }
+      // Get token information from the blockchain using public client
+      // If this fails, the whole job should fail since we need accurate token data
+      const metadata = await fetchTokenMetadata(
+        tokenAddress,
+        serverApp.publicClient,
+      )
 
-      try {
-        // Load ERC20 ABI to read token info
-        const contractPath = path.join(
-          process.cwd(),
-          "tests/helpers/contracts/out/TestToken.sol/TestToken.json",
-        )
-
-        if (fs.existsSync(contractPath)) {
-          const contractArtifact = JSON.parse(
-            fs.readFileSync(contractPath, "utf8"),
-          )
-          const _abi = contractArtifact.abi
-
-          // For a proper implementation, you'd query the actual chain client here
-          // For now, we'll use default values
-          tokenInfo = {
-            name: "New Test Token",
-            symbol: "NEW",
-            decimals: 18,
-          }
-        }
-      } catch (error) {
-        log.warn("Failed to get token info:", error)
+      const tokenInfo = {
+        name: metadata.name,
+        symbol: metadata.symbol,
+        decimals: metadata.decimals,
       }
 
-      // Create notification for the user
-      await serverApp.db.insert(notifications).values({
-        userId: user.id,
-        data: {
-          type: "token_created",
-          message: `Created new token ${tokenInfo.symbol} (${tokenInfo.name}) at ${tokenAddress}`,
-          transactionHash,
-          tokenAddress,
-          creator: creatorAddress,
-          initialSupply: value.toString(),
-          tokenSymbol: tokenInfo.symbol,
-          tokenName: tokenInfo.name,
-        },
+      log.debug(
+        `Fetched token metadata for ${tokenAddress}: ${metadata.symbol} (${metadata.name}) with ${metadata.decimals} decimals`,
+      )
+
+      // Create notification for the user using the new serverApp method
+      await serverApp.createNotification(user.id, {
+        type: NotificationType.TOKEN_CREATED,
+        message: `Created new token ${tokenInfo.symbol} (${tokenInfo.name}) at ${tokenAddress}`,
+        transactionHash,
+        tokenAddress,
+        creator: creatorAddress,
+        initialSupply: value.toString(),
+        tokenSymbol: tokenInfo.symbol,
+        tokenName: tokenInfo.name,
       })
 
       log.info(
         `Created notification for user ${user.id} for new token creation`,
-      )
-
-      // In v2, this would also send an email notification
-      // For v3, we'll add a TODO comment for future implementation
-      log.debug(
-        `TODO: Send email notification for token creation to user ${user.id}`,
       )
     } catch (error) {
       log.error("Error processing token creation event:", error)

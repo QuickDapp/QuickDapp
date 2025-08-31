@@ -14,9 +14,11 @@ import {
   privateKeyToAccount,
 } from "viem/accounts"
 import { AuthService } from "../../src/server/auth"
+import { createUserIfNotExists } from "../../src/server/db/users"
 import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
 import { serverConfig } from "../../src/shared/config/server"
+import type { NotificationData } from "../../src/shared/notifications/types"
 import { testLogger } from "./logger"
 
 export interface TestWallet {
@@ -170,6 +172,7 @@ export async function createTestJWT(
   const jwtSecret = new TextEncoder().encode(secret)
 
   return await new SignJWT({
+    userId: 1, // Default test user ID
     wallet: wallet.toLowerCase(),
     iat: Math.floor(Date.now() / 1000),
     ...extraClaims,
@@ -196,6 +199,7 @@ export async function createMalformedJWT(
     | "invalid-signature"
     | "wrong-secret"
     | "missing-wallet"
+    | "missing-userId"
     | "invalid-format",
 ): Promise<string> {
   switch (type) {
@@ -219,6 +223,11 @@ export async function createMalformedJWT(
     case "missing-wallet":
       return await createTestJWT("0x1234567890123456789012345678901234567890", {
         extraClaims: { wallet: undefined },
+      })
+
+    case "missing-userId":
+      return await createTestJWT("0x1234567890123456789012345678901234567890", {
+        extraClaims: { userId: undefined },
       })
 
     case "invalid-format":
@@ -284,8 +293,15 @@ function createMockServerApp(): ServerApp {
     rootLogger,
     createLogger: (category: string) => rootLogger.child(category),
     workerManager: {} as any,
+    socketManager: {} as any,
     publicClient: {} as any,
     walletClient: {} as any,
+    createNotification: async (
+      userId: number,
+      notificationData: NotificationData,
+    ) => {
+      // Mock implementation for tests
+    },
   }
 }
 
@@ -293,7 +309,12 @@ function createMockServerApp(): ServerApp {
  * Create a fully authenticated test user with real SIWE flow
  */
 export async function createAuthenticatedTestUser(
-  options: { domain?: string; chainId?: number; expirationTime?: string } = {},
+  options: {
+    domain?: string
+    chainId?: number
+    expirationTime?: string
+    serverApp?: ServerApp
+  } = {},
 ): Promise<AuthenticatedTestUser> {
   // Generate test wallet
   const wallet = generateTestWallet()
@@ -304,9 +325,14 @@ export async function createAuthenticatedTestUser(
   // Sign the message
   const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
-  // Create mock ServerApp and AuthService
-  const mockServerApp = createMockServerApp()
-  const authService = new AuthService(mockServerApp)
+  // Use provided ServerApp or create mock one
+  const serverApp = options.serverApp || createMockServerApp()
+  const authService = new AuthService(serverApp)
+
+  // Create user in database if using real ServerApp
+  if (options.serverApp) {
+    await createUserIfNotExists(options.serverApp.db, wallet.address)
+  }
 
   // Authenticate through the real auth system to get JWT
   const { token } = await authService.authenticateWithSiwe(
@@ -327,11 +353,17 @@ export async function createAuthenticatedTestUser(
  */
 export async function createMultipleTestUsers(
   count: number,
+  options: {
+    domain?: string
+    chainId?: number
+    expirationTime?: string
+    serverApp?: ServerApp
+  } = {},
 ): Promise<AuthenticatedTestUser[]> {
   const users: AuthenticatedTestUser[] = []
 
   for (let i = 0; i < count; i++) {
-    const user = await createAuthenticatedTestUser()
+    const user = await createAuthenticatedTestUser(options)
     users.push(user)
   }
 

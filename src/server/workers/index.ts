@@ -6,6 +6,12 @@ import { scheduleJob } from "../db/worker"
 import { LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import type { ServerApp } from "../types"
+import {
+  type BroadcastMessage,
+  type SendToUserMessage,
+  type WorkerIPCMessage,
+  WorkerIPCMessageType,
+} from "./ipc-types"
 
 export interface WorkerJob {
   id: string
@@ -37,10 +43,10 @@ class WorkerProcess {
 
     // Fork the server entry point to create a worker
     // In development: use the TypeScript file
-    // In production: use the main entry point from package.json or the current executable
+    // In production: use the JavaScript file being executed
     const serverEntryPoint =
       serverConfig.NODE_ENV === "production"
-        ? process.argv[0] // Use the same executable (bun binary or node)
+        ? process.argv[1] || path.resolve(__dirname, "../index.js") // Use the script file, not the binary
         : path.resolve(__dirname, "../index.ts")
 
     this.process = fork(serverEntryPoint!, [], {
@@ -63,19 +69,46 @@ class WorkerProcess {
       this.logger.error(`Worker ${this.workerId} error:`, error)
     })
 
-    this.process.on("message", (message: any) => {
-      if (message?.type === "worker-started") {
-        this.logger.info(
-          `Worker ${this.workerId} started (PID: ${message.pid})`,
-        )
-      } else if (message?.type === "worker-shutdown") {
-        this.logger.info(
-          `Worker ${this.workerId} shutdown (PID: ${message.pid})`,
-        )
-      } else if (message?.type === "worker-error") {
-        this.logger.error(`Worker ${this.workerId} error: ${message.error}`)
-      } else if (message?.type === "heartbeat") {
-        this.logger.debug(`Worker ${this.workerId} heartbeat`)
+    this.process.on("message", (message: WorkerIPCMessage) => {
+      switch (message.type) {
+        case WorkerIPCMessageType.WorkerStarted:
+          this.logger.info(
+            `Worker ${this.workerId} started (PID: ${message.pid})`,
+          )
+          break
+        case WorkerIPCMessageType.WorkerShutdown:
+          this.logger.info(
+            `Worker ${this.workerId} shutdown (PID: ${message.pid})`,
+          )
+          break
+        case WorkerIPCMessageType.WorkerError:
+          this.logger.error(`Worker ${this.workerId} error: ${message.error}`)
+          break
+        case WorkerIPCMessageType.Heartbeat:
+          this.logger.debug(`Worker ${this.workerId} heartbeat`)
+          break
+        case WorkerIPCMessageType.SendToUser: {
+          const sendToUserMsg = message as SendToUserMessage
+          this.logger.debug(
+            `Worker ${this.workerId} sending message to user ${sendToUserMsg.userId}`,
+          )
+          this.serverApp.socketManager.sendToUser(
+            sendToUserMsg.userId,
+            sendToUserMsg.message,
+          )
+          break
+        }
+        case WorkerIPCMessageType.Broadcast: {
+          const broadcastMsg = message as BroadcastMessage
+          this.logger.debug(`Worker ${this.workerId} broadcasting message`)
+          this.serverApp.socketManager.broadcast(broadcastMsg.message)
+          break
+        }
+        default:
+          this.logger.warn(
+            `Unknown message type from worker ${this.workerId}:`,
+            message.type,
+          )
       }
     })
   }

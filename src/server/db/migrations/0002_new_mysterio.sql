@@ -1,0 +1,1 @@
+DROP TABLE "chain_filter_state" CASCADE;

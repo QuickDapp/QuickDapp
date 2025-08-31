@@ -1,14 +1,14 @@
-import { readFileSync } from "node:fs"
 import path from "node:path"
 import { cors } from "@elysiajs/cors"
 import { staticPlugin } from "@elysiajs/static"
+import { serverConfig } from "@shared/config/server"
 import { Elysia } from "elysia"
-import { serverConfig } from "../shared/config/server"
 import { createServerApp } from "./bootstrap"
 import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
 import { createLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
+import { createWebSocket, SocketManager } from "./ws"
 
 // Create and start the server
 export const createApp = async (
@@ -51,10 +51,14 @@ export const createApp = async (
 
   logger.info("Starting QuickDapp server...")
 
+  // Create SocketManager
+  const socketManager = new SocketManager(logger)
+
   // Create ServerApp with worker manager
   const bootstrapResult = await createServerApp({
     includeWorkerManager: true,
     workerCountOverride: options.workerCountOverride,
+    socketManager,
   })
 
   // Create base Elysia app
@@ -113,6 +117,12 @@ export const createApp = async (
       timestamp: new Date().toISOString(),
       version: serverConfig.APP_VERSION,
     }))
+    // Version endpoint
+    .get("/version", () => ({
+      version: serverConfig.APP_VERSION,
+      name: "QuickDapp",
+      environment: serverConfig.NODE_ENV,
+    }))
     // Chrome DevTools integration for development
     .get("/.well-known/appspecific/com.chrome.devtools.json", () => {
       if (serverConfig.NODE_ENV === "development") {
@@ -131,55 +141,24 @@ export const createApp = async (
   // Add GraphQL endpoint
   app.use(createGraphQLHandler(serverApp))
 
-  // Serve static assets from Vite build
-  const staticDir = path.join(import.meta.dir, "static")
+  // Add WebSocket endpoint
+  app.use(createWebSocket(serverApp))
+
+  // Serve static assets from Vite build (or configurable location)
+  const staticDir =
+    serverConfig.STATIC_ASSETS_FOLDER || path.join(import.meta.dir, "static")
   app.use(
     staticPlugin({
       assets: staticDir,
-      prefix: "/assets",
-      noCache: serverConfig.NODE_ENV === "development",
+      prefix: "",
+      indexHTML: true,
+      alwaysStatic: true,
+      noCache: true,
     }),
   )
 
-  // Serve index.html for SPA routes (catch-all for frontend routing)
-  app.get("/*", async ({ set, path: requestPath }) => {
-    const staticClientDir = path.join(staticDir, "client")
-
-    // Read and serve index.html (config should be injected during build)
-    try {
-      const indexPath = path.join(staticClientDir, "index.html")
-      const indexHtml = readFileSync(indexPath, "utf8")
-
-      set.headers["Content-Type"] = "text/html"
-      return new Response(indexHtml)
-    } catch {
-      // If frontend hasn't been built yet, show development message
-      if (serverConfig.NODE_ENV === "development") {
-        set.headers["Content-Type"] = "text/html"
-        return new Response(`
-          <!DOCTYPE html>
-          <html>
-            <head><title>QuickDapp</title></head>
-            <body>
-              <div style="margin: 2rem; font-family: system-ui;">
-                <h1>QuickDapp Development Server</h1>
-                <p>The frontend hasn't been built yet. To start the frontend:</p>
-                <ol>
-                  <li>Run <code>cd src/client && bun run dev</code> in another terminal</li>
-                  <li>Or build the frontend with <code>bun run build</code></li>
-                </ol>
-                <p>GraphQL endpoint: <a href="/graphql">/graphql</a></p>
-                <p>Health check: <a href="/health">/health</a></p>
-              </div>
-            </body>
-          </html>
-        `)
-      }
-
-      // Return 404 for unknown routes - this is semantically correct
-      set.status = 404
-      return { error: "Not found" }
-    }
+  app.head("/", () => {
+    return new Response(null, { status: 200 })
   })
 
   // Start the server
@@ -201,5 +180,3 @@ export const createApp = async (
 
   return { app, server, serverApp }
 }
-
-// This file is imported by src/server/index.ts for server functionality

@@ -1,13 +1,13 @@
 import { makeExecutableSchema } from "@graphql-tools/schema"
 import { Elysia } from "elysia"
-import { type OperationDefinitionNode, parse } from "graphql"
+import { GraphQLError, type OperationDefinitionNode, parse } from "graphql"
 import { createYoga } from "graphql-yoga"
 import { serverConfig } from "../../shared/config/server"
 import { AuthDirectiveHelper } from "../../shared/graphql/auth-extractor"
 import { defaultResolvers } from "../../shared/graphql/resolvers"
 import { typeDefs } from "../../shared/graphql/schema"
 import { AuthService } from "../auth"
-import { LOG_CATEGORIES } from "../lib/errors"
+import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
 import type { ServerApp } from "../types"
 import { createResolvers } from "./resolvers"
 
@@ -135,18 +135,39 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
       logger.debug(`Operation requires auth: ${requiresAuth}`)
 
       let user: any = null
-      if (requiresAuth) {
-        logger.debug(`Auth required for operation: ${operationName}`)
+
+      // Always try to authenticate if Authorization header is present
+      const authHeader = request.headers.get("Authorization")
+      if (authHeader) {
+        logger.debug(`Authorization header present, attempting authentication`)
         try {
           user = await authService.authenticateRequest(request)
           logger.debug(`User authenticated: ${user.wallet}`)
         } catch (error) {
-          logger.debug(
-            `Auth required for operation ${operationName} but authentication failed:`,
-            error instanceof Error ? error.message : String(error),
-          )
-          throw error // Re-throw the GraphQLError from AuthService
+          // If auth is required and authentication failed, throw error
+          if (requiresAuth) {
+            logger.debug(
+              `Auth required for operation ${operationName} but authentication failed:`,
+              error instanceof Error ? error.message : String(error),
+            )
+            throw error // Re-throw the GraphQLError from AuthService
+          } else {
+            // If auth is not required but token was invalid, just log it
+            logger.debug(
+              `Optional authentication failed for operation ${operationName}:`,
+              error instanceof Error ? error.message : String(error),
+            )
+            user = null
+          }
         }
+      } else if (requiresAuth) {
+        // No auth header but auth is required
+        logger.debug(
+          `Auth required for operation ${operationName} but no Authorization header`,
+        )
+        throw new GraphQLError("Authentication required", {
+          extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
+        })
       }
 
       return {

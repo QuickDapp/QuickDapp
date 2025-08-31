@@ -5,16 +5,16 @@
  * creating test data, and cleaning up between tests.
  */
 
-import { sql } from "drizzle-orm"
-import { dbManager, schema } from "../../src/server/db/connection"
+import { dbManager, schema } from "@server/db/connection"
 import type {
   NewNotification,
   NewUser,
   NewWorkerJob,
   User,
-} from "../../src/server/db/schema"
-import { serverConfig } from "../../src/shared/config/server"
-import { testLogger } from "./logger"
+} from "@server/db/schema"
+import { serverConfig } from "@shared/config/server"
+import { testLogger } from "@tests/helpers/logger"
+import { sql } from "drizzle-orm"
 
 /**
  * Initialize the shared test database connection
@@ -122,7 +122,7 @@ export async function setupTestDatabase(): Promise<void> {
   try {
     // Ensure connection is active (singleton will reuse existing connection if available)
     if (!dbManager.isConnectionActive()) {
-      testLogger.warn("⚠️  Database not connected, initializing...")
+      testLogger.info("Database not connected, initializing...")
       await initTestDb()
     } else {
       testLogger.info("✅ Using existing database connection")
