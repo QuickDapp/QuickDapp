@@ -1,5 +1,4 @@
 import {
-  bigint,
   boolean,
   integer,
   json,
@@ -65,16 +64,6 @@ export const workerJobs = pgTable("worker_jobs", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Chain filter state table for tracking processed blockchain events
-export const chainFilterState = pgTable("chain_filter_state", {
-  filterName: text("filter_name").primaryKey().notNull(),
-  lastProcessedBlock: bigint("last_processed_block", {
-    mode: "number",
-  }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
-
 // Export types for use in application
 export type Setting = typeof settings.$inferSelect
 export type NewSetting = typeof settings.$inferInsert
@@ -87,6 +76,3 @@ export type NewNotification = typeof notifications.$inferInsert
 
 export type WorkerJob = typeof workerJobs.$inferSelect
 export type NewWorkerJob = typeof workerJobs.$inferInsert
-
-export type ChainFilterState = typeof chainFilterState.$inferSelect
-export type NewChainFilterState = typeof chainFilterState.$inferInsert

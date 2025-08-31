@@ -22,17 +22,12 @@ export const createFilter: ChainFilterModule["createFilter"] = (
   }
 
   try {
-    // Create a filter for Transfer events from address(0) (minting events)
-    // This effectively catches token creation/initial minting
-    // fromBlock is managed by watchChain.ts based on filter state
-    const blockToUse = fromBlock !== undefined ? fromBlock : "latest"
-
     return chainClient.createEventFilter({
       event: ERC20_MINT_EVENT,
       args: {
         from: "0x0000000000000000000000000000000000000000",
       },
-      fromBlock: blockToUse,
+      fromBlock,
     })
   } catch (error) {
     console.error("createToken filter: Failed to create filter:", error)

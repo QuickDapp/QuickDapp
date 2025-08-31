@@ -20,13 +20,9 @@ export const createFilter: ChainFilterModule["createFilter"] = (
   }
 
   try {
-    // Create a filter for all ERC20 Transfer events
-    // fromBlock is managed by watchChain.ts based on filter state
-    const blockToUse = fromBlock !== undefined ? fromBlock : "latest"
-
     return chainClient.createEventFilter({
       event: ERC20_TRANSFER_EVENT,
-      fromBlock: blockToUse,
+      fromBlock,
     })
   } catch (error) {
     console.error("sendToken filter: Failed to create filter:", error)

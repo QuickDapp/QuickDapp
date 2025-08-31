@@ -4,6 +4,7 @@ import path from "node:path"
 import { zip } from "@hiddentao/zip-json"
 import { $ } from "bun"
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
+import { copyStaticSrc } from "./shared/copy-static-src"
 import { generateAbis } from "./shared/generate-abis"
 import {
   type CommandSetup,
@@ -35,13 +36,7 @@ async function buildHandler(
     SRC_CLIENT: path.join(config.rootFolder, "src", "client"),
     SRC_SERVER: path.join(config.rootFolder, "src", "server"),
     SERVER_STATIC: path.join(config.rootFolder, "src", "server", "static"),
-    SERVER_STATIC_CLIENT: path.join(
-      config.rootFolder,
-      "src",
-      "server",
-      "static",
-      "client",
-    ),
+    STATIC_SRC: path.join(config.rootFolder, "src", "server", "static-src"),
     SERVER_INDEX: path.join(config.rootFolder, "src", "server", "index.ts"),
     DIST_SERVER_STATIC: path.join(
       config.rootFolder,
@@ -59,10 +54,6 @@ async function buildHandler(
     if (existsSync(PATHS.DIST)) {
       console.log("🧹 Cleaning previous build...")
       rmSync(PATHS.DIST, { recursive: true, force: true })
-    }
-    if (existsSync(PATHS.SERVER_STATIC_CLIENT)) {
-      console.log("🧹 Cleaning previous server static files...")
-      rmSync(PATHS.SERVER_STATIC_CLIENT, { recursive: true, force: true })
     }
   }
 
@@ -89,22 +80,28 @@ async function buildHandler(
   await $`bun vite build`.cwd(PATHS.SRC_CLIENT)
   console.log("✅ Frontend built to dist/client")
 
-  // Step 5: Copy frontend build to server static directory
+  // Step 5: Copy static-src to server static directory first
+  copyStaticSrc(config.rootFolder, true)
+
+  // Step 6: Copy frontend build to server static directory (overwrites static-src files as needed)
   console.log("📁 Copying frontend to server static directory...")
-  cpSync(PATHS.DIST_CLIENT, PATHS.SERVER_STATIC_CLIENT, { recursive: true })
+  cpSync(PATHS.DIST_CLIENT, PATHS.SERVER_STATIC, {
+    recursive: true,
+    force: true,
+  })
   console.log("✅ Frontend copied to server static directory")
 
-  // Step 6: Build server bundle
+  // Step 7: Build server bundle
   console.log("📦 Building server bundle...")
   await $`bun build ${PATHS.SERVER_INDEX} --outdir ${PATHS.DIST_SERVER} --target bun --minify --sourcemap`
   console.log("✅ Server built to dist/server")
 
-  // Step 7: Copy server static directory to dist/server
+  // Step 8: Copy server static directory to dist/server
   console.log("📁 Copying server static directory to dist/server...")
   cpSync(PATHS.SERVER_STATIC, PATHS.DIST_SERVER_STATIC, { recursive: true })
   console.log("✅ Server static directory copied to dist/server")
 
-  // Step 8: Validation
+  // Step 9: Validation
   console.log("🔍 Validating build...")
   const SERVER_INDEX_JS = path.join(PATHS.DIST_SERVER, "index.js")
   if (!existsSync(SERVER_INDEX_JS)) {
@@ -116,10 +113,7 @@ async function buildHandler(
     throw new Error("Build failed - frontend index.html not found")
   }
 
-  const SERVER_STATIC_INDEX_HTML = path.join(
-    PATHS.SERVER_STATIC_CLIENT,
-    "index.html",
-  )
+  const SERVER_STATIC_INDEX_HTML = path.join(PATHS.SERVER_STATIC, "index.html")
   if (!existsSync(SERVER_STATIC_INDEX_HTML)) {
     throw new Error(
       "Build failed - frontend not copied to server static directory",
@@ -128,7 +122,6 @@ async function buildHandler(
 
   const DIST_SERVER_STATIC_INDEX_HTML = path.join(
     PATHS.DIST_SERVER_STATIC,
-    "client",
     "index.html",
   )
   if (!existsSync(DIST_SERVER_STATIC_INDEX_HTML)) {
@@ -137,7 +130,7 @@ async function buildHandler(
     )
   }
 
-  // Step 9: Binary build (optional)
+  // Step 10: Binary build (optional)
   if (binary) {
     console.log("🔧 Building binary distribution...")
     await buildBinaryDistribution(PATHS, config)
@@ -153,7 +146,7 @@ async function buildHandler(
   console.log("   dist/server/static/              - Server static files")
   console.log("   dist/client/                     - Frontend build")
   console.log(
-    "   src/server/static/client/        - Frontend assets (copied for dev server)",
+    "   src/server/static/               - Frontend assets (copied for dev server)",
   )
   if (binary) {
     console.log("")
@@ -241,7 +234,7 @@ if (process.env.WORKER_ID) {
   await unzip(assetsData, { outputDir: tempDir, overwrite: true })
 
   // Set static assets folder to the temp directory
-  process.env.STATIC_ASSETS_FOLDER = tempDir
+  process.env.STATIC_ASSETS_FOLDER = join(tempDir, "static")
 
   // Import and run the main server
   const { createApp } = await import("./index.js")

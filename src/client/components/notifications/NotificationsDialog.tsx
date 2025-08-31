@@ -140,6 +140,7 @@ export function NotificationsDialog({
   const {
     data: notificationsData,
     isLoading,
+    isFetching,
     isError,
     refetch,
   } = useQuery({
@@ -167,6 +168,12 @@ export function NotificationsDialog({
             ...prev,
             ...notificationsData.notifications,
           ])
+            // Sort by createdAt, newest first
+            .sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+            )
 
           // Update unread count in parent component
           if (onUnreadCountChange) {
@@ -183,6 +190,12 @@ export function NotificationsDialog({
             ...prev,
             ...notificationsData.notifications,
           ])
+            // Sort by createdAt, newest first
+            .sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+            )
           return merged
         })
       }
@@ -264,12 +277,16 @@ export function NotificationsDialog({
     }
   }, [notificationsData, allNotifications.length])
 
-  // Simple: just reset pagination when dialog opens
+  // Reset pagination and refetch when dialog opens
   useEffect(() => {
     if (open) {
       setPageParam({ startIndex: 0, perPage: 20 })
+      // Only refetch if not already fetching
+      if (!isFetching) {
+        refetch()
+      }
     }
-  }, [open])
+  }, [open, isFetching, refetch])
 
   const hasUnreadNotifications = useMemo(
     () => allNotifications.some((n) => !n.read),

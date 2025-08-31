@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs"
 import path from "node:path"
 import { cors } from "@elysiajs/cors"
 import { staticPlugin } from "@elysiajs/static"
@@ -151,50 +150,13 @@ export const createApp = async (
   app.use(
     staticPlugin({
       assets: staticDir,
-      prefix: "/assets",
-      noCache: serverConfig.NODE_ENV === "development",
+      prefix: "/",
+      indexHTML: true,
     }),
   )
 
-  // Serve index.html for SPA routes (catch-all for frontend routing)
-  app.get("/*", async ({ set }) => {
-    const staticClientDir = path.join(staticDir, "client")
-
-    // Read and serve index.html (config should be injected during build)
-    try {
-      const indexPath = path.join(staticClientDir, "index.html")
-      const indexHtml = readFileSync(indexPath, "utf8")
-
-      set.headers["Content-Type"] = "text/html"
-      return new Response(indexHtml)
-    } catch {
-      // If frontend hasn't been built yet, show development message
-      if (serverConfig.NODE_ENV === "development") {
-        set.headers["Content-Type"] = "text/html"
-        return new Response(`
-          <!DOCTYPE html>
-          <html>
-            <head><title>QuickDapp</title></head>
-            <body>
-              <div style="margin: 2rem; font-family: system-ui;">
-                <h1>QuickDapp Development Server</h1>
-                <p>The frontend hasn't been built yet. To start the frontend:</p>
-                <ol>
-                  <li>Run <code>cd src/client && bun run dev</code> in another terminal</li>
-                  <li>Or build the frontend with <code>bun run dev</code></li>
-                </ol>
-                <p>GraphQL endpoint: <a href="/graphql">/graphql</a></p>
-                <p>Health check: <a href="/health">/health</a></p>
-              </div>
-            </body>
-          </html>
-        `)
-      }
-
-      // Return 404 for unknown routes - this is semantically correct
-      set.status = 404
-      return { error: "Not found" }
-    }
+  app.head("/", () => {
+    return new Response(null, { status: 200 })
   })
 
   // Start the server
@@ -216,5 +178,3 @@ export const createApp = async (
 
   return { app, server, serverApp }
 }
-
-// This file is imported by src/server/index.ts for server functionality

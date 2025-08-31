@@ -30,6 +30,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
   const handleNotificationMessage = useCallback(
     (message: NotificationReceivedMessage) => {
+      console.debug(`Notification received`, message.data)
+
       const notification: NotificationFromSocket = {
         id: message.data.id,
         userId: message.data.userId,

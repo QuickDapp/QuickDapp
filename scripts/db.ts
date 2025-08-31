@@ -42,29 +42,6 @@ async function pushHandler(
   console.log("✅ Schema changes pushed successfully")
 }
 
-async function resetFiltersHandler(
-  _options: DbOptions,
-  _config: { rootFolder: string; env: string },
-) {
-  console.log("🗑️  Resetting blockchain filter state...")
-
-  // Direct database connection for simplicity
-  const { drizzle } = await import("drizzle-orm/postgres-js")
-  const postgres = await import("postgres")
-  const { serverConfig } = await import("../src/shared/config/server")
-  const { chainFilterState } = await import("../src/server/db/schema")
-
-  const sql = postgres.default(serverConfig.DATABASE_URL)
-  const db = drizzle(sql)
-
-  try {
-    await db.delete(chainFilterState)
-    console.log("✅ Blockchain filter state reset successfully")
-  } finally {
-    await sql.end()
-  }
-}
-
 // Define subcommands
 const subcommands: SubcommandConfig[] = [
   {
@@ -82,11 +59,6 @@ const subcommands: SubcommandConfig[] = [
     description: "Push schema changes to database",
     handler: pushHandler,
     options: (cmd) => cmd.option("-f, --force", "force the operation"),
-  },
-  {
-    name: "reset-filters",
-    description: "Reset blockchain filter state",
-    handler: resetFiltersHandler,
   },
 ]
 

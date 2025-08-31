@@ -37,7 +37,7 @@ cache
 generated/
 *.generated.*
 src/shared/abi/generated.ts
-src/server/static/
+src/server/static
 
 # Database files
 *.db
