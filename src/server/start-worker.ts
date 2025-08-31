@@ -4,14 +4,14 @@
  */
 
 import { createServerApp } from "./bootstrap"
-import { createLogger } from "./lib/logger"
+import { createWorkerLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
 import { WorkerIPCMessageType } from "./workers/ipc-types"
 import { WorkerSocketManager } from "./workers/socket-manager"
 import { runWorker } from "./workers/worker"
 
 export const startWorker = async () => {
-  const logger = createLogger("worker")
+  const logger = createWorkerLogger("worker")
 
   try {
     logger.info("Worker process starting")
@@ -39,6 +39,7 @@ export const startWorker = async () => {
       ...baseServerApp,
       app: null as any, // Workers don't need the Elysia app
       workerManager: null as any, // Workers don't need the worker manager
+      createLogger: createWorkerLogger, // Use worker-specific logger factory
     }
 
     // Set up graceful shutdown

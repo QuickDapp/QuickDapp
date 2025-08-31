@@ -5,8 +5,13 @@ import {
 } from "@shared/graphql/mutations"
 import { GET_MY_NOTIFICATIONS } from "@shared/graphql/queries"
 import type { NotificationData } from "@shared/notifications/types"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query"
+import { useCallback, useEffect, useMemo } from "react"
 import {
   type NotificationFromSocket,
   useNotifications,
@@ -76,59 +81,51 @@ interface NotificationsDialogProps {
   onUnreadCountChange?: (count: number) => void
 }
 
-// Utility function to remove duplicate notifications based on ID
-function deduplicateNotifications(
-  notifications: Notification[],
-): Notification[] {
-  const seen = new Set<number>()
-  return notifications.filter((notification) => {
-    if (seen.has(notification.id)) {
-      return false
-    }
-    seen.add(notification.id)
-    return true
-  })
-}
-
 export function NotificationsDialog({
   open,
   onOpenChange,
   onUnreadCountChange,
 }: NotificationsDialogProps) {
-  const [pageParam, setPageParam] = useState({
-    startIndex: 0,
-    perPage: 20,
-  })
-  const [allNotifications, setAllNotifications] = useState<Notification[]>([])
-
   const queryClient = useQueryClient()
 
-  // Memoized WebSocket notification handler
+  // Simplified WebSocket notification handler with optimistic updates
   const handleNotificationReceived = useCallback(
     (notification: NotificationFromSocket) => {
       if (open) {
-        // Add new notification to the beginning of the list and update unread count
-        setAllNotifications((prev) => {
-          // Check if notification already exists to prevent duplicates
-          if (prev.some((n) => n.id === notification.id)) {
-            return prev
-          }
+        // Optimistically add the new notification to the cache
+        const oldData = queryClient.getQueryData(["notifications"]) as
+          | InfiniteData<NotificationsResponse>
+          | undefined
 
-          const newNotifications = deduplicateNotifications([
-            notification,
-            ...prev,
-          ])
-
-          // Update unread count if the new notification is unread
-          if (!notification.read && onUnreadCountChange) {
-            const unreadCount = newNotifications.filter((n) => !n.read).length
-            onUnreadCountChange(unreadCount)
+        if (oldData && oldData.pages.length > 0) {
+          // Add notification to the first page (most recent)
+          const newData = {
+            ...oldData,
+            pages: [
+              {
+                ...oldData.pages[0]!,
+                notifications: [
+                  notification,
+                  ...oldData.pages[0]!.notifications,
+                ],
+                total: oldData.pages[0]!.total + 1,
+              },
+              ...oldData.pages.slice(1),
+            ],
           }
-          return newNotifications
+          queryClient.setQueryData(["notifications"], newData)
+        } else {
+          // If no data cached yet, just invalidate to fetch
+          queryClient.invalidateQueries({ queryKey: ["notifications"] })
+        }
+
+        // Always invalidate unread count
+        queryClient.invalidateQueries({
+          queryKey: ["unreadNotificationsCount"],
         })
       }
     },
-    [open, onUnreadCountChange],
+    [open, queryClient],
   )
 
   // Subscribe to real-time notifications when dialog is open
@@ -136,73 +133,68 @@ export function NotificationsDialog({
     onNotificationReceived: handleNotificationReceived,
   })
 
-  // Fetch notifications - simple query without complex caching logic
+  // Use infinite query for automatic pagination and caching
   const {
-    data: notificationsData,
+    data,
     isLoading,
     isFetching,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ["notifications", pageParam],
-    queryFn: async () => {
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["notifications"],
+    queryFn: async ({ pageParam = { startIndex: 0, perPage: 20 } }) => {
       const response = await getGraphQLClient().request<{
         getMyNotifications: NotificationsResponse
       }>(GET_MY_NOTIFICATIONS, { pageParam })
       return response.getMyNotifications
     },
+    initialPageParam: { startIndex: 0, perPage: 20 },
+    getNextPageParam: (lastPage, _, lastPageParam) => {
+      // If we've fetched all notifications, no more pages
+      if (lastPageParam.startIndex + lastPageParam.perPage >= lastPage.total) {
+        return undefined
+      }
+      return {
+        startIndex: lastPageParam.startIndex + lastPageParam.perPage,
+        perPage: lastPageParam.perPage,
+      }
+    },
     enabled: open,
-    // Disable caching to always get fresh data
-    refetchOnMount: "always",
-    staleTime: 0,
+    staleTime: 30000, // Cache for 30 seconds
   })
 
-  // Update notifications when data comes in with deduplication
+  // Flatten all notifications from all pages and deduplicate
+  const allNotifications = useMemo(() => {
+    if (!data?.pages) return []
+
+    const allNotifs = data.pages.flatMap((page) => page.notifications)
+
+    // Deduplicate based on ID and sort by creation date
+    const seen = new Set<number>()
+    return allNotifs
+      .filter((notification) => {
+        if (seen.has(notification.id)) return false
+        seen.add(notification.id)
+        return true
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+  }, [data])
+
+  // Update unread count when notifications change
   useEffect(() => {
-    if (notificationsData) {
-      if (pageParam.startIndex === 0) {
-        // First page - merge with existing real-time notifications from WebSocket
-        setAllNotifications((prev) => {
-          // Merge and deduplicate: keep WebSocket notifications that aren't in the fetched data
-          const merged = deduplicateNotifications([
-            ...prev,
-            ...notificationsData.notifications,
-          ])
-            // Sort by createdAt, newest first
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime(),
-            )
-
-          // Update unread count in parent component
-          if (onUnreadCountChange) {
-            const unreadCount = merged.filter((n) => !n.read).length
-            onUnreadCountChange(unreadCount)
-          }
-
-          return merged
-        })
-      } else {
-        // Additional pages - append to existing notifications with deduplication
-        setAllNotifications((prev) => {
-          const merged = deduplicateNotifications([
-            ...prev,
-            ...notificationsData.notifications,
-          ])
-            // Sort by createdAt, newest first
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime(),
-            )
-          return merged
-        })
-      }
+    if (onUnreadCountChange && allNotifications.length > 0) {
+      const unreadCount = allNotifications.filter((n) => !n.read).length
+      onUnreadCountChange(unreadCount)
     }
-  }, [notificationsData, pageParam.startIndex, onUnreadCountChange])
+  }, [allNotifications, onUnreadCountChange])
 
-  // Mark notification as read mutation - just update local state, no complex invalidation
+  // Mark notification as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await getGraphQLClient().request<{
@@ -210,8 +202,34 @@ export function NotificationsDialog({
       }>(MARK_NOTIFICATION_AS_READ, { id })
       return response.markNotificationAsRead
     },
+    onMutate: async (id) => {
+      // Optimistically update the infinite query data
+      const oldData = queryClient.getQueryData(["notifications"]) as
+        | InfiniteData<NotificationsResponse>
+        | undefined
+
+      if (oldData) {
+        const newData = {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            notifications: page.notifications.map((n) =>
+              n.id === id ? { ...n, read: true } : n,
+            ),
+          })),
+        }
+        queryClient.setQueryData(["notifications"], newData)
+      }
+
+      return { oldData }
+    },
+    onError: (_, __, context) => {
+      // Rollback on error
+      if (context?.oldData) {
+        queryClient.setQueryData(["notifications"], context.oldData)
+      }
+    },
     onSuccess: () => {
-      // Simple: just invalidate unread count, local state already updated
       queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] })
     },
   })
@@ -224,41 +242,48 @@ export function NotificationsDialog({
       }>(MARK_ALL_NOTIFICATIONS_AS_READ)
       return response.markAllNotificationsAsRead
     },
+    onMutate: async () => {
+      // Optimistically update all notifications to read
+      const oldData = queryClient.getQueryData(["notifications"]) as
+        | InfiniteData<NotificationsResponse>
+        | undefined
+
+      if (oldData) {
+        const newData = {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            notifications: page.notifications.map((n) => ({
+              ...n,
+              read: true,
+            })),
+          })),
+        }
+        queryClient.setQueryData(["notifications"], newData)
+      }
+
+      return { oldData }
+    },
+    onError: (_, __, context) => {
+      // Rollback on error
+      if (context?.oldData) {
+        queryClient.setQueryData(["notifications"], context.oldData)
+      }
+    },
     onSuccess: () => {
-      // Update local state to mark all as read
-      setAllNotifications((prev) =>
-        prev.map((notification) => ({ ...notification, read: true })),
-      )
       // Update unread count in parent component
       if (onUnreadCountChange) {
         onUnreadCountChange(0)
       }
-      // Just invalidate unread count
       queryClient.invalidateQueries({ queryKey: ["unreadNotificationsCount"] })
     },
   })
 
   const handleMarkAsRead = useCallback(
     (id: number) => {
-      // Optimistically update local state
-      setAllNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id === id
-            ? { ...notification, read: true }
-            : notification,
-        ),
-      )
       markAsReadMutation.mutate(id)
-
-      // Update unread count in parent component
-      if (onUnreadCountChange) {
-        const updatedUnreadCount = allNotifications.filter(
-          (n) => !n.read && n.id !== id,
-        ).length
-        onUnreadCountChange(updatedUnreadCount)
-      }
     },
-    [markAsReadMutation, onUnreadCountChange, allNotifications],
+    [markAsReadMutation],
   )
 
   const handleMarkAllAsRead = useCallback(() => {
@@ -266,37 +291,21 @@ export function NotificationsDialog({
   }, [markAllAsReadMutation])
 
   const loadMore = useCallback(() => {
-    if (
-      notificationsData &&
-      allNotifications.length < notificationsData.total
-    ) {
-      setPageParam((prev) => ({
-        ...prev,
-        startIndex: allNotifications.length,
-      }))
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
     }
-  }, [notificationsData, allNotifications.length])
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // Reset pagination and refetch when dialog opens
+  // Refetch when dialog opens
   useEffect(() => {
-    if (open) {
-      setPageParam({ startIndex: 0, perPage: 20 })
-      // Only refetch if not already fetching
-      if (!isFetching) {
-        refetch()
-      }
+    if (open && !isFetching) {
+      refetch()
     }
   }, [open, isFetching, refetch])
 
   const hasUnreadNotifications = useMemo(
     () => allNotifications.some((n) => !n.read),
     [allNotifications],
-  )
-
-  const canLoadMore = useMemo(
-    () =>
-      notificationsData && allNotifications.length < notificationsData.total,
-    [notificationsData, allNotifications.length],
   )
 
   // Memoized notification items to prevent re-rendering
@@ -319,9 +328,9 @@ export function NotificationsDialog({
         <DialogHeader>
           <DialogTitle>Notifications</DialogTitle>
           <DialogDescription>
-            {notificationsData?.total
-              ? `${notificationsData.total} notification${
-                  notificationsData.total === 1 ? "" : "s"
+            {data?.pages?.[0]?.total
+              ? `${data.pages[0].total} notification${
+                  data.pages[0].total === 1 ? "" : "s"
                 }`
               : "Your notifications will appear here"}
           </DialogDescription>
@@ -347,8 +356,11 @@ export function NotificationsDialog({
             <div className="space-y-2">
               {notificationItems}
 
-              {canLoadMore && (
-                <LoadMoreTrigger onLoadMore={loadMore} isLoading={isLoading} />
+              {hasNextPage && (
+                <LoadMoreTrigger
+                  onLoadMore={loadMore}
+                  isLoading={isFetchingNextPage}
+                />
               )}
             </div>
           )}

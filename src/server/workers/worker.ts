@@ -1,3 +1,4 @@
+import { ONE_MINUTE, ONE_SECOND } from "../../shared/constants"
 import type { WebSocketMessage } from "../../shared/websocket/types"
 import {
   getNextPendingJob,
@@ -15,9 +16,6 @@ import { WorkerIPCMessageType } from "./ipc-types"
 import { jobRegistry } from "./jobs/registry"
 import type { JobParams } from "./jobs/types"
 import { isValidJobType } from "./jobs/types"
-
-const ONE_SECOND = 1000
-const ONE_MINUTE = 60 * ONE_SECOND
 
 const setupDefaultJobs = async (serverApp: ServerApp) => {
   const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER)

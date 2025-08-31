@@ -209,27 +209,27 @@ export class ContractWriterInstance implements ContractWriter {
 
       logger.info(`🔗 Transaction submitted: ${this.txHash}`)
 
-      // Log explorer link based on chain
-      const chainId = await this.publicClient.getChainId()
-      let explorerUrl = ""
-      switch (chainId) {
-        case 1: // Mainnet
-          explorerUrl = `https://etherscan.io/tx/${this.txHash}`
-          break
-        case 11155111: // Sepolia
-          explorerUrl = `https://sepolia.etherscan.io/tx/${this.txHash}`
-          break
-        case 8453: // Base
-          explorerUrl = `https://basescan.org/tx/${this.txHash}`
-          break
-        case 31337: // Anvil/Local
-          explorerUrl = `Local anvil tx: ${this.txHash}`
-          break
-        default:
-          explorerUrl = `Chain ${chainId} tx: ${this.txHash}`
-      }
+      // // Log explorer link based on chain
+      // const chainId = await this.publicClient.getChainId()
+      // let explorerUrl = ""
+      // switch (chainId) {
+      //   case 1: // Mainnet
+      //     explorerUrl = `https://etherscan.io/tx/${this.txHash}`
+      //     break
+      //   case 11155111: // Sepolia
+      //     explorerUrl = `https://sepolia.etherscan.io/tx/${this.txHash}`
+      //     break
+      //   case 8453: // Base
+      //     explorerUrl = `https://basescan.org/tx/${this.txHash}`
+      //     break
+      //   case 31337: // Anvil/Local
+      //     explorerUrl = `Local anvil tx: ${this.txHash}`
+      //     break
+      //   default:
+      //     explorerUrl = `Chain ${chainId} tx: ${this.txHash}`
+      // }
 
-      logger.info(`🔍 ${explorerUrl}`)
+      // logger.info(`🔍 ${explorerUrl}`)
 
       // Notify caller of transaction submission
       if (execArgs.onTransactionSubmitted) {
@@ -258,14 +258,6 @@ export class ContractWriterInstance implements ContractWriter {
       logger.info(
         `🎉 Transaction confirmed in block: ${this.receipt.blockNumber}`,
       )
-      logger.info(`⛽ Gas used: ${this.receipt.gasUsed}`)
-      logger.info(`💵 Gas price: ${this.receipt.effectiveGasPrice} wei`)
-      logger.info(`🔗 Transaction hash: ${this.txHash}`)
-
-      // Log contract events if any
-      if (this.receipt.logs && this.receipt.logs.length > 0) {
-        logger.info(`📋 Transaction emitted ${this.receipt.logs.length} events`)
-      }
 
       // Notify caller of transaction confirmation
       if (execArgs.onTransactionConfirmed) {

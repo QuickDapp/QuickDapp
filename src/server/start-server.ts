@@ -150,8 +150,10 @@ export const createApp = async (
   app.use(
     staticPlugin({
       assets: staticDir,
-      prefix: "/",
+      prefix: "",
       indexHTML: true,
+      alwaysStatic: true,
+      noCache: true,
     }),
   )
 

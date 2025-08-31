@@ -9,10 +9,9 @@ import {
   notInArray,
   or,
 } from "drizzle-orm"
+import { ONE_HOUR, THIRTY_MINUTES } from "../../shared/constants"
 import type { ServerApp } from "../types"
 import { type NewWorkerJob, type WorkerJob, workerJobs } from "./schema"
-
-const ONE_HOUR = 60 * 60 * 1000
 
 export interface WorkerJobConfig<T = unknown> {
   type: string
@@ -32,7 +31,7 @@ const pendingJobsFilter = (extraCriteria: any = {}) => {
     isNull(workerJobs.finished),
     or(
       isNull(workerJobs.started),
-      lte(workerJobs.started, dateFrom(Date.now() - ONE_HOUR)),
+      lte(workerJobs.started, dateFrom(Date.now() - THIRTY_MINUTES)),
     ),
   )
 
@@ -66,7 +65,7 @@ const generateJobDates = (due?: Date, removeDelay?: number) => {
 
   return {
     due,
-    removeAt: dateFrom(due.getTime() + (removeDelay || 0)),
+    removeAt: dateFrom(due.getTime() + (removeDelay ?? ONE_HOUR)),
   }
 }
 
@@ -86,7 +85,7 @@ export const scheduleJob = async <T = unknown>(
     data: sanitizeJobData(job.data),
     autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
     autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
-    removeDelay: job.removeDelay || 0,
+    removeDelay: job.removeDelay,
     persistent: !!job.persistent,
   } satisfies NewWorkerJob
 
@@ -122,7 +121,7 @@ export const scheduleCronJob = async <T = unknown>(
     cronSchedule,
     autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
     autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
-    removeDelay: job.removeDelay || 0,
+    removeDelay: job.removeDelay,
     persistent: !!job.persistent,
   } satisfies NewWorkerJob
 
@@ -323,7 +322,7 @@ export const removeOldJobs = async (
   const conditions = [
     lte(workerJobs.removeAt, new Date()),
     isNotNull(workerJobs.started),
-    eq(workerJobs.persistent, false), // Only remove non-persistent jobs
+    eq(workerJobs.persistent, false),
   ]
 
   if (exclude && exclude.length > 0) {

@@ -217,8 +217,8 @@ import { unzip } from "@hiddentao/zip-json"
 // Embedded environment configuration
 const EMBEDDED_ENV = ${JSON.stringify(config.parsedEnv, null, 2)}
 
-// Always apply embedded environment configuration
-Object.assign(process.env, EMBEDDED_ENV)
+// environment configuration
+process.env = Object.assign(EMBEDDED_ENV, process.env)
 
 // Check if this is a worker process
 if (process.env.WORKER_ID) {

@@ -112,7 +112,6 @@ export const run: JobRunner = async (params: JobParams) => {
       // Recreate filters to handle this
       filterLog.info("Recreating filters due to error...")
       filtersCreated = false // Force recreation on next run
-      await recreateFilters(params)
     }
   }
 }
