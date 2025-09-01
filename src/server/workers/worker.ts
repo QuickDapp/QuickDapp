@@ -10,7 +10,6 @@ import {
   rescheduleFailedJob,
   scheduleCronJob,
 } from "../db/worker"
-import { LOG_CATEGORIES } from "../lib/errors"
 import type { ServerApp } from "../types"
 import { WorkerIPCMessageType } from "./ipc-types"
 import { jobRegistry } from "./jobs/registry"
@@ -18,7 +17,7 @@ import type { JobParams } from "./jobs/types"
 import { isValidJobType } from "./jobs/types"
 
 const setupDefaultJobs = async (serverApp: ServerApp) => {
-  const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER)
+  const logger = serverApp.rootLogger
 
   logger.debug("Setting up default jobs")
 
@@ -82,7 +81,7 @@ const dateBefore = (date: Date, now: number): boolean => {
 }
 
 export const runWorker = async (serverApp: ServerApp) => {
-  const logger = serverApp.createLogger(LOG_CATEGORIES.WORKER)
+  const logger = serverApp.rootLogger
 
   logger.info("Starting worker process")
 

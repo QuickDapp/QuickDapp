@@ -1,10 +1,11 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { serverConfig } from "../../shared/config/server"
-import { createLogger } from "../lib/logger"
+import { createDummyLogger, type Logger } from "../lib/logger"
 import * as schema from "./schema"
 
-const logger = createLogger("db-manager")
+// Global logger state - starts as dummy, gets set by bootstrap
+let logger: Logger = createDummyLogger()
 
 // Global connection state to prevent multiple connections
 let globalDb: PostgresJsDatabase<typeof schema> | null = null
@@ -27,6 +28,10 @@ class DatabaseConnectionManager {
       DatabaseConnectionManager.instance = new DatabaseConnectionManager()
     }
     return DatabaseConnectionManager.instance
+  }
+
+  setLogger(newLogger: Logger): void {
+    logger = newLogger
   }
 
   async connect(options?: {

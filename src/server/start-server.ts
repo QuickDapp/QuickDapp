@@ -6,7 +6,7 @@ import { Elysia } from "elysia"
 import { createServerApp } from "./bootstrap"
 import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
-import { createLogger } from "./lib/logger"
+import { createRootLogger } from "./lib/logger"
 import type { ServerApp } from "./types"
 import { createWebSocket, SocketManager } from "./ws"
 
@@ -16,8 +16,8 @@ export const createApp = async (
 ) => {
   const startTime = performance.now()
 
-  // Create logger instance
-  const logger = createLogger("server")
+  // Create root logger instance
+  const logger = createRootLogger("server")
 
   // Handle graceful shutdown
   const handleShutdown = async () => {
@@ -59,6 +59,7 @@ export const createApp = async (
     includeWorkerManager: true,
     workerCountOverride: options.workerCountOverride,
     socketManager,
+    rootLogger: logger,
   })
 
   // Create base Elysia app

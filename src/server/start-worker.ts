@@ -3,15 +3,20 @@
  * This file is imported by src/server/index.ts when running in worker mode
  */
 
+import { serverConfig } from "../shared/config/server"
 import { createServerApp } from "./bootstrap"
-import { createWorkerLogger } from "./lib/logger"
+import { createRootLogger, getLogLevel } from "./lib/logger"
 import type { ServerApp } from "./types"
 import { WorkerIPCMessageType } from "./workers/ipc-types"
 import { WorkerSocketManager } from "./workers/socket-manager"
 import { runWorker } from "./workers/worker"
 
 export const startWorker = async () => {
-  const logger = createWorkerLogger("worker")
+  // Create worker root logger instance
+  const logger = createRootLogger(
+    `worker-${process.env.WORKER_ID}`,
+    getLogLevel(serverConfig.WORKER_LOG_LEVEL),
+  )
 
   try {
     logger.info("Worker process starting")
@@ -32,6 +37,7 @@ export const startWorker = async () => {
     const baseServerApp = await createServerApp({
       includeWorkerManager: false,
       socketManager,
+      rootLogger: logger,
     })
     logger.debug("Worker database connection created successfully")
 
@@ -39,7 +45,6 @@ export const startWorker = async () => {
       ...baseServerApp,
       app: null as any, // Workers don't need the Elysia app
       workerManager: null as any, // Workers don't need the worker manager
-      createLogger: createWorkerLogger, // Use worker-specific logger factory
     }
 
     // Set up graceful shutdown

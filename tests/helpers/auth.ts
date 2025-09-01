@@ -15,7 +15,6 @@ import {
 } from "viem/accounts"
 import { AuthService } from "../../src/server/auth"
 import { createUserIfNotExists } from "../../src/server/db/users"
-import { createRootLogger } from "../../src/server/lib/logger"
 import type { ServerApp } from "../../src/server/types"
 import { serverConfig } from "../../src/shared/config/server"
 import type { NotificationData } from "../../src/shared/notifications/types"
@@ -286,12 +285,11 @@ export async function createSimpleAuthenticatedTestUser(): Promise<{
  * Create a mock ServerApp for testing auth functions
  */
 function createMockServerApp(): ServerApp {
-  const rootLogger = createRootLogger()
   return {
     app: {} as any,
     db: {} as any,
-    rootLogger,
-    createLogger: (category: string) => rootLogger.child(category),
+    rootLogger: testLogger,
+    createLogger: (category: string) => testLogger.child(category),
     workerManager: {} as any,
     socketManager: {} as any,
     publicClient: {} as any,

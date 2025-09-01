@@ -3,8 +3,8 @@ import os from "node:os"
 import path from "node:path"
 import { serverConfig } from "../../shared/config/server"
 import { scheduleJob } from "../db/worker"
-import { LOG_CATEGORIES } from "../lib/errors"
 import type { Logger } from "../lib/logger"
+import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
 import {
   type BroadcastMessage,

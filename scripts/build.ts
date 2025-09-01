@@ -15,6 +15,7 @@ import {
 interface BuildOptions extends ScriptOptions {
   clean?: boolean
   binary?: boolean
+  bundle?: boolean
 }
 
 async function buildHandler(
@@ -25,7 +26,10 @@ async function buildHandler(
     parsedEnv: Record<string, string>
   },
 ) {
-  const { clean = true, binary = false } = options
+  const { clean = true, binary = false, bundle = false } = options
+
+  // Binary builds require bundling
+  const shouldBundle = bundle || binary
 
   // Define build paths
   const PATHS = {
@@ -80,26 +84,38 @@ async function buildHandler(
   await $`bun vite build`.cwd(PATHS.SRC_CLIENT)
   console.log("✅ Frontend built to dist/client")
 
-  // Step 5: Copy static-src to server static directory first
-  copyStaticSrc(config.rootFolder, true)
+  // Step 5: Copy static-src to server static directory first (if bundling)
+  if (shouldBundle) {
+    copyStaticSrc(config.rootFolder, true)
 
-  // Step 6: Copy frontend build to server static directory (overwrites static-src files as needed)
-  console.log("📁 Copying frontend to server static directory...")
-  cpSync(PATHS.DIST_CLIENT, PATHS.SERVER_STATIC, {
-    recursive: true,
-    force: true,
-  })
-  console.log("✅ Frontend copied to server static directory")
+    // Step 6: Copy frontend build to server static directory (overwrites static-src files as needed)
+    console.log("📁 Copying frontend to server static directory...")
+    cpSync(PATHS.DIST_CLIENT, PATHS.SERVER_STATIC, {
+      recursive: true,
+      force: true,
+    })
+    console.log("✅ Frontend copied to server static directory")
+  } else {
+    console.log(
+      "⏭️  Skipping frontend copy to server static directory (use --bundle to enable)",
+    )
+  }
 
   // Step 7: Build server bundle
   console.log("📦 Building server bundle...")
   await $`bun build ${PATHS.SERVER_INDEX} --outdir ${PATHS.DIST_SERVER} --target bun --minify --sourcemap`
   console.log("✅ Server built to dist/server")
 
-  // Step 8: Copy server static directory to dist/server
-  console.log("📁 Copying server static directory to dist/server...")
-  cpSync(PATHS.SERVER_STATIC, PATHS.DIST_SERVER_STATIC, { recursive: true })
-  console.log("✅ Server static directory copied to dist/server")
+  // Step 8: Copy server static directory to dist/server (if bundling)
+  if (shouldBundle) {
+    console.log("📁 Copying server static directory to dist/server...")
+    cpSync(PATHS.SERVER_STATIC, PATHS.DIST_SERVER_STATIC, { recursive: true })
+    console.log("✅ Server static directory copied to dist/server")
+  } else {
+    console.log(
+      "⏭️  Skipping server static directory copy to dist/server (use --bundle to enable)",
+    )
+  }
 
   // Step 9: Validation
   console.log("🔍 Validating build...")
@@ -113,21 +129,27 @@ async function buildHandler(
     throw new Error("Build failed - frontend index.html not found")
   }
 
-  const SERVER_STATIC_INDEX_HTML = path.join(PATHS.SERVER_STATIC, "index.html")
-  if (!existsSync(SERVER_STATIC_INDEX_HTML)) {
-    throw new Error(
-      "Build failed - frontend not copied to server static directory",
+  // Only validate bundled files if bundling is enabled
+  if (shouldBundle) {
+    const SERVER_STATIC_INDEX_HTML = path.join(
+      PATHS.SERVER_STATIC,
+      "index.html",
     )
-  }
+    if (!existsSync(SERVER_STATIC_INDEX_HTML)) {
+      throw new Error(
+        "Build failed - frontend not copied to server static directory",
+      )
+    }
 
-  const DIST_SERVER_STATIC_INDEX_HTML = path.join(
-    PATHS.DIST_SERVER_STATIC,
-    "index.html",
-  )
-  if (!existsSync(DIST_SERVER_STATIC_INDEX_HTML)) {
-    throw new Error(
-      "Build failed - server static directory not copied to dist/server",
+    const DIST_SERVER_STATIC_INDEX_HTML = path.join(
+      PATHS.DIST_SERVER_STATIC,
+      "index.html",
     )
+    if (!existsSync(DIST_SERVER_STATIC_INDEX_HTML)) {
+      throw new Error(
+        "Build failed - server static directory not copied to dist/server",
+      )
+    }
   }
 
   // Step 10: Binary build (optional)
@@ -143,11 +165,23 @@ async function buildHandler(
   console.log("📄 Build artifacts:")
   console.log("   dist/server/index.js             - Server bundle")
   console.log("   dist/server/index.js.map         - Server source map")
-  console.log("   dist/server/static/              - Server static files")
   console.log("   dist/client/                     - Frontend build")
-  console.log(
-    "   src/server/static/               - Frontend assets (copied for dev server)",
-  )
+
+  if (shouldBundle) {
+    console.log(
+      "   dist/server/static/              - Server static files (bundled)",
+    )
+    console.log(
+      "   src/server/static/               - Frontend assets (copied for dev server)",
+    )
+  } else {
+    console.log(
+      "   dist/server/static/              - Not created (use --bundle)",
+    )
+    console.log(
+      "   src/server/static/               - Not created (use --bundle)",
+    )
+  }
   if (binary) {
     console.log("")
     console.log("📦 Binary distribution:")
@@ -273,6 +307,10 @@ const setupBuildCommand: CommandSetup = (program) => {
     .option("--clean", "clean dist directory before build (default: true)")
     .option("--no-clean", "skip cleaning dist directory")
     .option("--binary", "create binary distribution with embedded assets")
+    .option(
+      "--bundle",
+      "copy client dist to server static folder for bundled deployment",
+    )
 }
 
 // Create script runner

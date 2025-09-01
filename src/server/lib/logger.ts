@@ -7,7 +7,7 @@ export type { Logger } from "@hiddentao/logger"
 export { LogLevel } from "@hiddentao/logger"
 
 // Map our string log levels to LogLevel enum
-const getLogLevel = (level: string): LogLevel => {
+export const getLogLevel = (level: string): LogLevel => {
   switch (level.toLowerCase()) {
     case "trace":
     case "debug":
@@ -25,10 +25,12 @@ const getLogLevel = (level: string): LogLevel => {
 
 // Create logger factory function
 export const createRootLogger = (
+  category: string,
   minLevel: LogLevel = getLogLevel(serverConfig.LOG_LEVEL),
 ) => {
   const logger = new Logger({
     minLevel,
+    category,
   })
 
   // Add console transport with timestamps
@@ -37,21 +39,38 @@ export const createRootLogger = (
   return logger
 }
 
-// Create a worker-specific root logger
-export const createWorkerRootLogger = () => {
-  return createRootLogger(getLogLevel(serverConfig.WORKER_LOG_LEVEL))
+// Create a dummy/no-op logger for use as a placeholder
+export const createDummyLogger = (): Logger => {
+  const noop = () => {
+    // Intentionally empty no-op function
+  }
+  return {
+    trace: noop,
+    debug: noop,
+    info: noop,
+    warn: noop,
+    error: noop,
+    fatal: noop,
+    child: () => createDummyLogger(),
+    // Add missing properties to satisfy Logger interface
+    options: {},
+    transports: [],
+    addTransport: noop,
+    log: noop,
+    shouldSkipLevel: () => false,
+  } as unknown as Logger
 }
 
-// Create the root logger instance
-export const logger = createRootLogger()
+/**
+ * Log categories for consistent logging throughout the application
+ */
+export const LOG_CATEGORIES = {
+  AUTH: "auth",
+  GRAPHQL: "graphql",
+  GRAPHQL_RESOLVERS: "graphql-resolvers",
+  DATABASE: "database",
+  WORKER_MANAGER: "worker-manager",
+  WORKER: "worker",
+} as const
 
-// Create loggers with categories
-export const createLogger = (category: string) => {
-  return logger.child(category)
-}
-
-// Create worker-specific loggers with categories
-export const createWorkerLogger = (category: string) => {
-  const workerLogger = createWorkerRootLogger()
-  return workerLogger.child(category)
-}
+export type LogCategory = (typeof LOG_CATEGORIES)[keyof typeof LOG_CATEGORIES]

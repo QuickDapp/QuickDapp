@@ -7,7 +7,7 @@ import { privateKeyToAccount } from "viem/accounts"
 import { dbManager } from "./db/connection"
 import { notifications } from "./db/schema"
 import { getChain } from "./lib/chains"
-import { createLogger } from "./lib/logger"
+import type { Logger } from "./lib/logger"
 import type { ServerApp } from "./types"
 import { createWorkerManager } from "./workers"
 
@@ -61,6 +61,7 @@ export const createServerApp = async (options: {
   includeWorkerManager?: boolean
   workerCountOverride?: number
   socketManager: ISocketManager
+  rootLogger: Logger
 }): Promise<
   Omit<ServerApp, "app" | "workerManager"> & {
     workerManager?: ServerApp["workerManager"]
@@ -70,10 +71,11 @@ export const createServerApp = async (options: {
     includeWorkerManager = false,
     workerCountOverride,
     socketManager,
+    rootLogger,
   } = options
 
-  // Create logger
-  const rootLogger = createLogger("server")
+  // Set logger for database manager before connecting
+  dbManager.setLogger(rootLogger.child("db-manager"))
 
   // Connect to database using centralized connection manager
   const db = await dbManager.connect({
@@ -107,7 +109,7 @@ export const createServerApp = async (options: {
   const baseServerApp = {
     db,
     rootLogger,
-    createLogger,
+    createLogger: (category: string) => rootLogger.child(category),
     publicClient,
     walletClient,
     socketManager,

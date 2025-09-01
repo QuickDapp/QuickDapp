@@ -11,7 +11,8 @@ import {
 } from "../db/notifications"
 import { createUserIfNotExists } from "../db/users"
 import { getChainId } from "../lib/chains"
-import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
+import { GraphQLErrorCode } from "../lib/errors"
+import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
 
 export interface GraphQLContext {

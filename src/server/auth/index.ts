@@ -3,8 +3,9 @@ import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
 import { serverConfig } from "../../shared/config/server"
 import { getUser } from "../db/users"
-import { GraphQLErrorCode, LOG_CATEGORIES } from "../lib/errors"
+import { GraphQLErrorCode } from "../lib/errors"
 import type { Logger } from "../lib/logger"
+import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
 
 // Get JWT secret dynamically to ensure it uses current environment
