@@ -242,7 +242,6 @@ async function buildBinaryDistribution(
   // Create binary entry point with embedded environment
   const binaryCode = `#!/usr/bin/env bun
 
-import { readFileSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
 import { mkdtemp } from "fs/promises"
@@ -259,13 +258,11 @@ if (process.env.WORKER_ID) {
   // Worker process - just import and let index.js handle worker startup
   await import("./index.js")
 } else {
-  // Main process - extract assets and start server
+  // Load embedded assets (bundled via require) and extract to temp directory
   const tempDir = await mkdtemp(join(tmpdir(), "quickdapp-binary-"))
-  console.log(\`📁 Static assets extracted to: \${tempDir}\`)
-
-  // Load embedded assets and extract to temp directory
-  const assetsData = JSON.parse(readFileSync(join(__dirname, "binary-assets.json"), "utf-8"))
+  const assetsData = require("./binary-assets.json")
   await unzip(assetsData, { outputDir: tempDir, overwrite: true })
+  console.log(\`📁 Static assets extracted to: \${tempDir}\`)
 
   // Set static assets folder to the temp directory
   process.env.STATIC_ASSETS_FOLDER = join(tempDir, "static")
