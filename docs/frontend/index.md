@@ -154,7 +154,6 @@ src/client/
 * [Global](./global.md) - Global state management and context
 * [GraphQL](./graphql.md) - GraphQL client integration
 * [Web3](./web3.md) - Blockchain interactions and wallet integration
-* [Cookies](./cookies.md) - Client-side data persistence
 
 ## Quick Examples
 

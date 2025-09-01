@@ -40,7 +40,18 @@ This creates:
 * Optimized frontend bundle in `dist/client/`
 * Server build with embedded static assets
 * ABI files and contract artifacts
-* Self-contained binary executable
+* Self-contained binary executables (built automatically)
+
+#### `bun run prod`
+Runs the built application in production mode:
+
+```shell
+bun run prod
+
+# Or run specific components
+bun run prod server  # Server only
+bun run prod client  # Client preview only
+```
 
 
 ### Testing Commands
@@ -186,6 +197,7 @@ rm .env.test.local
 |---------|-------------|-------------|
 | `bun run dev` | Development server | Development |
 | `bun run build` | Production build | Any |
+| `bun run prod` | Production server | Production |
 | `bun run test` | Test runner | Test |
 | `bun run lint` | Type check + lint | Any |
 | `bun run lint:fix` | Fix linting issues | Any |
@@ -227,7 +239,8 @@ Common error scenarios:
 ## Documentation Sections
 
 * [Dev](./dev.md) - Development server configuration and usage  
-* [Build](./build.md) - Production build and deployment workflows
+* [Build](./build.md) - Production build and binary creation
+* [Prod](./prod.md) - Production server and client preview
 * [Database](./db.md) - Database management commands and migration tools
 * [Test](./test.md) - Test runner with isolation and debugging features
 

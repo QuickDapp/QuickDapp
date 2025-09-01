@@ -1,6 +1,6 @@
-# Prod
+# Build
 
-The production command builds and runs QuickDapp in production mode, optimized for performance, security, and reliability. This command is used for both local production testing and actual production deployment.
+The build command compiles QuickDapp for production, creating optimized bundles and self-contained binary executables. This command prepares your application for deployment across different environments.
 
 ## Production Build Process
 
@@ -16,7 +16,7 @@ The build process:
 * Compiles TypeScript to JavaScript
 * Optimizes and bundles frontend assets with Vite
 * Generates production-ready server code
-* Creates self-contained binary executables
+* Creates self-contained binary executables (always enabled)
 * Bundles static assets into the server
 * Optimizes for production performance
 
@@ -39,36 +39,37 @@ dist/
     └── quickdapp-windows-x64.exe
 ```
 
-## Running Production Server
+## Running Production Build
 
-### Standard Production Run
+### Using the Production Command
 
-Start the production server:
+After building, run the production server:
 
 ```shell
 bun run prod
 ```
 
 This command:
-* Serves both API and frontend from a single server
+* Runs the built server and client preview
 * Uses optimized production builds
 * Enables production logging levels
-* Starts with configured worker processes
 * Serves static assets efficiently
 
-### Client-Only Preview
+For more details, see [Production Command Documentation](./prod.md).
 
-Preview just the frontend build:
+### Using Binary Executables
+
+Run the self-contained binary directly:
 
 ```shell
-bun run prod client
+# Linux/macOS
+./dist/binaries/quickdapp-linux-x64
+
+# Windows
+dist\binaries\quickdapp-windows-x64.exe
 ```
 
-Useful for:
-* Testing frontend builds independently
-* Serving frontend from CDN
-* Debugging build issues
-* Preview mode for static deployments
+Binaries include all dependencies and assets for standalone deployment.
 
 ## Production Configuration
 

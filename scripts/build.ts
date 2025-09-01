@@ -14,7 +14,6 @@ import {
 
 interface BuildOptions extends ScriptOptions {
   clean?: boolean
-  binary?: boolean
   bundle?: boolean
 }
 
@@ -26,8 +25,10 @@ async function buildHandler(
     parsedEnv: Record<string, string>
   },
 ) {
-  const { clean = true, binary = false, bundle = false } = options
+  const { clean = true, bundle = false } = options
 
+  // Always build binaries (default behavior)
+  const binary = true
   // Binary builds require bundling
   const shouldBundle = bundle || binary
 
@@ -152,12 +153,10 @@ async function buildHandler(
     }
   }
 
-  // Step 10: Binary build (optional)
-  if (binary) {
-    console.log("🔧 Building binary distribution...")
-    await buildBinaryDistribution(PATHS, config)
-    console.log("✅ Binary distribution built")
-  }
+  // Step 10: Binary build (always enabled)
+  console.log("🔧 Building binary distribution...")
+  await buildBinaryDistribution(PATHS, config)
+  console.log("✅ Binary distribution built")
 
   console.log("")
   console.log("🎉 Build completed successfully!")
@@ -182,21 +181,16 @@ async function buildHandler(
       "   src/server/static/               - Not created (use --bundle)",
     )
   }
-  if (binary) {
-    console.log("")
-    console.log("📦 Binary distribution:")
-    console.log("   dist/server/binary.js            - Binary entry point")
-    console.log("   dist/server/binary-assets.json   - Embedded assets")
-    console.log("   dist/binaries/                   - Platform binaries")
-  }
+  console.log("")
+  console.log("📦 Binary distribution:")
+  console.log("   dist/server/binary.js            - Binary entry point")
+  console.log("   dist/server/binary-assets.json   - Embedded assets")
+  console.log("   dist/binaries/                   - Platform binaries")
   console.log("")
   console.log("🚀 To run production server:")
-  if (binary) {
-    console.log("   ./dist/binaries/quickdapp-<platform>")
-    console.log("   or cd dist/server && bun binary.js")
-  } else {
-    console.log("   cd dist/server && bun index.js")
-  }
+  console.log("   ./dist/binaries/quickdapp-<platform>")
+  console.log("   or bun run prod")
+  console.log("   or cd dist/server && bun binary.js")
   console.log("")
 }
 
@@ -303,7 +297,6 @@ const setupBuildCommand: CommandSetup = (program) => {
   return program
     .option("--clean", "clean dist directory before build (default: true)")
     .option("--no-clean", "skip cleaning dist directory")
-    .option("--binary", "create binary distribution with embedded assets")
     .option(
       "--bundle",
       "copy client dist to server static folder for bundled deployment",

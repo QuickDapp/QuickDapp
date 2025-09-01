@@ -1,4 +1,4 @@
-# Test Command
+# Test
 
 The test command provides a comprehensive test runner for QuickDapp's integration test suite. It handles database setup, server lifecycle management, and test isolation to ensure reliable and reproducible test results.
 

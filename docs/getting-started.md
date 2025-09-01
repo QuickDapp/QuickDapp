@@ -241,8 +241,8 @@ QuickDapp supports several deployment options:
 Build a self-contained binary with embedded assets:
 
 ```shell
-bun run build --binary
-# Binary will be created in dist/binaries/
+bun run build
+# Binaries are created automatically in dist/binaries/
 ```
 
 **Option B: Docker deployment**

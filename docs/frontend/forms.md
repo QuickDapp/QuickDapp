@@ -1,530 +1,346 @@
 # Forms
 
-QuickDapp provides comprehensive form handling capabilities using React Hook Form for form state management and validation. The form system integrates seamlessly with the component library and provides excellent developer experience.
+QuickDapp uses simple React state management for form handling. Forms integrate with the GraphQL API and provide basic validation and error handling.
 
-## Form Library
+## Form Components
 
-### React Hook Form Integration
+### Basic Form Structure
 
-QuickDapp uses React Hook Form for its performance and developer experience:
+Forms use standard React state with simple validation:
 
 ```typescript
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import * as React from "react"
+import { Button } from "./Button"
+import { Form, Input, Label } from "./Form"
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  symbol: z.string().max(6, 'Symbol must be 6 characters or less'),
-  initialSupply: z.string().min(1, 'Supply is required')
-})
+interface FormData {
+  name: string
+  symbol: string
+  initialSupply: string
+}
 
-type FormData = z.infer<typeof schema>
+interface FormErrors {
+  name?: string
+  symbol?: string
+  initialSupply?: string
+}
 
 export function TokenForm() {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid, isSubmitting },
-    reset
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    mode: 'onChange'
+  const [formData, setFormData] = React.useState<FormData>({
+    name: '',
+    symbol: '',
+    initialSupply: ''
   })
-  
-  const onSubmit = async (data: FormData) => {
-    // Handle form submission
+  const [errors, setErrors] = React.useState<FormErrors>({})
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {}
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required'
+    }
+    
+    if (!formData.symbol.trim()) {
+      newErrors.symbol = 'Symbol is required'
+    } else if (formData.symbol.length > 6) {
+      newErrors.symbol = 'Symbol must be 6 characters or less'
+    }
+    
+    if (!formData.initialSupply.trim()) {
+      newErrors.initialSupply = 'Initial supply is required'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
-  
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!validateForm()) return
+    
+    setIsSubmitting(true)
+    try {
+      // Handle form submission
+      await submitForm(formData)
+    } catch (error) {
+      // Handle error
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleInputChange = (field: keyof FormData) => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }))
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      {/* Form fields */}
-    </form>
+    <Form onSubmit={handleSubmit}>
+      <div>
+        <Label htmlFor="name">Token Name</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={handleInputChange('name')}
+          error={errors.name}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="symbol">Symbol</Label>
+        <Input
+          id="symbol"
+          value={formData.symbol}
+          onChange={handleInputChange('symbol')}
+          error={errors.symbol}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="initialSupply">Initial Supply</Label>
+        <Input
+          id="initialSupply"
+          value={formData.initialSupply}
+          onChange={handleInputChange('initialSupply')}
+          error={errors.initialSupply}
+        />
+      </div>
+      
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Creating...' : 'Create Token'}
+      </Button>
+    </Form>
   )
 }
 ```
 
 ## Form Components
 
-### Input Component
+### Form Container
 
-The base Input component handles labels, errors, and validation states:
-
-```typescript
-// src/client/components/ui/Input.tsx
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string
-  error?: string
-  description?: string
-}
-
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, description, ...props }, ref) => {
-    return (
-      <div className="space-y-2">
-        {label && (
-          <label className="text-sm font-medium">
-            {label}
-          </label>
-        )}
-        
-        <input
-          className={clsx(
-            'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            error && 'border-destructive focus-visible:ring-destructive',
-            className
-          )}
-          ref={ref}
-          {...props}
-        />
-        
-        {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        )}
-        
-        {error && (
-          <p className="text-sm text-destructive">{error}</p>
-        )}
-      </div>
-    )
-  }
-)
-```
-
-### Form Field Wrapper
-
-For consistent form field styling and behavior:
+Basic form wrapper:
 
 ```typescript
-// src/client/components/forms/FormField.tsx
-interface FormFieldProps {
-  label: string
-  error?: string
-  required?: boolean
-  description?: string
+interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
   children: React.ReactNode
 }
 
-export function FormField({ 
-  label, 
-  error, 
-  required, 
-  description, 
-  children 
-}: FormFieldProps) {
+export function Form({ children, ...props }: FormProps) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">
-        {label}
-        {required && <span className="text-destructive ml-1">*</span>}
-      </label>
-      
+    <form {...props} className="space-y-4">
       {children}
-      
-      {description && (
-        <p className="text-sm text-muted-foreground">{description}</p>
-      )}
-      
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+    </form>
+  )
+}
+```
+
+### Input Component
+
+Input with error handling:
+
+```typescript
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: string
+}
+
+export function Input({ error, className, ...props }: InputProps) {
+  return (
+    <div>
+      <input
+        {...props}
+        className={`input ${error ? 'input-error' : ''} ${className || ''}`}
+      />
+      {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
     </div>
   )
 }
 ```
 
-## Validation
+### Label Component
 
-### Zod Schema Validation
-
-Use Zod for runtime validation and type safety:
+Form labels:
 
 ```typescript
-// src/client/lib/validation.ts
-import { z } from 'zod'
+interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
+  children: React.ReactNode
+}
 
-export const deployTokenSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Token name is required')
-    .max(50, 'Token name must be 50 characters or less'),
-  
-  symbol: z
-    .string()
-    .min(1, 'Symbol is required')
-    .max(6, 'Symbol must be 6 characters or less')
-    .regex(/^[A-Z]+$/, 'Symbol must contain only uppercase letters'),
-  
-  initialSupply: z
-    .string()
-    .min(1, 'Initial supply is required')
-    .refine((val) => {
-      const num = parseFloat(val)
-      return !isNaN(num) && num > 0 && num <= 1000000000
-    }, 'Initial supply must be a valid number between 1 and 1,000,000,000')
-})
-
-export const transferTokenSchema = z.object({
-  recipient: z
-    .string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
-  
-  amount: z
-    .string()
-    .min(1, 'Amount is required')
-    .refine((val) => {
-      const num = parseFloat(val)
-      return !isNaN(num) && num > 0
-    }, 'Amount must be greater than 0')
-})
+export function Label({ children, ...props }: LabelProps) {
+  return (
+    <label {...props} className="block text-sm font-medium mb-1">
+      {children}
+    </label>
+  )
+}
 ```
 
-### Custom Validation Hooks
+## Integration with GraphQL
 
-Create reusable validation logic:
+Forms typically integrate with GraphQL mutations:
 
 ```typescript
-// src/client/hooks/useFormValidation.ts
-import { useCallback } from 'react'
-import { isAddress } from 'viem'
+import { useMutation } from '@tanstack/react-query'
+import { graphql } from '../lib/graphql'
 
-export function useFormValidation() {
-  const validateEthereumAddress = useCallback((address: string) => {
-    if (!address) return 'Address is required'
-    if (!isAddress(address)) return 'Invalid Ethereum address'
-    return true
-  }, [])
-  
-  const validatePositiveNumber = useCallback((value: string, fieldName = 'Value') => {
-    if (!value) return `${fieldName} is required`
-    const num = parseFloat(value)
-    if (isNaN(num)) return `${fieldName} must be a valid number`
-    if (num <= 0) return `${fieldName} must be greater than 0`
-    return true
-  }, [])
-  
-  const validateTokenSymbol = useCallback((symbol: string) => {
-    if (!symbol) return 'Symbol is required'
-    if (symbol.length > 6) return 'Symbol must be 6 characters or less'
-    if (!/^[A-Z]+$/.test(symbol)) return 'Symbol must contain only uppercase letters'
-    return true
-  }, [])
-  
-  return {
-    validateEthereumAddress,
-    validatePositiveNumber,
-    validateTokenSymbol
+const CREATE_TOKEN_MUTATION = graphql(`
+  mutation CreateToken($input: CreateTokenInput!) {
+    createToken(input: $input) {
+      id
+      name
+      symbol
+      address
+    }
   }
-}
-```
+`)
 
-## Form Examples
-
-### Token Deployment Form
-
-Complete form for deploying new tokens:
-
-```typescript
-// src/client/components/forms/DeployTokenForm.tsx
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { deployTokenSchema } from '../../lib/validation'
-import { useDeployToken } from '../../hooks/useTokens'
-import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
-import { FormField } from './FormField'
-
-type DeployTokenFormData = z.infer<typeof deployTokenSchema>
-
-interface DeployTokenFormProps {
-  onSuccess?: (tokenData: any) => void
-}
-
-export function DeployTokenForm({ onSuccess }: DeployTokenFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid, isSubmitting },
-    reset,
-    watch
-  } = useForm<DeployTokenFormData>({
-    resolver: zodResolver(deployTokenSchema),
-    mode: 'onChange'
-  })
-  
-  const deployToken = useDeployToken()
-  
-  // Watch symbol field to auto-uppercase
-  const symbolValue = watch('symbol')
-  
-  const onSubmit = async (data: DeployTokenFormData) => {
-    try {
-      const result = await deployToken.mutateAsync({
-        ...data,
-        symbol: data.symbol.toUpperCase()
+export function useCreateToken() {
+  return useMutation({
+    mutationFn: async (input: CreateTokenInput) => {
+      const response = await fetch('/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: CREATE_TOKEN_MUTATION,
+          variables: { input }
+        })
       })
-      
-      reset()
-      onSuccess?.(result)
-    } catch (error) {
-      console.error('Failed to deploy token:', error)
+      return response.json()
     }
-  }
-  
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <FormField
-        label="Token Name"
-        error={errors.name?.message}
-        required
-        description="The full name of your token (e.g., 'My Awesome Token')"
-      >
-        <Input
-          {...register('name')}
-          placeholder="My Awesome Token"
-          disabled={isSubmitting}
-        />
-      </FormField>
-      
-      <FormField
-        label="Symbol"
-        error={errors.symbol?.message}
-        required
-        description="Short symbol for your token (max 6 uppercase letters)"
-      >
-        <Input
-          {...register('symbol')}
-          placeholder="MAT"
-          style={{ textTransform: 'uppercase' }}
-          disabled={isSubmitting}
-        />
-      </FormField>
-      
-      <FormField
-        label="Initial Supply"
-        error={errors.initialSupply?.message}
-        required
-        description="Number of tokens to create initially"
-      >
-        <Input
-          {...register('initialSupply')}
-          type="number"
-          step="1"
-          min="1"
-          max="1000000000"
-          placeholder="1000000"
-          disabled={isSubmitting}
-        />
-      </FormField>
-      
-      <div className="flex gap-4 pt-4">
-        <Button
-          type="submit"
-          disabled={!isValid || isSubmitting || deployToken.isPending}
-          loading={isSubmitting || deployToken.isPending}
-          className="flex-1"
-        >
-          {deployToken.isPending ? 'Deploying...' : 'Deploy Token'}
-        </Button>
-        
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => reset()}
-          disabled={isSubmitting || deployToken.isPending}
-        >
-          Clear
-        </Button>
-      </div>
-    </form>
-  )
+  })
 }
 ```
 
-### Token Transfer Form
-
-Form for transferring tokens between addresses:
+Use in form:
 
 ```typescript
-// src/client/components/forms/TransferTokenForm.tsx
-export function TransferTokenForm({ 
-  tokenAddress, 
-  onSuccess 
-}: TransferTokenFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid },
-    reset,
-    setValue
-  } = useForm<TransferTokenFormData>({
-    resolver: zodResolver(transferTokenSchema),
-    mode: 'onChange'
-  })
+export function TokenForm() {
+  const createToken = useCreateToken()
   
-  const { symbol, decimals } = useTokenInfo(tokenAddress)
-  const { balance } = useTokenBalance(tokenAddress)
-  const transfer = useTokenTransfer(tokenAddress, decimals)
-  
-  const onSubmit = async (data: TransferTokenFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateForm()) return
+    
     try {
-      await transfer.mutateAsync(data)
-      reset()
-      onSuccess?.()
+      await createToken.mutateAsync(formData)
+      // Handle success
     } catch (error) {
-      console.error('Transfer failed:', error)
+      // Handle error
     }
   }
   
-  const setMaxAmount = () => {
-    if (balance && decimals) {
-      const maxAmount = formatUnits(balance, decimals)
-      setValue('amount', maxAmount, { shouldValidate: true })
-    }
-  }
-  
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <FormField
-        label="Recipient Address"
-        error={errors.recipient?.message}
-        required
-        description="Ethereum address to send tokens to"
-      >
-        <Input
-          {...register('recipient')}
-          placeholder="0x742d35Cc6634C0532925a3b8D30eE5528c097Eff"
-          className="font-mono text-sm"
-        />
-      </FormField>
-      
-      <FormField
-        label={`Amount (${symbol})`}
-        error={errors.amount?.message}
-        required
-        description={`Available balance: ${formatTokenAmount(balance, decimals)} ${symbol}`}
-      >
-        <div className="flex gap-2">
-          <Input
-            {...register('amount')}
-            type="number"
-            step="any"
-            min="0"
-            placeholder="0.00"
-            className="flex-1"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={setMaxAmount}
-          >
-            Max
-          </Button>
-        </div>
-      </FormField>
-      
-      <Button
-        type="submit"
-        disabled={!isValid || transfer.isPending}
-        loading={transfer.isPending}
-        className="w-full"
-      >
-        {transfer.isPending ? 'Transferring...' : 'Transfer Tokens'}
-      </Button>
-    </form>
-  )
+  // ... rest of form logic
 }
 ```
 
-## Form State Management
+## Error Handling
+
+### Validation Errors
+
+Client-side validation for immediate feedback:
+
+```typescript
+const validateField = (field: string, value: string): string | undefined => {
+  switch (field) {
+    case 'name':
+      return !value.trim() ? 'Name is required' : undefined
+    case 'symbol':
+      if (!value.trim()) return 'Symbol is required'
+      if (value.length > 6) return 'Symbol must be 6 characters or less'
+      return undefined
+    case 'initialSupply':
+      if (!value.trim()) return 'Initial supply is required'
+      if (isNaN(Number(value))) return 'Must be a number'
+      return undefined
+    default:
+      return undefined
+  }
+}
+```
+
+### Server Errors
+
+Handle GraphQL errors:
+
+```typescript
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  
+  try {
+    await createToken.mutateAsync(formData)
+    onSuccess()
+  } catch (error: any) {
+    if (error.graphQLErrors) {
+      // Handle GraphQL validation errors
+      const fieldErrors = error.graphQLErrors
+        .filter(err => err.extensions?.field)
+        .reduce((acc, err) => ({
+          ...acc,
+          [err.extensions.field]: err.message
+        }), {})
+      
+      setErrors(fieldErrors)
+    } else {
+      // Handle general errors
+      setGeneralError(error.message || 'An error occurred')
+    }
+  }
+}
+```
+
+## Form Patterns
+
+### Reset Form
+
+Clear form after successful submission:
+
+```typescript
+const resetForm = () => {
+  setFormData({ name: '', symbol: '', initialSupply: '' })
+  setErrors({})
+}
+
+const handleSubmit = async (e: React.FormEvent) => {
+  // ... submission logic
+  
+  if (success) {
+    resetForm()
+  }
+}
+```
 
 ### Loading States
 
-Handle loading states consistently across forms:
+Show loading during submission:
 
 ```typescript
-export function FormSubmitButton({ 
-  isSubmitting, 
-  isPending, 
-  isValid, 
-  children 
-}: FormSubmitButtonProps) {
-  const isLoading = isSubmitting || isPending
-  
-  return (
-    <Button
-      type="submit"
-      disabled={!isValid || isLoading}
-      loading={isLoading}
-    >
-      {children}
-    </Button>
-  )
+<Button type="submit" disabled={isSubmitting}>
+  {isSubmitting ? 'Creating...' : 'Create Token'}
+</Button>
+```
+
+### Form Validation
+
+Validate on submit and optionally on blur:
+
+```typescript
+const handleBlur = (field: keyof FormData) => () => {
+  const error = validateField(field, formData[field])
+  setErrors(prev => ({ ...prev, [field]: error }))
 }
+
+<Input
+  value={formData.name}
+  onChange={handleInputChange('name')}
+  onBlur={handleBlur('name')}
+  error={errors.name}
+/>
 ```
 
-### Error Handling
-
-Consistent error handling pattern:
-
-```typescript
-// src/client/hooks/useFormSubmission.ts
-export function useFormSubmission<T>(
-  onSubmit: (data: T) => Promise<void>,
-  onSuccess?: () => void
-) {
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  const handleSubmit = async (data: T) => {
-    setError(null)
-    setIsSubmitting(true)
-    
-    try {
-      await onSubmit(data)
-      onSuccess?.()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Submission failed')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-  
-  return {
-    handleSubmit,
-    error,
-    isSubmitting,
-    clearError: () => setError(null)
-  }
-}
-```
-
-## Best Practices
-
-### Form UX Guidelines
-
-1. **Real-time Validation** - Show errors as users type for immediate feedback
-2. **Clear Error Messages** - Provide specific, actionable error messages
-3. **Loading States** - Show loading indicators during form submission
-4. **Success Feedback** - Confirm successful actions with notifications
-5. **Accessibility** - Proper labeling and keyboard navigation
-
-### Performance Optimization
-
-```typescript
-// Memoize form components to prevent unnecessary re-renders
-export const DeployTokenForm = memo(function DeployTokenForm(props: Props) {
-  // Form implementation
-})
-
-// Use React Hook Form's mode: 'onChange' for real-time validation
-// but consider 'onBlur' for complex validation to improve performance
-const form = useForm({
-  mode: 'onChange', // or 'onBlur' for better performance
-  resolver: zodResolver(schema)
-})
-```
-
-The form system in QuickDapp provides a robust foundation for building user-friendly, accessible, and performant forms with comprehensive validation and error handling.
+QuickDapp's form system keeps things simple while providing the essential functionality needed for user input and validation.

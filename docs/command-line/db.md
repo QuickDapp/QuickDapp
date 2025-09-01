@@ -1,4 +1,4 @@
-# Database Commands
+# Database
 
 The database command provides comprehensive database management utilities using DrizzleORM and DrizzleKit. All database operations are designed to work seamlessly with QuickDapp's PostgreSQL-based architecture.
 

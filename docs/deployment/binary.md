@@ -1,16 +1,14 @@
-# Binary
+# Binary Deployment
 
-QuickDapp supports building self-contained binary executables that include all dependencies and assets, making deployment simple and reliable. This approach eliminates the need for runtime installations and provides consistent execution across different environments.
+QuickDapp builds self-contained binary executables that include all dependencies and assets. This simplifies deployment by eliminating runtime dependencies.
 
-## Binary Build Process
+## Building Binaries
 
-### Creating Binaries
-
-Build self-contained executables:
+Create self-contained executables:
 
 ```shell
-# Build binaries for all supported platforms
-bun run build --binary
+# Build binaries for all supported platforms (default behavior)
+bun run build
 
 # Binaries are created in dist/binaries/
 ls dist/binaries/
@@ -19,81 +17,62 @@ ls dist/binaries/
 # quickdapp-windows-x64.exe
 ```
 
-The build process creates:
-* **Linux x64** - For most cloud deployments and servers
-* **macOS x64** - For local development and macOS servers
-* **Windows x64** - For Windows servers and development
-
-### What's Included in Binaries
-
 Each binary contains:
-* **Compiled server code** - All backend functionality
-* **Frontend assets** - Optimized HTML, CSS, JavaScript bundles
-* **Static assets** - Images, fonts, and other resources
-* **Node.js runtime** - Embedded runtime environment
-* **Dependencies** - All required Bun packages and dependencies
+- Compiled server code with embedded frontend assets
+- All required dependencies and runtime
+- Static files (images, CSS, JavaScript)
 
 ## Running Binaries
 
 ### Basic Execution
 
-Run the binary directly:
-
 ```shell
 # Linux/macOS
+chmod +x dist/binaries/quickdapp-linux-x64
 ./dist/binaries/quickdapp-linux-x64
 
 # Windows
 dist\binaries\quickdapp-windows-x64.exe
-
-# Make executable (Linux/macOS)
-chmod +x dist/binaries/quickdapp-linux-x64
-./dist/binaries/quickdapp-linux-x64
 ```
 
 ### Environment Configuration
 
-Binaries read configuration from environment variables:
+Set environment variables before running:
 
 ```shell
-# Run with environment variables
+# Linux/macOS - inline environment variables
 DATABASE_URL="postgresql://user:pass@host:5432/db" \
 CHAIN=sepolia \
 FACTORY_CONTRACT_ADDRESS="0x..." \
 ./dist/binaries/quickdapp-linux-x64
-
-# Or use environment file
-NODE_ENV=production ./dist/binaries/quickdapp-linux-x64
 ```
 
-### Environment File Support
-
-Create environment files for different environments:
+Or use environment files:
 
 ```bash
 # .env.production
-NODE_ENV=production
 DATABASE_URL=postgresql://user:password@host:5432/quickdapp
 SESSION_ENCRYPTION_KEY=your_secure_32_character_key
-SERVER_WALLET_PRIVATE_KEY=0xYourProductionWallet
+SERVER_WALLET_PRIVATE_KEY=0xYourWalletKey
 CHAIN=sepolia
 CHAIN_RPC_ENDPOINT=https://sepolia.infura.io/v3/your-key
 FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
-WORKER_COUNT=cpus
-LOG_LEVEL=info
 ```
 
-## Deployment Strategies
+```shell
+# Run with environment file
+NODE_ENV=production ./dist/binaries/quickdapp-linux-x64
+```
 
-### Simple Server Deployment
+## Server Deployment
 
-Deploy to a single server:
+### Simple Upload and Run
 
 ```shell
 # 1. Upload binary to server
 scp dist/binaries/quickdapp-linux-x64 user@server:/opt/quickdapp/
 
-# 2. Upload environment file
+# 2. Upload environment configuration
 scp .env.production user@server:/opt/quickdapp/.env
 
 # 3. SSH to server and run
@@ -103,114 +82,32 @@ chmod +x quickdapp-linux-x64
 NODE_ENV=production ./quickdapp-linux-x64
 ```
 
-### Systemd Service
+### Background Process
 
-Create a systemd service for Linux servers:
-
-```ini
-# /etc/systemd/system/quickdapp.service
-[Unit]
-Description=QuickDapp Web3 Application
-After=network.target
-Wants=network.target
-
-[Service]
-Type=simple
-User=quickdapp
-Group=quickdapp
-WorkingDirectory=/opt/quickdapp
-ExecStart=/opt/quickdapp/quickdapp-linux-x64
-Environment=NODE_ENV=production
-EnvironmentFile=/opt/quickdapp/.env
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=quickdapp
-
-# Security settings
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=yes
-ReadWritePaths=/opt/quickdapp
-
-[Install]
-WantedBy=multi-user.target
-```
+Run as a background service:
 
 ```shell
-# Install and start service
-sudo systemctl daemon-reload
-sudo systemctl enable quickdapp
-sudo systemctl start quickdapp
+# Using nohup
+nohup NODE_ENV=production ./quickdapp-linux-x64 > quickdapp.log 2>&1 &
 
-# Check status
-sudo systemctl status quickdapp
+# Check if running
+ps aux | grep quickdapp
 
-# View logs
-sudo journalctl -u quickdapp -f
+# Stop the process
+pkill quickdapp-linux-x64
 ```
 
-### PM2 Process Manager
-
-Use PM2 for process management:
-
-```javascript
-// ecosystem.config.js
-module.exports = {
-  apps: [{
-    name: 'quickdapp',
-    script: './dist/binaries/quickdapp-linux-x64',
-    instances: 1,
-    env: {
-      NODE_ENV: 'development'
-    },
-    env_production: {
-      NODE_ENV: 'production'
-    },
-    error_file: './logs/err.log',
-    out_file: './logs/out.log',
-    log_file: './logs/combined.log',
-    time: true
-  }]
-}
-```
-
-```shell
-# Install PM2 globally
-bun add -g pm2
-
-# Start application
-pm2 start ecosystem.config.js --env production
-
-# Save PM2 configuration
-pm2 save
-pm2 startup
-
-# Monitor
-pm2 status
-pm2 logs
-pm2 monit
-```
-
-## Cross-Platform Considerations
+## Platform-Specific Notes
 
 ### Linux Deployment
 
 Most common for production servers:
 
 ```shell
-# Ubuntu/Debian
-sudo apt update && sudo apt install -y curl
+# Make executable
+chmod +x quickdapp-linux-x64
 
-# CentOS/RHEL
-sudo yum install -y curl
-
-# Alpine Linux (minimal)
-apk add --no-cache curl
-
-# Run binary
+# Run directly
 ./quickdapp-linux-x64
 ```
 
@@ -222,10 +119,10 @@ For macOS servers or development:
 # Make executable
 chmod +x quickdapp-darwin-x64
 
-# Run (may require security permissions)
+# Run (may require security approval on first run)
 ./quickdapp-darwin-x64
 
-# If blocked by macOS security:
+# If blocked by security
 xattr -d com.apple.quarantine quickdapp-darwin-x64
 ```
 
@@ -237,66 +134,32 @@ For Windows servers:
 REM Run directly
 quickdapp-windows-x64.exe
 
-REM With environment file
+REM With environment variables
+set DATABASE_URL=postgresql://...
 set NODE_ENV=production
 quickdapp-windows-x64.exe
-
-REM As Windows service (requires additional tools)
-nssm install QuickDapp "C:\path\to\quickdapp-windows-x64.exe"
-nssm set QuickDapp AppDirectory "C:\path\to"
-nssm set QuickDapp AppEnvironmentExtra NODE_ENV=production
-nssm start QuickDapp
 ```
 
 ## Performance Optimization
 
-### Binary Optimization
+### Environment Settings
 
-Binaries are optimized during build:
-
-```typescript
-// Build optimization includes:
-// - Code minification
-// - Asset compression
-// - Tree shaking unused code
-// - Bundle splitting for optimal loading
-// - Gzip compression for static assets
-```
-
-### Runtime Performance
-
-Optimize binary runtime performance:
+Optimize binary performance with environment variables:
 
 ```bash
-# Environment variables for performance
-NODE_OPTIONS="--max-old-space-size=1024"  # Limit memory
-WORKER_COUNT=cpus                          # Scale workers to CPU count
-DATABASE_POOL_SIZE=20                      # Optimize database connections
-```
+# Limit memory usage
+NODE_OPTIONS="--max-old-space-size=1024"
 
-### Resource Monitoring
+# Scale workers to CPU count
+WORKER_COUNT=cpus
 
-Monitor binary resource usage:
-
-```shell
-# Monitor with htop
-htop -p $(pgrep quickdapp)
-
-# Monitor with ps
-ps aux | grep quickdapp
-
-# Memory usage
-ps -o pid,vsz,rss,comm -p $(pgrep quickdapp)
-
-# Network connections
-netstat -tulpn | grep quickdapp
+# Optimize database connections
+DATABASE_POOL_SIZE=20
 ```
 
 ## Health Monitoring
 
-### Health Check Endpoints
-
-Binaries include built-in health monitoring:
+Binaries include built-in health endpoints:
 
 ```shell
 # Basic health check
@@ -305,158 +168,65 @@ curl http://localhost:3000/health
 
 # Detailed status
 curl http://localhost:3000/status
-# {
-#   "status": "ok",
-#   "database": "connected", 
-#   "workers": 4,
-#   "uptime": 3600,
-#   "memory": {...}
-# }
+# {"status":"ok","database":"connected","workers":4,"uptime":3600}
 ```
 
-### External Monitoring
+## Security
 
-Integrate with monitoring systems:
-
-```shell
-# Prometheus metrics endpoint
-curl http://localhost:3000/metrics
-
-# Custom health check script
-#!/bin/bash
-if curl -f -s http://localhost:3000/health > /dev/null; then
-  echo "QuickDapp is healthy"
-  exit 0
-else
-  echo "QuickDapp is unhealthy"
-  exit 1
-fi
-```
-
-## Backup and Recovery
-
-### Binary Backup Strategy
+Basic security practices for binary deployment:
 
 ```shell
-# Backup binary and configuration
-tar -czf quickdapp-backup-$(date +%Y%m%d).tar.gz \
-  quickdapp-linux-x64 \
-  .env \
-  ecosystem.config.js
-
-# Database backup (separate)
-pg_dump $DATABASE_URL > quickdapp-db-$(date +%Y%m%d).sql
-```
-
-### Disaster Recovery
-
-```shell
-# Recovery process
-# 1. Restore binary and config
-tar -xzf quickdapp-backup-20240101.tar.gz
-
-# 2. Restore database
-psql $DATABASE_URL < quickdapp-db-20240101.sql
-
-# 3. Start application
-./quickdapp-linux-x64
-```
-
-## Security Considerations
-
-### Binary Security
-
-Security practices for binary deployment:
-
-**File Permissions:**
-```shell
-# Secure file permissions
-chmod 750 quickdapp-linux-x64  # Owner read/write/execute, group read/execute
+# Set proper file permissions
+chmod 750 quickdapp-linux-x64  # Owner execute, group read
 chmod 640 .env                 # Owner read/write, group read
-```
 
-**User Isolation:**
-```shell
-# Create dedicated user
-sudo useradd -r -s /bin/false -d /opt/quickdapp quickdapp
-
-# Set ownership
-sudo chown -R quickdapp:quickdapp /opt/quickdapp
-
-# Run as dedicated user
+# Create dedicated user (optional)
+sudo useradd -r -s /bin/false quickdapp
+sudo chown quickdapp:quickdapp quickdapp-linux-x64
 sudo -u quickdapp ./quickdapp-linux-x64
-```
-
-**Network Security:**
-```shell
-# Firewall configuration (ufw example)
-sudo ufw allow 3000/tcp     # QuickDapp port
-sudo ufw enable
-
-# Or specific source IPs
-sudo ufw allow from 10.0.0.0/8 to any port 3000
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Binary Won't Start:**
+**Binary won't start:**
 ```shell
-# Check file permissions
+# Check if executable
 ls -la quickdapp-linux-x64
 
-# Make executable
+# Make executable if needed
 chmod +x quickdapp-linux-x64
-
-# Check dependencies (rare with binaries)
-ldd quickdapp-linux-x64
 ```
 
-**Environment Issues:**
+**Environment issues:**
 ```shell
-# Verify environment variables
-env | grep NODE_ENV
-env | grep DATABASE_URL
+# Verify required environment variables
+echo $DATABASE_URL
+echo $SESSION_ENCRYPTION_KEY
 
 # Test with minimal environment
-NODE_ENV=production \
 DATABASE_URL="postgresql://..." \
+SESSION_ENCRYPTION_KEY="32_character_key" \
 ./quickdapp-linux-x64
 ```
 
-**Port Issues:**
+**Port conflicts:**
 ```shell
-# Check if port is in use
+# Check what's using the port
 lsof -i :3000
 
 # Use different port
 PORT=3001 ./quickdapp-linux-x64
 ```
 
-**Memory Issues:**
+**Memory issues:**
 ```shell
 # Monitor memory usage
-watch 'ps -o pid,vsz,rss,comm -p $(pgrep quickdapp)'
+ps -o pid,vsz,rss,comm -p $(pgrep quickdapp)
 
 # Increase memory limit
 NODE_OPTIONS="--max-old-space-size=2048" ./quickdapp-linux-x64
 ```
 
-### Debugging Binary Issues
-
-```shell
-# Run with debug output
-DEBUG=* ./quickdapp-linux-x64
-
-# Verbose logging
-LOG_LEVEL=debug ./quickdapp-linux-x64
-
-# System calls trace (Linux)
-strace -e trace=network ./quickdapp-linux-x64
-
-# macOS equivalent
-dtruss -fn quickdapp-darwin-x64
-```
-
-Binary deployment provides the simplest and most reliable way to deploy QuickDapp applications with minimal dependencies and maximum portability across different server environments.
+Binary deployment provides the simplest way to deploy QuickDapp with minimal server setup and maximum portability.
