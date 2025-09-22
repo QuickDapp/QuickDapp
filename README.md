@@ -34,7 +34,7 @@ CREATE DATABASE quickdapp_dev;
 \q
 ```
 
-Update the database connection in `.env` if your PostgreSQL setup differs:
+Update the database connection in `.env.local` if your PostgreSQL setup differs:
 
 ```env
 DATABASE_URL=postgresql://postgres:@localhost:5432/quickdapp_dev
@@ -49,7 +49,7 @@ bun install
 ### 3. Setup Database Schema
 
 ```bash
-bun run db:push
+bun run db push
 ```
 
 ### 4. Start Local Blockchain
