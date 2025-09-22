@@ -11,6 +11,7 @@ QuickDapp is a highly opinionated framework that helps you quickly build and dep
 - **Wallet Authentication**: SIWE (Sign-in with Ethereum) + JWT authentication
 - **Comprehensive Testing**: Full integration test suite with blockchain simulation
 - **Hot Reload Development**: Fast development cycle with hot reload
+- **Fully documented**: See `docs/` folder or https://docs.quickdapp.xyz
 
 ## Tech Stack
 
