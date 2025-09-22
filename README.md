@@ -14,46 +14,13 @@ A modern Web3 dapp development platform built with TypeScript, PostgreSQL, and c
 
 ## Tech Stack
 
-### Runtime & Framework
-- **[Bun](https://bun.sh)** - Primary runtime with Node.js v22+ compatibility
-- **[ElysiaJS](https://elysiajs.com)** - Bun-native web framework
-- **[TypeScript](https://www.typescriptlang.org)** - Type-safe development
-
-### Database
-- **[PostgreSQL](https://www.postgresql.org)** - Primary database
-- **[DrizzleORM](https://orm.drizzle.team)** - Type-safe database toolkit
-- **[DrizzleKit](https://orm.drizzle.team/kit-docs/overview)** - Database migrations
-
-### API Layer
-- **[GraphQL](https://graphql.org)** - Schema-first API design
-- **[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server)** - GraphQL server
-- **[GraphQL Tools](https://the-guild.dev/graphql/tools)** - Schema utilities
-
-### Frontend
-- **[React](https://react.dev)** v19 - UI library
-- **[React Router](https://reactrouter.com)** - Client-side routing
-- **[TailwindCSS](https://tailwindcss.com)** - Utility-first styling
-- **[Vite](https://vitejs.dev)** - Build tool and bundler
-- **[Radix UI](https://www.radix-ui.com)** - Headless UI components
-
-### Web3 Integration
-- **[RainbowKit](https://www.rainbowkit.com)** - Wallet connection UI
-- **[Wagmi](https://wagmi.sh)** - React hooks for Ethereum
-- **[Viem](https://viem.sh)** - TypeScript interface for Ethereum
-- **[SIWE](https://login.xyz)** - Sign-in with Ethereum authentication
-- **[WalletConnect](https://walletconnect.com)** - Wallet connection protocol
-
-### Development Tools
-- **[Biome](https://biomejs.dev)** - Linting and formatting (replaces ESLint/Prettier)
-- **[Husky](https://typicode.github.io/husky/)** - Git hooks
-- **[Docker](https://www.docker.com)** - Containerization
-- **[Retype](https://retype.com)** - Documentation generator
-
-### Additional Libraries
-- **[Commander](https://github.com/tj/commander.js)** - CLI framework
-- **[cron-schedule](https://github.com/harrisiirak/cron-schedule)** - Cron job scheduling
-- **[JOSE](https://github.com/panva/jose)** - JWT handling
-- **[TanStack Query](https://tanstack.com/query)** - Data fetching and caching
+- **[Bun](https://bun.sh)** + **[ElysiaJS](https://elysiajs.com)** + **[TypeScript](https://www.typescriptlang.org)** - Runtime, web framework, and type-safe development
+- **[PostgreSQL](https://www.postgresql.org)** + **[DrizzleORM](https://orm.drizzle.team)** + **[DrizzleKit](https://orm.drizzle.team/kit-docs/overview)** - Database with type-safe toolkit and migrations
+- **[GraphQL](https://graphql.org)** + **[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server)** + **[GraphQL Tools](https://the-guild.dev/graphql/tools)** - Schema-first API with server and utilities
+- **[React](https://react.dev)** + **[React Router](https://reactrouter.com)** + **[TailwindCSS](https://tailwindcss.com)** + **[Vite](https://vitejs.dev)** + **[Radix UI](https://www.radix-ui.com)** - Frontend UI library with routing, styling, bundling, and components
+- **[RainbowKit](https://www.rainbowkit.com)** + **[Wagmi](https://wagmi.sh)** + **[Viem](https://viem.sh)** + **[SIWE](https://login.xyz)** + **[WalletConnect](https://walletconnect.com)** - Comprehensive Web3 wallet integration and authentication
+- **[Biome](https://biomejs.dev)** + **[Husky](https://typicode.github.io/husky/)** + **[Docker](https://www.docker.com)** + **[Retype](https://retype.com)** - Development tooling for linting, git hooks, containerization, and docs
+- **[Commander](https://github.com/tj/commander.js)** + **[cron-schedule](https://github.com/harrisiirak/cron-schedule)** + **[JOSE](https://github.com/panva/jose)** + **[TanStack Query](https://tanstack.com/query)** - CLI framework, job scheduling, JWT handling, and data fetching
 
 ## Prerequisites
 
