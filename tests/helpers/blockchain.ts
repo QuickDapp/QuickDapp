@@ -61,7 +61,7 @@ class HardhatAdapter extends NodeAdapter {
 
   startCommand() {
     return {
-      command: "bun",
+      command: process.env.BUN_PATH || "bun",
       args: [
         "hardhat",
         "node",
@@ -71,7 +71,7 @@ class HardhatAdapter extends NodeAdapter {
         this.port.toString(),
       ],
       options: {
-        cwd: "/Users/ram/dev/quickdapp/quickdapp-v3/sample-contracts",
+        cwd: path.resolve(process.cwd(), "sample-contracts"),
       },
     }
   }

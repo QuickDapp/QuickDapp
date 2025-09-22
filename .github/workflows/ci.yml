@@ -35,6 +35,12 @@ jobs:
       with:
         bun-version: latest
     
+    - name: Output Bun executable path
+      run: |
+        echo "Bun executable path: $(which bun || echo 'not found in PATH')"
+        echo "HOME/.bun/bin/bun exists: $(test -f $HOME/.bun/bin/bun && echo 'yes' || echo 'no')"
+        ls -la $HOME/.bun/bin/ || echo "Directory not found"
+    
     - name: Add Bun to PATH
       run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
@@ -58,3 +64,4 @@ jobs:
       env:
         NODE_ENV: test
         DATABASE_URL: postgresql://ram:@localhost:5432/quickdapp_test
+        BUN_PATH: $HOME/.bun/bin/bun
