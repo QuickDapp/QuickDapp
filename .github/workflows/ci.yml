@@ -34,6 +34,9 @@ jobs:
       uses: oven-sh/setup-bun@v2
       with:
         bun-version: latest
+    
+    - name: Add Bun to PATH
+      run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
     - name: Install dependencies
       run: bun install
