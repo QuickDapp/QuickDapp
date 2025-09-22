@@ -55,7 +55,6 @@ class WorkerProcess {
         WORKER_ID: this.workerId.toString(),
       },
       silent: false,
-      execPath: process.execPath, // Use the current runtime (bun) to execute the worker
     })
 
     this.process.on("exit", (code) => {
