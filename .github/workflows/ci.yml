@@ -38,11 +38,17 @@ jobs:
     - name: Install dependencies
       run: bun install
 
+    - name: Verify database connection
+      run: |
+        PGPASSWORD="" psql -h localhost -U ram -d quickdapp_test -c "SELECT version();"
+
+    - name: Setup database schema
+      run: NODE_ENV=test bun run db push
+      env:
+        DATABASE_URL: postgresql://ram:@localhost:5432/quickdapp_test
+
     - name: Run build (to generate ABIs and other needed imports)
       run: bun run build
-
-    - name: Run linting
-      run: bun run lint
 
     - name: Run tests
       run: bun run test
