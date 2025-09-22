@@ -1,5 +1,9 @@
 # QuickDapp
 
+[![CI](https://github.com/QuickDapp/QuickDapp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/QuickDapp/QuickDapp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+
 QuickDapp is a highly opinionated framework that helps you quickly build and deploy Web3 dapps. Built with modern TypeScript, PostgreSQL, and comprehensive blockchain integration.
 
 ## Features

@@ -10,6 +10,10 @@
     "bun": ">=1.0.0"
   },
   "engineStrict": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QuickDapp/QuickDapp.git"
+  },
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "build": "bun run scripts/build.ts",
