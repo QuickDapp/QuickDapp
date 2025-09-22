@@ -64,4 +64,4 @@ jobs:
       env:
         NODE_ENV: test
         DATABASE_URL: postgresql://ram:@localhost:5432/quickdapp_test
-        BUN_PATH: $HOME/.bun/bin/bun
+        BUN_PATH: /home/runner/.bun/bin/bun
