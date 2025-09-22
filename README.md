@@ -1,6 +1,6 @@
 # QuickDapp
 
-A modern Web3 dapp development platform built with TypeScript, PostgreSQL, and comprehensive blockchain integration.
+QuickDapp is a highly opinionated framework that helps you quickly build and deploy Web3 dapps. Built with modern TypeScript, PostgreSQL, and comprehensive blockchain integration.
 
 ## Features
 
@@ -185,73 +185,21 @@ bun run lint:fix       # Fix linting issues
 bun run format         # Format code with Biome
 ```
 
-
-## Architecture
-
-### Key Technologies
-
-- **Runtime**: Bun (primary) + Node.js v22+ compatibility
-- **Web Framework**: ElysiaJS (Bun-native high performance)
-- **Database**: PostgreSQL with DrizzleORM
-- **GraphQL**: GraphQL Yoga with schema-first approach
-- **Authentication**: SIWE (Sign-in with Ethereum) + JWT
-- **Testing**: Bun test runner with Hardhat blockchain simulation
-- **Linting**: Biome (replaces ESLint/Prettier)
-
-### Environment Configuration
-
-The project uses layered environment configuration:
-
-1. `.env` - Base configuration (committed)
-2. `.env.{NODE_ENV}` - Environment-specific overrides
-3. `.env.local` - Developer-specific overrides (gitignored)
-
-## Configuration
-
-### Required Environment Variables
-
-```bash
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/quickdapp_dev
-
-# Security
-SESSION_ENCRYPTION_KEY=your-32-char-encryption-key
-SERVER_WALLET_PRIVATE_KEY=0x...
-
-# Blockchain
-CHAIN=sepolia
-CHAIN_RPC_ENDPOINT=https://...
-WALLETCONNECT_PROJECT_ID=your-project-id
-DIAMOND_PROXY_ADDRESS=0x...
-
-# Application
-BASE_URL=http://localhost:3000
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Database Connection Issues**
-- Ensure PostgreSQL is running
-- Check connection string in `.env`
-- Verify database exists
-
-**Blockchain Connection Issues**
-- Ensure devnet is running: `bun run sample-contracts/devnet.ts`
-- Check if port 8545 is available
-- Verify contracts are deployed
-
-**Test Failures**
-- Ensure test database exists and is accessible
-- Check that no other services are using test ports
-- Run tests with `-v` for detailed output
-
 ### Getting Help
 
 - Review test files for usage examples
 - Use `bun run dev -v` for detailed startup logging
 
+## Documentation
+
+View comprehensive documentation:
+
+```bash
+bun run showdocs
+```
+
+This starts a local documentation server using [Retype](https://retype.com). The complete documentation is available in the `docs/` folder.
+
 ## License
 
-Private project - All rights reserved.
+MIT License - see [LICENSE.md](LICENSE.md) for details.

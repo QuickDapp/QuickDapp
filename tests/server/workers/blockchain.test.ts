@@ -1,6 +1,5 @@
 import {
   afterAll,
-  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -90,11 +89,6 @@ describe("Worker Blockchain Integration Tests", () => {
   describe("Blockchain Event Monitoring", () => {
     beforeEach(async () => {
       // Clean database before each test
-      await setupTestDatabase()
-    })
-
-    afterEach(async () => {
-      // Clean database after each test
       await setupTestDatabase()
     })
 

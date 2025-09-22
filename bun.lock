@@ -55,6 +55,7 @@
         "@vitejs/plugin-react": "^4.3.4",
         "hardhat": "^2.22.0",
         "husky": "^9.1.7",
+        "retypeapp": "^3.11.0",
         "tailwindcss": "^4.0.0-alpha.19",
         "typescript": "^5.6.3",
         "vite": "^6.0.3",
@@ -2078,6 +2079,8 @@
     "resolve-pkg-maps": ["resolve-pkg-maps@1.0.0", "", {}, "sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw=="],
 
     "responselike": ["responselike@2.0.1", "", { "dependencies": { "lowercase-keys": "^2.0.0" } }, "sha512-4gl03wn3hj1HP3yzgdI7d3lCkF95F21Pz4BPGvKHinyQzALR5CapwC8yIi0Rh58DEMQ/SguC03wFj2k0M/mHhw=="],
+
+    "retypeapp": ["retypeapp@3.11.0", "", { "bin": { "retype": "retype.js" } }, "sha512-emjLMnmAu3jNLUeM+6OEj0CUlW6GmAq2yXEsf2n40YEDEBu7U2n32pLCFpd6w9Y+MIDmV+1rffN96parLT9uZw=="],
 
     "reusify": ["reusify@1.1.0", "", {}, "sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="],
 
