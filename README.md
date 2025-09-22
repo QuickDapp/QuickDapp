@@ -12,6 +12,49 @@ A modern Web3 dapp development platform built with TypeScript, PostgreSQL, and c
 - **Comprehensive Testing**: Full integration test suite with blockchain simulation
 - **Hot Reload Development**: Fast development cycle with hot reload
 
+## Tech Stack
+
+### Runtime & Framework
+- **[Bun](https://bun.sh)** - Primary runtime with Node.js v22+ compatibility
+- **[ElysiaJS](https://elysiajs.com)** - Bun-native web framework
+- **[TypeScript](https://www.typescriptlang.org)** - Type-safe development
+
+### Database
+- **[PostgreSQL](https://www.postgresql.org)** - Primary database
+- **[DrizzleORM](https://orm.drizzle.team)** - Type-safe database toolkit
+- **[DrizzleKit](https://orm.drizzle.team/kit-docs/overview)** - Database migrations
+
+### API Layer
+- **[GraphQL](https://graphql.org)** - Schema-first API design
+- **[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server)** - GraphQL server
+- **[GraphQL Tools](https://the-guild.dev/graphql/tools)** - Schema utilities
+
+### Frontend
+- **[React](https://react.dev)** v19 - UI library
+- **[React Router](https://reactrouter.com)** - Client-side routing
+- **[TailwindCSS](https://tailwindcss.com)** - Utility-first styling
+- **[Vite](https://vitejs.dev)** - Build tool and bundler
+- **[Radix UI](https://www.radix-ui.com)** - Headless UI components
+
+### Web3 Integration
+- **[RainbowKit](https://www.rainbowkit.com)** - Wallet connection UI
+- **[Wagmi](https://wagmi.sh)** - React hooks for Ethereum
+- **[Viem](https://viem.sh)** - TypeScript interface for Ethereum
+- **[SIWE](https://login.xyz)** - Sign-in with Ethereum authentication
+- **[WalletConnect](https://walletconnect.com)** - Wallet connection protocol
+
+### Development Tools
+- **[Biome](https://biomejs.dev)** - Linting and formatting (replaces ESLint/Prettier)
+- **[Husky](https://typicode.github.io/husky/)** - Git hooks
+- **[Docker](https://www.docker.com)** - Containerization
+- **[Retype](https://retype.com)** - Documentation generator
+
+### Additional Libraries
+- **[Commander](https://github.com/tj/commander.js)** - CLI framework
+- **[cron-schedule](https://github.com/harrisiirak/cron-schedule)** - Cron job scheduling
+- **[JOSE](https://github.com/panva/jose)** - JWT handling
+- **[TanStack Query](https://tanstack.com/query)** - Data fetching and caching
+
 ## Prerequisites
 
 - **Node.js** v22.0.0 or higher
