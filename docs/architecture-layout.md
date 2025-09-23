@@ -91,7 +91,7 @@ tests/                  # Integration test suite
 ### Runtime & Server
 * **Bun** - Primary runtime (Node.js v22+ compatible)
 * **ElysiaJS** - High-performance web framework with native WebSocket support
-* **GraphQL Yoga** - GraphQL server with built-in subscriptions
+* **GraphQL Yoga** - GraphQL server (no GraphQL subscriptions; use WebSockets for realtime)
 
 ### Frontend
 * **React 19** - Latest React with concurrent features
