@@ -1,13 +1,12 @@
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
-import { fetchTokenMetadata } from "../../../shared/contracts"
 import { NotificationType } from "../../../shared/notifications/types"
 import { users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
-// Standard ERC20 Transfer event ABI
-const ERC20_TRANSFER_EVENT = parseAbiItem(
-  "event Transfer(address indexed from, address indexed to, uint256 value)",
+// Custom TokenTransferred event from SimpleERC20 contracts
+const TOKEN_TRANSFERRED_EVENT = parseAbiItem(
+  "event TokenTransferred(address indexed from, address indexed to, uint256 value, string name, string symbol, uint8 decimals)",
 )
 
 export const createFilter: ChainFilterModule["createFilter"] = (
@@ -21,7 +20,7 @@ export const createFilter: ChainFilterModule["createFilter"] = (
 
   try {
     return chainClient.createEventFilter({
-      event: ERC20_TRANSFER_EVENT,
+      event: TOKEN_TRANSFERRED_EVENT,
       fromBlock,
     })
   } catch (error) {
@@ -39,27 +38,22 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
     return
   }
 
-  log.info(`Processing ${changes.length} Transfer events`)
+  log.info(`Processing ${changes.length} TokenTransferred events`)
 
   for (const change of changes) {
     try {
       const {
-        args: { from, to, value },
+        args: { from, to, value, name, symbol, decimals },
         address: tokenAddress,
         transactionHash,
       } = change
 
       log.debug(
-        `Processing Transfer: ${from} -> ${to}, amount: ${value}, token: ${tokenAddress}`,
+        `Processing TokenTransferred: ${from} -> ${to}, amount: ${value}, token: ${symbol} (${name}) at ${tokenAddress}`,
       )
 
-      // Skip null addresses (minting/burning)
-      if (
-        from === "0x0000000000000000000000000000000000000000" ||
-        to === "0x0000000000000000000000000000000000000000"
-      ) {
-        continue
-      }
+      // TokenTransferred events are only emitted for actual transfers (not mints/burns)
+      // so no need to check for null addresses
 
       // Look up user by wallet address (sender)
       const [user] = await serverApp.db
@@ -73,21 +67,15 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         continue
       }
 
-      // Get token information from the blockchain using public client
-      // If this fails, the whole job should fail since we need accurate token data
-      const metadata = await fetchTokenMetadata(
-        tokenAddress,
-        serverApp.publicClient,
-      )
-
+      // Token information is already available from the custom event
       const tokenInfo = {
-        name: metadata.name,
-        symbol: metadata.symbol,
-        decimals: metadata.decimals,
+        name,
+        symbol,
+        decimals,
       }
 
       log.debug(
-        `Fetched token metadata for ${tokenAddress}: ${metadata.symbol} (${metadata.name}) with ${metadata.decimals} decimals`,
+        `Using token metadata from event for ${tokenAddress}: ${symbol} (${name}) with ${decimals} decimals`,
       )
 
       // Format amount (convert from wei)
@@ -100,7 +88,7 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
           type: NotificationType.TOKEN_TRANSFER,
           message: `Sent ${formattedAmount} ${tokenInfo.symbol} (${tokenInfo.name}) to ${to}`,
           transactionHash,
-          tokenAddress,
+          tokenAddress: tokenAddress.toLowerCase(),
           from,
           to,
           amount: value.toString(),

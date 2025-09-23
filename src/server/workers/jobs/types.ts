@@ -1,3 +1,4 @@
+import type { PublicClient } from "viem"
 import type { WorkerJob } from "../../db/schema"
 import type { Logger } from "../../lib/logger"
 import type { ServerApp } from "../../types"
@@ -16,7 +17,7 @@ export interface Job {
 
 // Chain filter types for blockchain monitoring
 export interface ChainFilterModule {
-  createFilter: (chainClient: any, fromBlock: string) => any
+  createFilter: (chainClient: PublicClient, fromBlock: bigint) => any
   processChanges: (
     serverApp: ServerApp,
     log: Logger,

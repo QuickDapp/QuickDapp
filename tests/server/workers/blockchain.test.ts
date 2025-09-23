@@ -7,7 +7,7 @@ import {
   test,
 } from "bun:test"
 import { eq } from "drizzle-orm"
-import { notifications, users } from "../../../src/server/db/schema"
+import { notifications, users, workerJobs } from "../../../src/server/db/schema"
 import { scheduleJob } from "../../../src/server/db/worker"
 import type { ServerApp } from "../../../src/server/types"
 import type { BlockchainTestContext } from "../../helpers/blockchain"
@@ -147,6 +147,11 @@ describe("Worker Blockchain Integration Tests", () => {
     beforeEach(async () => {
       // Clean database before each test
       await setupTestDatabase()
+
+      // Extra cleanup: Remove any existing worker jobs to prevent conflicts
+      testLogger.info("🧹 Removing any existing worker jobs...")
+      await serverContext.serverApp.db.delete(workerJobs)
+      testLogger.info("✅ Worker jobs cleaned")
     })
 
     test(
@@ -188,6 +193,7 @@ describe("Worker Blockchain Integration Tests", () => {
           {
             type: "watchChain",
             userId: 0,
+            data: {},
             persistent: true,
           },
         )
@@ -224,6 +230,7 @@ describe("Worker Blockchain Integration Tests", () => {
           {
             type: "watchChain",
             userId: 0,
+            data: {},
             persistent: true,
           },
         )
@@ -340,6 +347,7 @@ describe("Worker Blockchain Integration Tests", () => {
           {
             type: "watchChain",
             userId: 0,
+            data: {},
             persistent: true,
           },
         )
@@ -374,6 +382,7 @@ describe("Worker Blockchain Integration Tests", () => {
           {
             type: "watchChain",
             userId: 0,
+            data: {},
             persistent: true,
           },
         )
@@ -484,6 +493,7 @@ describe("Worker Blockchain Integration Tests", () => {
           {
             type: "watchChain",
             userId: 0,
+            data: {},
             persistent: true,
           },
         )
@@ -492,20 +502,33 @@ describe("Worker Blockchain Integration Tests", () => {
         // Wait for the job to execute and create filters
         await new Promise((resolve) => setTimeout(resolve, 3000))
 
-        // Deploy two different tokens
-        testLogger.info("🪙 Deploying first test token...")
-        const token1 = await deployMockERC20(blockchainContext, {
-          name: "Token One",
-          symbol: "TK1",
-          initialSupply: 500000n * 10n ** 18n,
-        })
+        // Deploy factory first
+        testLogger.info("🏭 Deploying token factory...")
+        const factoryAddress = await deployTokenFactory(blockchainContext)
+        testLogger.info(`✅ Factory deployed at ${factoryAddress}`)
 
-        testLogger.info("🪙 Deploying second test token...")
-        const token2 = await deployMockERC20(blockchainContext, {
-          name: "Token Two",
-          symbol: "TK2",
-          initialSupply: 750000n * 10n ** 18n,
-        })
+        // Deploy two different tokens via factory (this will emit ERC20NewToken events)
+        testLogger.info("🪙 Deploying first test token via factory...")
+        const token1 = await deployTokenViaFactory(
+          blockchainContext,
+          factoryAddress,
+          {
+            name: "Token One",
+            symbol: "TK1",
+            initialSupply: 500000n * 10n ** 18n,
+          },
+        )
+
+        testLogger.info("🪙 Deploying second test token via factory...")
+        const token2 = await deployTokenViaFactory(
+          blockchainContext,
+          factoryAddress,
+          {
+            name: "Token Two",
+            symbol: "TK2",
+            initialSupply: 750000n * 10n ** 18n,
+          },
+        )
 
         // Mine blocks to process token deployments
         await mineBlocks(blockchainContext, 2)
@@ -520,6 +543,7 @@ describe("Worker Blockchain Integration Tests", () => {
           {
             type: "watchChain",
             userId: 0,
+            data: {},
             persistent: true,
           },
         )
@@ -567,6 +591,7 @@ describe("Worker Blockchain Integration Tests", () => {
           {
             type: "watchChain",
             userId: 0,
+            data: {},
             persistent: true,
           },
         )

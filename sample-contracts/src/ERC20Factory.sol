@@ -18,6 +18,16 @@ struct ERC20TokenConfig {
 contract SimpleERC20 is ERC20, Ownable {
     uint8 private _decimals;
     
+    // Custom event for token transfers with additional metadata
+    event TokenTransferred(
+        address indexed from,
+        address indexed to,
+        uint256 value,
+        string name,
+        string symbol,
+        uint8 decimals
+    );
+    
     constructor(
         string memory name,
         string memory symbol,
@@ -42,6 +52,19 @@ contract SimpleERC20 is ERC20, Ownable {
     function burn(uint256 amount) external {
         _burn(msg.sender, amount);
     }
+    
+    /**
+     * Override _update to emit our custom TokenTransferred event
+     * This will be called for all transfers (including mints and burns)
+     */
+    function _update(address from, address to, uint256 value) internal override {
+        super._update(from, to, value);
+        
+        // Only emit for actual transfers (not mints or burns)
+        if (from != address(0) && to != address(0)) {
+            emit TokenTransferred(from, to, value, name(), symbol(), decimals());
+        }
+    }
 }
 
 /**
@@ -49,7 +72,7 @@ contract SimpleERC20 is ERC20, Ownable {
  * Based on QuickDapp ERC20Facet but as a standalone contract
  */
 contract ERC20Factory {
-    event ERC20NewToken(address indexed token, string name, string symbol, address indexed creator);
+    event ERC20NewToken(address indexed token, string name, string symbol, address indexed creator, uint256 initialSupply);
     
     mapping(uint256 => address) public erc20Addresses;
     uint256 public numERC20s;
@@ -78,7 +101,7 @@ contract ERC20Factory {
         numERC20s++;
         erc20Addresses[numERC20s] = address(token);
         
-        emit ERC20NewToken(address(token), config.name, config.symbol, msg.sender);
+        emit ERC20NewToken(address(token), config.name, config.symbol, msg.sender, initialBalance);
         
         return address(token);
     }

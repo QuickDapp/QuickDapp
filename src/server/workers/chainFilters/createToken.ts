@@ -1,15 +1,14 @@
 import { eq } from "drizzle-orm"
 import { parseAbiItem } from "viem"
-import { fetchTokenMetadata } from "../../../shared/contracts"
+import { clientConfig } from "../../../shared/config/client"
+import { serverConfig } from "../../../shared/config/server"
 import { NotificationType } from "../../../shared/notifications/types"
 import { users } from "../../db/schema"
 import type { ChainFilterModule } from "../jobs/types"
 
-// For token creation, we'll monitor contract deployments
-// In a real implementation, this might be a factory contract event
-// For our test setup, we'll monitor for the first Transfer event from address(0) which indicates minting
-const ERC20_MINT_EVENT = parseAbiItem(
-  "event Transfer(address indexed from, address indexed to, uint256 value)",
+// ERC20NewToken event from the factory contract
+const ERC20_NEW_TOKEN_EVENT = parseAbiItem(
+  "event ERC20NewToken(address indexed token, string name, string symbol, address indexed creator, uint256 initialSupply)",
 )
 
 export const createFilter: ChainFilterModule["createFilter"] = (
@@ -22,13 +21,18 @@ export const createFilter: ChainFilterModule["createFilter"] = (
   }
 
   try {
-    return chainClient.createEventFilter({
-      event: ERC20_MINT_EVENT,
-      args: {
-        from: "0x0000000000000000000000000000000000000000",
-      },
+    const filterConfig: any = {
+      event: ERC20_NEW_TOKEN_EVENT,
       fromBlock,
-    })
+    }
+
+    // In test mode, don't filter by address to allow test factories
+    if (serverConfig.NODE_ENV !== "test") {
+      filterConfig.address =
+        clientConfig.FACTORY_CONTRACT_ADDRESS as `0x${string}`
+    }
+
+    return chainClient.createEventFilter(filterConfig)
   } catch (error) {
     console.error("createToken filter: Failed to create filter:", error)
     return null
@@ -44,28 +48,20 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
     return
   }
 
-  log.info(`Processing ${changes.length} token creation events`)
+  log.info(`Processing ${changes.length} ERC20NewToken events`)
 
   for (const change of changes) {
     try {
       const {
-        args: { from, to, value },
-        address: tokenAddress,
+        args: { token: tokenAddress, name, symbol, creator, initialSupply },
         transactionHash,
       } = change
 
-      // We only care about minting events (from address(0))
-      if (from !== "0x0000000000000000000000000000000000000000") {
-        continue
-      }
-
       log.info(
-        `Processing token creation: ${tokenAddress}, initial mint to: ${to}, amount: ${value}`,
+        `Processing token creation: ${symbol} (${name}) at ${tokenAddress}, creator: ${creator}, initialSupply: ${initialSupply}`,
       )
 
-      // Get transaction details to find the creator
-      // For simplicity in tests, we'll use the 'to' address as the creator
-      const creatorAddress = to
+      const creatorAddress = creator
 
       // Look up user by wallet address
       const [user] = await serverApp.db
@@ -79,21 +75,14 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         continue
       }
 
-      // Get token information from the blockchain using public client
-      // If this fails, the whole job should fail since we need accurate token data
-      const metadata = await fetchTokenMetadata(
-        tokenAddress,
-        serverApp.publicClient,
-      )
-
+      // Token information is already available from the factory event
       const tokenInfo = {
-        name: metadata.name,
-        symbol: metadata.symbol,
-        decimals: metadata.decimals,
+        name,
+        symbol,
       }
 
       log.debug(
-        `Fetched token metadata for ${tokenAddress}: ${metadata.symbol} (${metadata.name}) with ${metadata.decimals} decimals`,
+        `Using token metadata from factory event for ${tokenAddress}: ${symbol} (${name})`,
       )
 
       // Create notification for the user using the new serverApp method
@@ -101,9 +90,9 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         type: NotificationType.TOKEN_CREATED,
         message: `Created new token ${tokenInfo.symbol} (${tokenInfo.name}) at ${tokenAddress}`,
         transactionHash,
-        tokenAddress,
+        tokenAddress: tokenAddress.toLowerCase(),
         creator: creatorAddress,
-        initialSupply: value.toString(),
+        initialSupply: initialSupply.toString(),
         tokenSymbol: tokenInfo.symbol,
         tokenName: tokenInfo.name,
       })

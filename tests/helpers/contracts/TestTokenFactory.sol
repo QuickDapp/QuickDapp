@@ -8,7 +8,7 @@ import "./TestToken.sol";
  * @dev Factory contract for deploying TestToken contracts - mirrors ERC20Factory.sol
  */
 contract TestTokenFactory {
-    event ERC20NewToken(address indexed token, string name, string symbol, address indexed creator);
+    event ERC20NewToken(address indexed token, string name, string symbol, address indexed creator, uint256 initialSupply);
     
     mapping(uint256 => address) public erc20Addresses;
     uint256 public numERC20s;
@@ -43,7 +43,7 @@ contract TestTokenFactory {
         numERC20s++;
         erc20Addresses[numERC20s] = address(token);
         
-        emit ERC20NewToken(address(token), config.name, config.symbol, msg.sender);
+        emit ERC20NewToken(address(token), config.name, config.symbol, msg.sender, initialBalance);
         
         return address(token);
     }

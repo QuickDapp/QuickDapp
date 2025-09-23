@@ -45,10 +45,12 @@ const recreateFilters = async (params: JobParams) => {
     try {
       const chainFilter = chainFilters[filterName]
 
-      const filter = await chainFilter!.createFilter(
-        client,
-        serverConfig.NODE_ENV !== "test" ? "latest" : "earliest",
-      )
+      const fromBlock =
+        serverConfig.NODE_ENV === "test"
+          ? BigInt(1) // Start from block 1 in test mode to catch all events
+          : await client.getBlockNumber()
+
+      const filter = await chainFilter!.createFilter(client, fromBlock)
 
       if (filter) {
         activeFilters[filterName] = {

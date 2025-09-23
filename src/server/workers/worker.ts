@@ -27,6 +27,7 @@ const setupDefaultJobs = async (serverApp: ServerApp) => {
     {
       type: "removeOldWorkerJobs",
       userId: 0,
+      data: {},
       autoRescheduleOnFailure: true,
       autoRescheduleOnFailureDelay: ONE_MINUTE,
     },
@@ -39,6 +40,7 @@ const setupDefaultJobs = async (serverApp: ServerApp) => {
     {
       type: "watchChain",
       userId: 0,
+      data: {},
       autoRescheduleOnFailure: true,
       autoRescheduleOnFailureDelay: 10 * ONE_SECOND,
     },
