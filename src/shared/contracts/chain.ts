@@ -5,24 +5,15 @@ import * as chains from "viem/chains"
  * Get the viem chain object for the given chain name
  */
 export function getChain(chainName: string): Chain {
-  const normalizedName = chainName.toLowerCase()
-
-  // Check viem chains (with normalization)
-  if (chains[normalizedName as keyof typeof chains]) {
-    return chains[normalizedName as keyof typeof chains] as Chain
+  // Check viem chains
+  if (chains[chainName as keyof typeof chains]) {
+    return chains[chainName as keyof typeof chains] as Chain
   }
 
   // Handle common aliases
-  switch (normalizedName) {
-    case "mainnet":
+  switch (chainName) {
     case "ethereum":
       return chains.mainnet
-    case "anvil":
-      return chains.anvil
-    case "hardhat":
-      return chains.hardhat
-    case "localhost":
-      return chains.localhost
     default:
       throw new Error(`Unknown chain: ${chainName}`)
   }

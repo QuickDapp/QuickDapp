@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test"
-import { anvil, mainnet, sepolia } from "viem/chains"
+import { anvil, goerli, hardhat, localhost, mainnet, sepolia } from "viem/chains"
 import {
   getChain,
   getChainId,
@@ -69,19 +69,19 @@ describe("Chain Configuration Module", () => {
         expect(chain.name).toBe("Ethereum")
       })
 
-      it("should return anvil chain for 'anvil' alias", () => {
+      it("should return anvil chain for 'anvil'", () => {
         const chain = getChain("anvil")
         expect(chain.id).toBe(31337)
         expect(chain.name).toBe("Anvil")
       })
 
-      it("should return hardhat chain for 'hardhat' alias", () => {
+      it("should return hardhat chain for 'hardhat'", () => {
         const chain = getChain("hardhat")
         expect(chain.id).toBe(31337)
         expect(chain.name).toBe("Hardhat")
       })
 
-      it("should return localhost chain for 'localhost' alias", () => {
+      it("should return localhost chain for 'localhost'", () => {
         const chain = getChain("localhost")
         expect(chain.id).toBe(1337)
         expect(chain.name).toBe("Localhost")
@@ -89,19 +89,15 @@ describe("Chain Configuration Module", () => {
     })
 
     describe("Case Sensitivity", () => {
-      it("should handle uppercase chain names", () => {
-        const chain = getChain("MAINNET")
-        expect(chain.id).toBe(1)
-        expect(chain.name).toBe("Ethereum")
+      it("should reject uppercase chain names", () => {
+        expect(() => getChain("MAINNET")).toThrow("Unknown chain: MAINNET")
       })
 
-      it("should handle mixed case chain names", () => {
-        const chain = getChain("Arbitrum")
-        expect(chain.id).toBe(42161)
-        expect(chain.name).toBe("Arbitrum One")
+      it("should reject mixed case chain names", () => {
+        expect(() => getChain("Arbitrum")).toThrow("Unknown chain: Arbitrum")
       })
 
-      it("should handle lowercase aliases", () => {
+      it("should work with exact case aliases", () => {
         const chain = getChain("ethereum")
         expect(chain.id).toBe(1)
         expect(chain.name).toBe("Ethereum")
@@ -195,7 +191,7 @@ describe("Chain Configuration Module", () => {
         expect(chainId).toBe(1)
       })
 
-      it("should return correct IDs for development aliases", () => {
+      it("should return correct IDs for development chains", () => {
         expect(getChainId("hardhat")).toBe(31337)
         expect(getChainId("localhost")).toBe(1337)
         expect(getChainId("anvil")).toBe(31337)
@@ -294,6 +290,14 @@ describe("Chain Configuration Module", () => {
         const anvilChain = getChain("anvil")
         expect(anvilChain.id).toBe(anvil.id)
         expect(anvilChain.name).toBe(anvil.name)
+
+        const hardhatChain = getChain("hardhat")
+        expect(hardhatChain.id).toBe(hardhat.id)
+        expect(hardhatChain.name).toBe(hardhat.name)
+
+        const localhostChain = getChain("localhost")
+        expect(localhostChain.id).toBe(localhost.id)
+        expect(localhostChain.name).toBe(localhost.name)
       })
     })
 
