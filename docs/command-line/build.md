@@ -20,6 +20,17 @@ The build process:
 * Bundles static assets into the server
 * Optimizes for production performance
 
+## Options
+
+- --clean / --no-clean
+  - Clean previous build outputs before building. Default: --clean (true).
+- --bundle
+  - Bundle the built client into the server’s static directory so the server serves the SPA directly.
+  - Copies assets into dist/server/static and embeds static assets into the binary output.
+
+Notes:
+- Binaries are always built as part of the build.
+
 ### Build Artifacts
 
 After building, you'll find these artifacts:
@@ -33,11 +44,15 @@ dist/
 │   ├── index.html      # Main HTML file
 │   ├── assets/         # CSS, JS, and other assets
 │   └── favicon.ico     # App icon
-└── bin/               # Self-contained binaries
+└── binaries/          # Self-contained binaries
     ├── quickdapp-linux-x64
     ├── quickdapp-darwin-x64
     └── quickdapp-windows-x64.exe
 ```
+Additional server binary support files:
+- dist/server/binary.js
+- dist/server/binary-assets.json
+
 
 ## Running Production Build
 
@@ -212,16 +227,6 @@ Production server includes health monitoring:
 # Basic health check
 curl http://localhost:3000/health
 # Response: {"status":"ok","version":"1.0.0","timestamp":"..."}
-
-# Detailed status
-curl http://localhost:3000/status
-# Response: {
-#   "status": "ok",
-#   "version": "1.0.0", 
-#   "database": "connected",
-#   "workers": 4,
-#   "uptime": 3600
-# }
 ```
 
 ### Production Logging

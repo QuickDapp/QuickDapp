@@ -34,6 +34,8 @@ interface IERC20Factory {
 }
 ```
 
+Note: This deployToken functionality is part of the sample contracts. The QuickDapp application does not expose GraphQL mutations for token deployment or token CRUD. Perform on-chain interactions from the client using viem/wagmi and use WebSockets for real-time updates.
+
 ## Development Workflow
 
 ### Local Development
@@ -182,6 +184,8 @@ event TokenDeployed(
     string symbol
 );
 ```
+
+Note: Emitting TokenDeployed is useful for contract indexing and client-side tracking. In QuickDapp, there are no GraphQL subscriptions for this; use WebSockets for realtime notifications and handle on-chain events with viem/wagmi on the client.
 
 ## Advanced Usage
 

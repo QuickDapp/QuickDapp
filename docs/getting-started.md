@@ -119,7 +119,8 @@ bun run dev
 
 This will:
 * Start the backend server on http://localhost:3000
-* Start the Vite frontend development server on http://localhost:5173  
+* GraphQL endpoint at http://localhost:3000/graphql and health at http://localhost:3000/health
+* Start the Vite frontend development server on http://localhost:5173
 * Generate contract ABIs and copy static assets
 * Enable hot reload for both frontend and backend changes
 
@@ -223,6 +224,8 @@ In the project folder, build the production apps:
 
 ```shell
 bun run build
+# Optionally bundle client into server static assets so server serves the SPA:
+# bun run build --bundle
 ```
 
 Now, run the production apps:

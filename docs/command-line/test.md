@@ -100,6 +100,21 @@ Run tests in watch mode (planned feature):
 bun run test --watch
 ```
 
+### Serial Execution Flag
+
+Run tests serially:
+```shell
+bun run test --serial
+```
+
+Note: Tests already run in isolation and serially by design; this flag is currently redundant.
+
+### Verbose shorthand
+
+Use -v as shorthand:
+```shell
+bun run test -v
+```
 *Note: Watch mode is available as an option but may not be fully implemented.*
 
 ## Test Architecture

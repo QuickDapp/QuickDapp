@@ -6,7 +6,7 @@ The QuickDapp backend is built on modern, high-performance technologies designed
 
 * **[Bun](https://bun.sh/)** - Primary runtime (Node.js compatible)
 * **[ElysiaJS](https://elysiajs.com/)** - High-performance web framework
-* **[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server)** - GraphQL server with subscriptions
+* **[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server)** - GraphQL server
 * **[DrizzleORM](https://orm.drizzle.team/)** - Type-safe database toolkit
 * **[PostgreSQL](https://www.postgresql.org/)** - Relational database
 * **[SIWE](https://login.xyz/)** - Sign-in with Ethereum authentication
@@ -59,7 +59,10 @@ type Query {
 }
 
 type Mutation {
-  deployToken(input: DeployTokenInput!): Token @auth
+  generateSiweMessage(address: String!): SiweMessageResult!
+  authenticateWithSiwe(message: String!, signature: String!): AuthResult!
+  markNotificationAsRead(id: PositiveInt!): Success! @auth
+  markAllNotificationsAsRead: Success! @auth
 }
 ```
 

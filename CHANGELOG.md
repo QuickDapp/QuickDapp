@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.0.4](https://github.com/QuickDapp/QuickDapp/compare/v3.0.3...v3.0.4) (2025-09-23)
+
+
+### Bug Fixes
+
+* db verification command in ci ([44a0e1d](https://github.com/QuickDapp/QuickDapp/commit/44a0e1dcf14ba8e837207b80409a5be7d666670c))
+
 ## [3.0.3](https://github.com/QuickDapp/QuickDapp/compare/v3.0.2...v3.0.3) (2025-09-23)
 
 ## [3.0.2](https://github.com/QuickDapp/QuickDapp/compare/v3.0.1...v3.0.2) (2025-09-23)
