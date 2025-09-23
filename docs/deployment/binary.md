@@ -165,10 +165,6 @@ Binaries include built-in health endpoints:
 # Basic health check
 curl http://localhost:3000/health
 # {"status":"ok","version":"1.0.0","timestamp":"..."}
-
-# Detailed status
-curl http://localhost:3000/status
-# {"status":"ok","database":"connected","workers":4,"uptime":3600}
 ```
 
 ## Security

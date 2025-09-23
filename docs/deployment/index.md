@@ -174,9 +174,6 @@ QuickDapp provides built-in health endpoints:
 ```shell
 # Basic health check
 curl http://localhost:3000/health
-
-# Detailed system status
-curl http://localhost:3000/status
 ```
 
 ### Log Management
