@@ -190,63 +190,34 @@ export function useTokenTransfer(tokenAddress: string) {
 }
 ```
 
-### GraphQL Mutation with Optimistic Updates
+### Realtime Notifications with WebSockets
 
+GraphQL is used for authentication and notifications querying/mutations. On-chain interactions (including token deployment) are done via viem/wagmi on the client, not via GraphQL mutations.
+
+Use WebSockets to react to new notifications as they arrive:
 ```typescript
-// src/client/hooks/useDeployToken.ts
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { graphqlClient } from '../lib/graphql'
+// src/client/hooks/useNotificationsSocket.ts
+import { useEffect } from 'react'
 
-export function useDeployToken() {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: async (input: DeployTokenInput) => {
-      const data = await graphqlClient.request(`
-        mutation DeployToken($input: DeployTokenInput!) {
-          deployToken(input: $input) {
-            id
-            name
-            symbol
-            address
-          }
+export function useNotificationsSocket(onNotification: (n: any) => void) {
+  useEffect(() => {
+    const token = localStorage.getItem('auth-token')
+    if (!token) return
+
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+    const ws = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`)
+
+    ws.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data)
+        if (msg?.type === 'NotificationReceived' || msg?.type === 1) {
+          onNotification(msg.data)
         }
-      `, { input })
-      
-      return data.deployToken
-    },
-    
-    // Optimistic update
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: ['tokens'] })
-      
-      const previousTokens = queryClient.getQueryData(['tokens'])
-      
-      queryClient.setQueryData(['tokens'], (old: Token[]) => [
-        ...(old || []),
-        {
-          id: 'optimistic-' + Date.now(),
-          name: input.name,
-          symbol: input.symbol,
-          address: '0x0000000000000000000000000000000000000000',
-          createdAt: new Date().toISOString(),
-          owner: { address: '0x...' }
-        }
-      ])
-      
-      return { previousTokens }
-    },
-    
-    // Revert on error
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(['tokens'], context?.previousTokens)
-    },
-    
-    // Refetch on success
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tokens'] })
+      } catch {}
     }
-  })
+
+    return () => ws.close()
+  }, [onNotification])
 }
 ```
 

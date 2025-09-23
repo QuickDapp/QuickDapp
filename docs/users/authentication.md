@@ -198,7 +198,7 @@ const typeDefs = gql`
 
   type Mutation {
     # Protected mutations
-    deployToken(input: DeployTokenInput!): DeployTokenResult! @auth
+    # Note: No deployToken GraphQL mutation. On-chain interactions are via viem/wagmi.
     updateUserProfile(input: UpdateUserInput!): User @auth
   }
 `
@@ -280,7 +280,7 @@ Complete sign-in workflow:
 async function signIn() {
   try {
     // 1. Request nonce from server
-    const { nonce } = await fetch('/api/auth/nonce', {
+    // Use GraphQL generateSiweMessage instead (mutation: generateSiweMessage(address))
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address: userAddress })
@@ -304,7 +304,7 @@ async function signIn() {
     })
 
     // 4. Verify signature with server
-    const { token, user } = await fetch('/api/auth/verify', {
+    // Use GraphQL authenticateWithSiwe instead (mutation: authenticateWithSiwe(message, signature))
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
