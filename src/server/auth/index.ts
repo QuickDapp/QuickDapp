@@ -2,7 +2,7 @@ import { GraphQLError } from "graphql"
 import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
 import { serverConfig } from "../../shared/config/server"
-import { getUser } from "../db/users"
+import { createUserIfNotExists, getUser } from "../db/users"
 import { GraphQLErrorCode } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import { LOG_CATEGORIES } from "../lib/logger"
@@ -70,13 +70,11 @@ export class AuthService {
         })
       }
 
-      // Get user from database
-      const dbUser = await this.getUserByWallet(siwe.address)
-      if (!dbUser) {
-        throw new GraphQLError("User not found", {
-          extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
-        })
-      }
+      // Get or create user in database
+      const dbUser = await createUserIfNotExists(
+        this.serverApp.db,
+        siwe.address,
+      )
 
       // Create JWT token with user ID and wallet
       const now = Date.now()

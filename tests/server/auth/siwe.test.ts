@@ -660,5 +660,41 @@ describe("SIWE Authentication Tests", () => {
         expect(error.message).toBeDefined()
       }
     })
+
+    it("should automatically create user if they don't exist during authentication", async () => {
+      const wallet = generateTestWallet()
+
+      // Step 1: Create SIWE message
+      const siweMessage = createSIWEMessage(wallet.address, {
+        domain: "localhost",
+        uri: "http://localhost:3002",
+        chainId: 1,
+      })
+
+      // Step 2: Sign the message
+      const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
+
+      // Step 3: Verify user doesn't exist in database initially
+      const userBefore = await authService.getUserByWallet(wallet.address)
+      expect(userBefore).toBeUndefined()
+
+      // Step 4: Authenticate - this should create the user automatically
+      const authResult = await authService.authenticateWithSiwe(
+        siweMessage.prepareMessage(),
+        signature,
+      )
+
+      expect(authResult.token).toBeDefined()
+      expect(typeof authResult.token).toBe("string")
+      expect(authResult.user.wallet).toBe(wallet.address.toLowerCase())
+      expect(authResult.user.id).toBeDefined()
+      expect(typeof authResult.user.id).toBe("number")
+
+      // Step 5: Verify user now exists in database
+      const userAfter = await authService.getUserByWallet(wallet.address)
+      expect(userAfter).toBeDefined()
+      expect(userAfter!.wallet).toBe(wallet.address.toLowerCase())
+      expect(userAfter!.id).toBe(authResult.user.id)
+    })
   })
 })
