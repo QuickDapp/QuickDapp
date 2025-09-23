@@ -56,7 +56,7 @@ jobs:
 
     - name: Verify database connection
       run: |
-        PGPASSWORD="" psql -h localhost -U ram -d quickdapp_test -c "SELECT version();"
+        PGPASSWORD="" psql -h localhost -U postgres -d quickdapp_test -c "SELECT version();"
 
     - name: Run build (to generate ABIs and other needed imports)
       run: bun run build
