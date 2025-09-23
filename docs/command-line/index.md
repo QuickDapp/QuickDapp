@@ -24,6 +24,8 @@ This command:
 Same as `dev` but with detailed startup logging:
 
 ```shell
+bun run dev -v
+# or
 bun run dev --verbose
 ```
 
@@ -41,6 +43,14 @@ This creates:
 * Server build with embedded static assets
 * ABI files and contract artifacts
 * Self-contained binary executables (built automatically)
+Flags:
+- --clean / --no-clean
+- --bundle
+
+Artifacts:
+- dist/client/, dist/server/, dist/binaries/
+- Server binary support files: dist/server/binary.js, dist/server/binary-assets.json
+
 
 #### `bun run prod`
 Runs the built application in production mode:
@@ -83,6 +93,10 @@ Runs specific test patterns:
 bun run test --pattern auth
 bun run test --pattern graphql
 ```
+#### Other options
+- -s, --serial: Run tests serially. Note: tests already run one-at-a-time; this flag is currently redundant.
+- -v, --verbose: Verbose output.
+
 
 ### Code Quality Commands
 
@@ -163,10 +177,8 @@ Override the number of worker processes:
 ```shell
 # Specific count
 WORKER_COUNT=4 bun run dev
-
-# Auto-scale to CPU count
-WORKER_COUNT=cpus bun run build
 ```
+Note: WORKER_COUNT applies at runtime (dev/prod). It does not affect the build process.
 
 ### Debug Logging
 
