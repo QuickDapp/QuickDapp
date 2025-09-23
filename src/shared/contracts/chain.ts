@@ -7,7 +7,7 @@ import * as chains from "viem/chains"
 export function getChain(chainName: string): Chain {
   const normalizedName = chainName.toLowerCase()
 
-  // Check viem chains
+  // Check viem chains (with normalization)
   if (chains[normalizedName as keyof typeof chains]) {
     return chains[normalizedName as keyof typeof chains] as Chain
   }
@@ -18,13 +18,13 @@ export function getChain(chainName: string): Chain {
     case "ethereum":
       return chains.mainnet
     case "anvil":
+      return chains.anvil
     case "hardhat":
-    case "localhost":
-      return chains.foundry
-    default:
-      // Development fallback
-      console.warn(`Unknown chain: ${chainName}, falling back to hardhat`)
       return chains.hardhat
+    case "localhost":
+      return chains.localhost
+    default:
+      throw new Error(`Unknown chain: ${chainName}`)
   }
 }
 
