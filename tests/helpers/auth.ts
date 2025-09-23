@@ -133,18 +133,11 @@ export async function signSIWEMessage(
 
 /**
  * Get the correct JWT secret for the current environment
+ * This must match exactly what AuthService uses in src/server/auth/index.ts
  */
 function getJWTSecret(): string {
-  // In test environment, always use the test key
-  if (serverConfig.NODE_ENV === "test") {
-    return "test_key_32_chars_long_for_testing_only!!"
-  }
-
-  // Otherwise use the actual server key
-  return (
-    serverConfig.SESSION_ENCRYPTION_KEY ||
-    "test_key_32_chars_long_for_testing_only!!"
-  )
+  // Always use the server configuration to ensure consistency
+  return serverConfig.SESSION_ENCRYPTION_KEY
 }
 
 /**
@@ -164,9 +157,8 @@ export async function createTestJWT(
     extraClaims = {},
   } = options
 
-  testLogger.debug(`[TEST DEBUG] Creating JWT with secret: ${secret}`)
-  testLogger.debug(`[TEST DEBUG] NODE_ENV: ${serverConfig.NODE_ENV}`)
-  testLogger.debug(`[TEST DEBUG] Wallet: ${wallet}`)
+  testLogger.debug(`Creating JWT for wallet: ${wallet}`)
+  testLogger.debug(`Using expiresIn: ${expiresIn}`)
 
   const jwtSecret = new TextEncoder().encode(secret)
 
@@ -206,28 +198,57 @@ export async function createMalformedJWT(
       const validToken = await createTestJWT(
         "0x1234567890123456789012345678901234567890",
       )
-      // Corrupt the signature part
+      // Completely corrupt the signature part to ensure it fails validation
       const parts = validToken.split(".")
       const signature = parts[2]
       if (!signature) throw new Error("Invalid token format")
-      const corruptedSignature = signature.replace(/[a-zA-Z]/, "X")
+
+      // Create a completely different signature by changing multiple characters
+      let corruptedSignature = signature
+        .replace(/[a-z]/g, "X")
+        .replace(/[A-Z]/g, "Y")
+        .replace(/[0-9]/g, "9")
+        .replace(/-/g, "_")
+        .replace(/_/g, "-")
+
+      // If no changes were made, force corruption
+      if (corruptedSignature === signature) {
+        corruptedSignature = "INVALID_SIGNATURE_" + signature.slice(16)
+      }
+
       return `${parts[0]}.${parts[1]}.${corruptedSignature}`
     }
 
     case "wrong-secret":
       return await createTestJWT("0x1234567890123456789012345678901234567890", {
-        secret: "wrong_secret_key_for_testing_purposes!!",
+        secret: "completely_different_secret_that_will_fail_validation_32chars",
       })
 
-    case "missing-wallet":
-      return await createTestJWT("0x1234567890123456789012345678901234567890", {
-        extraClaims: { wallet: undefined },
+    case "missing-wallet": {
+      // Create a token without the wallet field entirely
+      const jwtSecret = new TextEncoder().encode(getJWTSecret())
+      return await new SignJWT({
+        userId: 1,
+        iat: Math.floor(Date.now() / 1000),
+        // wallet field is missing entirely
       })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("1h")
+        .sign(jwtSecret)
+    }
 
-    case "missing-userId":
-      return await createTestJWT("0x1234567890123456789012345678901234567890", {
-        extraClaims: { userId: undefined },
+    case "missing-userId": {
+      // Create a token without the userId field entirely
+      const jwtSecret = new TextEncoder().encode(getJWTSecret())
+      return await new SignJWT({
+        wallet: "0x1234567890123456789012345678901234567890",
+        iat: Math.floor(Date.now() / 1000),
+        // userId field is missing entirely
       })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("1h")
+        .sign(jwtSecret)
+    }
 
     case "invalid-format":
       return "not.a.valid.jwt.token"

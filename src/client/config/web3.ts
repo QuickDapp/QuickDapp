@@ -1,26 +1,7 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit"
 import type { ClientConfig } from "@shared/config/client"
+import { getSupportedChains } from "@shared/contracts/chain"
 import { createPublicClient, http } from "viem"
-import { hardhat, mainnet, sepolia } from "wagmi/chains"
-
-// Define supported chains based on config
-const getSupportedChains = (chainName: string) => {
-  switch (chainName.toLowerCase()) {
-    case "sepolia":
-      return [sepolia]
-    case "mainnet":
-    case "ethereum":
-      return [mainnet]
-    case "hardhat":
-    case "localhost":
-    case "anvil":
-      return [hardhat]
-    default:
-      // Fallback to hardhat for development
-      console.warn(`Unknown chain: ${chainName}, falling back to hardhat`)
-      return [hardhat]
-  }
-}
 
 // Track if we've already shown the warning to avoid duplicates
 let hasShownPlaceholderWarning = false

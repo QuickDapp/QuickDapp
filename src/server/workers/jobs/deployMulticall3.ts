@@ -1,8 +1,8 @@
 import { createPublicClient, createWalletClient, type Hex, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
-import * as chains from "viem/chains"
 import { serverConfig } from "../../../shared/config/server"
 import { getMulticall3Info } from "../../../shared/contracts"
+import { getChain } from "../../../shared/contracts/chain"
 import type { Job, JobParams } from "./types"
 
 export interface DeployMulticall3Data {
@@ -55,13 +55,12 @@ export const deployMulticall3Job: Job = {
       log.info("🚀 Deploying Multicall3 using deterministic deployment...")
 
       // Get chain info
-      const chainId = await publicClient.getChainId()
-      const chain = Object.values(chains).find((c) => c.id === chainId)
+      const chain = getChain(serverConfig.CHAIN)
 
       // First, fund the sender address with the required ETH
       const fundingTx = await walletClient.sendTransaction({
         account,
-        chain: chain || null,
+        chain,
         to: multicall3Info.sender,
         value: BigInt(parseFloat(multicall3Info.eth) * 10 ** 18), // Convert ETH to wei
       })
