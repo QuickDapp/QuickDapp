@@ -22,6 +22,9 @@ export interface ServerConfig extends ClientConfig {
   SESSION_ENCRYPTION_KEY: string
   SERVER_WALLET_PRIVATE_KEY: string
 
+  // Blockchain (server-side)
+  SERVER_CHAIN_RPC_ENDPOINT: string
+
   // External services (optional)
   MAILGUN_API_KEY?: string
   MAILGUN_API_ENDPOINT?: string
@@ -72,6 +75,12 @@ export const serverConfig: ServerConfig = {
     .required()
     .asString(),
 
+  // Blockchain (server-side)
+  SERVER_CHAIN_RPC_ENDPOINT: env
+    .get("SERVER_CHAIN_RPC_ENDPOINT")
+    .required()
+    .asString(),
+
   // External services (optional)
   MAILGUN_API_KEY: env.get("MAILGUN_API_KEY").asString(),
   MAILGUN_API_ENDPOINT: env.get("MAILGUN_API_ENDPOINT").asString(),
@@ -89,6 +98,7 @@ export function validateConfig() {
     "SERVER_WALLET_PRIVATE_KEY",
     "BASE_URL",
     "CHAIN_RPC_ENDPOINT",
+    "SERVER_CHAIN_RPC_ENDPOINT",
     "WALLETCONNECT_PROJECT_ID",
   ]
 

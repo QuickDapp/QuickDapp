@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test"
-import { anvil, goerli, hardhat, localhost, mainnet, sepolia } from "viem/chains"
+import { anvil, hardhat, localhost, mainnet, sepolia } from "viem/chains"
 import {
   getChain,
   getChainId,

@@ -15,7 +15,7 @@ export const deployMulticall3Job: Job = {
 
     try {
       const multicall3Info = getMulticall3Info()
-      const rpcUrl = serverConfig.CHAIN_RPC_ENDPOINT
+      const rpcUrl = serverConfig.SERVER_CHAIN_RPC_ENDPOINT
 
       if (!rpcUrl) {
         throw new Error("No RPC endpoint configured")

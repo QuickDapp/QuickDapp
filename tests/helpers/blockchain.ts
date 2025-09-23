@@ -125,8 +125,8 @@ const DEFAULT_PRIVATE_KEYS = [
  */
 const getTestBlockchainPort = (): number => {
   try {
-    // Extract port from CHAIN_RPC_ENDPOINT (e.g., "http://127.0.0.1:58545")
-    const rpcUrl = new URL(serverConfig.CHAIN_RPC_ENDPOINT)
+    // Extract port from SERVER_CHAIN_RPC_ENDPOINT (e.g., "http://127.0.0.1:58545")
+    const rpcUrl = new URL(serverConfig.SERVER_CHAIN_RPC_ENDPOINT)
     return parseInt(rpcUrl.port, 10) || 58545
   } catch {
     // Fallback to default port if parsing fails
@@ -136,7 +136,7 @@ const getTestBlockchainPort = (): number => {
 
 /**
  * Starts a testnet instance for testing
- * Uses the port from serverConfig.CHAIN_RPC_ENDPOINT if no port is provided
+ * Uses the port from serverConfig.SERVER_CHAIN_RPC_ENDPOINT if no port is provided
  * @param port Optional port number
  * @param nodeType Type of node to use (defaults to 'hardhat')
  */

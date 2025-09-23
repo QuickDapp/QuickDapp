@@ -10,11 +10,14 @@ SESSION_ENCRYPTION_KEY=your_min_32_characters_key
 SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
 BASE_URL=http://localhost:3000
 CHAIN_RPC_ENDPOINT=http://localhost:8545
+SERVER_CHAIN_RPC_ENDPOINT=http://localhost:8545
 WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
 
 Notes:
 - SESSION_ENCRYPTION_KEY must be at least 32 characters (validated on startup).
+- CHAIN_RPC_ENDPOINT is used by client-side code and exposed to frontend.
+- SERVER_CHAIN_RPC_ENDPOINT is used by server-side blockchain operations only.
 
 ## Common optional
 

@@ -89,7 +89,7 @@ export const createServerApp = async (options: {
 
   // Create blockchain clients
   const chain = getChain()
-  const rpcUrl = serverConfig.CHAIN_RPC_ENDPOINT
+  const rpcUrl = serverConfig.SERVER_CHAIN_RPC_ENDPOINT
 
   const publicClient = createPublicClient({
     chain,
