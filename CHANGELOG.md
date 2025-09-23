@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.1.0](https://github.com/QuickDapp/QuickDapp/compare/v3.0.4...v3.1.0) (2025-09-23)
+
+
+### Features
+
+* add OpenZeppelin contracts library to sample-contracts ([01f9e78](https://github.com/QuickDapp/QuickDapp/commit/01f9e782316a8e0c421ede168945cab890725e6e))
+* add SERVER_CHAIN_RPC_ENDPOINT for server-side blockchain connections ([2a79c78](https://github.com/QuickDapp/QuickDapp/commit/2a79c78951c298ce4adaa1b84c193fabfdbd0deb))
+* auto-create users during SIWE authentication ([e743c5d](https://github.com/QuickDapp/QuickDapp/commit/e743c5d5185bf1f4b3d171d0589079a81e409ec3))
+* centralize chain configuration and fix failing tests ([e843f41](https://github.com/QuickDapp/QuickDapp/commit/e843f41c44fb6a6e72c12f8b2eb050feb8e315d3))
+* enhance blockchain monitoring with custom events and improved error handling ([417c02a](https://github.com/QuickDapp/QuickDapp/commit/417c02ad2bc8329810d0244a95856e2bdbc78fec))
+
 ## [3.0.4](https://github.com/QuickDapp/QuickDapp/compare/v3.0.3...v3.0.4) (2025-09-23)
 
 

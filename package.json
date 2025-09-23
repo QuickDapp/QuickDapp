@@ -1,6 +1,6 @@
 {
   "name": "@quickdapp/quickdapp",
-  "version": "3.0.4",
+  "version": "3.1.0",
   "description": "A highly opinionated framework that helps you quickly build and deploy Web3 dapps. Built with modern TypeScript, PostgreSQL, and comprehensive blockchain integration.",
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
