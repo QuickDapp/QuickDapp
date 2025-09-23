@@ -49,11 +49,6 @@ jobs:
       with:
         version: nightly
 
-    - name: Build test contracts
-      run: |
-        cd tests/helpers/contracts
-        forge build
-
     - name: Verify database connection
       run: |
         PGPASSWORD="" psql -h localhost -U postgres -d quickdapp_test -c "SELECT version();"

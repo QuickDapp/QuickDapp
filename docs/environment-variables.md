@@ -67,7 +67,6 @@ SENTRY_AUTH_TOKEN=your_token          # Optional
 MAILGUN_API_KEY=your_key             # Optional email service
 MAILGUN_API_ENDPOINT=https://api.mailgun.net  # Optional
 MAILGUN_FROM_ADDRESS=noreply@example.com      # Optional
-DIGITALOCEAN_ACCESS_TOKEN=your_token  # Optional cloud deployment
 ```
 
 ## Environment-Specific Examples
