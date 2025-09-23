@@ -59,6 +59,8 @@ DATABASE_URL=postgresql://postgres:@localhost:5432/quickdapp_dev
 
 ```bash
 bun install
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 ```
 
 ### 3. Setup Database Schema
@@ -167,6 +169,7 @@ bun run test --test-file tests/integration/server.test.ts
 ```
 
 ## Development Workflow
+
 
 ### Available Scripts
 
