@@ -173,7 +173,13 @@ export async function cleanupAuditLog(
 
   const result = await db
     .delete(workerJobs)
-    .where(lte(workerJobs.createdAt, cutoffDate))
+    .where(
+      and(
+        lte(workerJobs.createdAt, cutoffDate),
+        // Only delete completed jobs (don't delete running jobs)
+        sql`${workerJobs.completedAt} IS NOT NULL`,
+      ),
+    )
     .execute()
 
   return result.length || 0

@@ -227,6 +227,7 @@ export async function createTestWorkerJobAudit(
     startedAt?: Date
     completedAt?: Date | null
     durationMs?: number | null
+    createdAt?: Date
   } = {},
 ): Promise<any> {
   const defaultAudit = {
@@ -240,6 +241,7 @@ export async function createTestWorkerJobAudit(
     startedAt: auditData.startedAt ?? new Date(),
     completedAt: auditData.completedAt ?? new Date(),
     durationMs: auditData.durationMs ?? 100,
+    createdAt: auditData.createdAt ?? new Date(),
   }
 
   const db = getTestDb()

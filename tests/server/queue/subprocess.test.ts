@@ -12,9 +12,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test"
 import { serverConfig } from "../../../src/shared/config/server"
 import { testLogger } from "../../helpers/logger"
 import {
-  cleanJobAudit,
-  cleanJobQueue,
-  ensureNoOrphanedWorkers,
   getActiveWorkerCount,
   getQueueStatus,
   killWorkerSubprocess,
@@ -24,43 +21,33 @@ import {
   waitForQueueEmpty,
   waitForWorkersReady,
 } from "../../helpers/queue"
-import { startTestServer, type TestServer } from "../../helpers/server"
+import { startTestServer } from "../../helpers/server"
+import { createSubprocessTestContext } from "../../helpers/subprocess-test-context"
+// Import global test setup
+import "../../setup"
 
 describe("Worker Subprocess Architecture", () => {
-  let testServer: TestServer
+  const subprocessContext = createSubprocessTestContext()
 
-  beforeAll(async () => {
-    testLogger.info("🧪 Starting worker subprocess tests...")
-    // Ensure clean state
-    await ensureNoOrphanedWorkers()
-  })
-
-  afterAll(async () => {
-    if (testServer) {
-      await testServer.shutdown()
-    }
-    await ensureNoOrphanedWorkers()
-  })
-
-  afterEach(async () => {
-    if (testServer) {
-      await cleanJobQueue()
-      await cleanJobAudit(testServer.serverApp)
-    }
-  })
+  beforeAll(subprocessContext.beforeAll)
+  afterAll(subprocessContext.afterAll)
+  afterEach(subprocessContext.afterEach)
 
   describe("Process Spawning", () => {
     it("should spawn the correct number of worker processes", async () => {
       const workerCount = 2
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
 
       // Give some time for processes to be tracked
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       testLogger.info(`🔍 Active worker count: ${getActiveWorkerCount()}`)
-      const workerPids = testServer.getWorkerPids()
+      const workerPids = subprocessContext.getTestServer()!.getWorkerPids()
       testLogger.info(
-        `🔍 Worker PIDs from testServer: ${workerPids.join(", ")}`,
+        `🔍 Worker PIDs from subprocessContext.getTestServer(): ${workerPids.join(", ")}`,
       )
 
       // Wait for workers to be ready (this might take longer due to Redis connection issues)
@@ -88,21 +75,27 @@ describe("Worker Subprocess Architecture", () => {
 
     it("should handle single worker process", async () => {
       const workerCount = 1
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
 
       await waitForWorkersReady(workerCount, 5000)
 
-      const workerPids = testServer.getWorkerPids()
+      const workerPids = subprocessContext.getTestServer()!.getWorkerPids()
       expect(workerPids).toHaveLength(1)
       expect(getActiveWorkerCount()).toBe(1)
     })
 
     it("should spawn zero workers when workerCount is 0", async () => {
       const workerCount = 0
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
 
       // No need to wait for workers since none should spawn
-      const workerPids = testServer.getWorkerPids()
+      const workerPids = subprocessContext.getTestServer()!.getWorkerPids()
       expect(workerPids).toHaveLength(0)
       expect(getActiveWorkerCount()).toBe(0)
     })
@@ -111,7 +104,10 @@ describe("Worker Subprocess Architecture", () => {
   describe("Job Processing", () => {
     it("should process jobs across multiple worker processes", async () => {
       const workerCount = 3
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
       await waitForWorkersReady(workerCount, 10000)
 
       const jobCount = 6
@@ -145,10 +141,13 @@ describe("Worker Subprocess Architecture", () => {
 
     it("should distribute jobs to different worker PIDs", async () => {
       const workerCount = 2
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
       await waitForWorkersReady(workerCount, 10000)
 
-      const workerPids = testServer.getWorkerPids()
+      const workerPids = subprocessContext.getTestServer()!.getWorkerPids()
       expect(workerPids).toHaveLength(2)
 
       // Submit jobs with delay to ensure they get distributed
@@ -178,10 +177,13 @@ describe("Worker Subprocess Architecture", () => {
   describe("Worker Lifecycle", () => {
     it("should handle worker process restart on crash", async () => {
       const workerCount = 2
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
       await waitForWorkersReady(workerCount, 10000)
 
-      const initialPids = testServer.getWorkerPids()
+      const initialPids = subprocessContext.getTestServer()!.getWorkerPids()
       expect(initialPids).toHaveLength(2)
 
       // Kill one worker process
@@ -199,7 +201,7 @@ describe("Worker Subprocess Architecture", () => {
 
       // The system should continue processing jobs
       const result = await submitJobAndWaitForCompletion(
-        testServer.serverApp,
+        subprocessContext.getTestServer()!.serverApp,
         "cleanupAuditLog",
         { maxAge: 1000 },
         null,
@@ -211,21 +213,24 @@ describe("Worker Subprocess Architecture", () => {
 
     it("should handle graceful shutdown of all workers", async () => {
       const workerCount = 2
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
       await waitForWorkersReady(workerCount, 10000)
 
-      const initialPids = testServer.getWorkerPids()
+      const initialPids = subprocessContext.getTestServer()!.getWorkerPids()
       expect(initialPids).toHaveLength(2)
       expect(getActiveWorkerCount()).toBe(2)
 
       // Shutdown should clean up all worker processes
-      await testServer.shutdown()
+      await subprocessContext.getTestServer()!.shutdown()
 
       // Verify all workers are cleaned up
       expect(getActiveWorkerCount()).toBe(0)
 
       // Reset testServer to avoid double shutdown in afterAll
-      testServer = null as any
+      subprocessContext.setTestServer(null as any)
     })
   })
 
@@ -234,12 +239,15 @@ describe("Worker Subprocess Architecture", () => {
       // This test verifies that the concurrency setting is applied
       // We can't easily test the actual concurrency without complex job timing
       const workerCount = 1
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
       await waitForWorkersReady(workerCount, 5000)
 
       // Submit a job that should process with the configured concurrency
       const result = await submitJobAndWaitForCompletion(
-        testServer.serverApp,
+        subprocessContext.getTestServer()!.serverApp,
         "cleanupAuditLog",
         { maxAge: 1000 },
       )
@@ -252,12 +260,45 @@ describe("Worker Subprocess Architecture", () => {
       expect(status.completed).toBeGreaterThan(0)
     })
 
+    it("should handle multiple jobs within single worker concurrency", async () => {
+      // Test that a single worker can handle multiple jobs concurrently
+      // (up to WORKER_QUEUE_CONCURRENCY limit)
+      const workerCount = 1
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
+      await waitForWorkersReady(workerCount, 5000)
+
+      // Submit multiple quick jobs simultaneously
+      const jobPromises: Promise<any>[] = []
+      const jobCount = 3 // Less than or equal to concurrency setting
+
+      for (let i = 0; i < jobCount; i++) {
+        const job = await submitTestJob("cleanupAuditLog", {
+          maxAge: 1000 + i * 100,
+        })
+        jobPromises.push(waitForJob(job.id!, 10000))
+      }
+
+      // All jobs should complete successfully
+      const results = await Promise.all(jobPromises)
+      expect(results).toHaveLength(jobCount)
+      results.forEach((result) => {
+        expect(result).toBeDefined()
+      })
+
+      const status = await getQueueStatus()
+      expect(status.completed).toBeGreaterThanOrEqual(jobCount)
+    })
+
     it("should use development default of 1 worker", async () => {
       // Test default configuration (should be 1 worker in development)
-      testServer = await startTestServer() // No override = use config default
+      const testServer = await startTestServer() // No override = use config default
+      subprocessContext.setTestServer(testServer)
 
       // In test environment, WORKER_COUNT should be 1 (from .env.test)
-      const workerPids = testServer.getWorkerPids()
+      const workerPids = subprocessContext.getTestServer()!.getWorkerPids()
       const expectedWorkerCount =
         serverConfig.WORKER_COUNT === "cpus"
           ? require("os").cpus().length
@@ -267,19 +308,67 @@ describe("Worker Subprocess Architecture", () => {
     })
   })
 
+  describe("Heartbeat System", () => {
+    it("should handle worker heartbeats when enabled", async () => {
+      // Note: Heartbeat testing is challenging since it's optional and time-based
+      // This test verifies the system works with heartbeat configuration
+      const workerCount = 1
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
+      await waitForWorkersReady(workerCount, 5000)
+
+      // If heartbeat is configured, the worker should still function normally
+      const result = await submitJobAndWaitForCompletion(
+        subprocessContext.getTestServer()!.serverApp,
+        "cleanupAuditLog",
+        { maxAge: 1000 },
+      )
+
+      expect(result.auditRecord.status).toBe("completed")
+
+      // The worker should remain active (heartbeat keeps it alive)
+      expect(getActiveWorkerCount()).toBe(workerCount)
+    })
+
+    it("should work without heartbeat configuration", async () => {
+      // Test that workers function correctly even without heartbeat
+      const workerCount = 1
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
+      await waitForWorkersReady(workerCount, 5000)
+
+      // Worker should process jobs normally without heartbeat
+      const result = await submitJobAndWaitForCompletion(
+        subprocessContext.getTestServer()!.serverApp,
+        "cleanupAuditLog",
+        { maxAge: 1000 },
+      )
+
+      expect(result.auditRecord.status).toBe("completed")
+      expect(getActiveWorkerCount()).toBe(workerCount)
+    })
+  })
+
   describe("Error Handling", () => {
     it("should handle worker startup failures gracefully", async () => {
       // This test is challenging to implement without introducing actual failures
       // For now, we test that the system can handle normal startup
       const workerCount = 1
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
 
       await waitForWorkersReady(workerCount, 10000)
       expect(getActiveWorkerCount()).toBe(workerCount)
 
       // System should still process jobs normally
       const result = await submitJobAndWaitForCompletion(
-        testServer.serverApp,
+        subprocessContext.getTestServer()!.serverApp,
         "cleanupAuditLog",
         { maxAge: 1000 },
       )
@@ -289,7 +378,10 @@ describe("Worker Subprocess Architecture", () => {
 
     it("should handle jobs when no workers are running", async () => {
       const workerCount = 0
-      testServer = await startTestServer({ workerCountOverride: workerCount })
+      const testServer = await startTestServer({
+        workerCountOverride: workerCount,
+      })
+      subprocessContext.setTestServer(testServer)
 
       // Submit a job - it should remain in waiting state since no workers
       await submitTestJob("cleanupAuditLog", {

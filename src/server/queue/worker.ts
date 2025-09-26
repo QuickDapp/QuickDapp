@@ -161,9 +161,13 @@ export const createQueueManager = async (
   // Setup default jobs
   await setupDefaultJobs(queueManager, logger)
 
-  // Schedule Multicall3 deployment
-  logger.info("Scheduling Multicall3 deployment check...")
-  await queueManager.submitJob("deployMulticall3", { forceRedeploy: false })
+  // Schedule Multicall3 deployment (skip in test environment)
+  if (serverConfig.NODE_ENV !== "test") {
+    logger.info("Scheduling Multicall3 deployment check...")
+    await queueManager.submitJob("deployMulticall3", { forceRedeploy: false })
+  } else {
+    logger.info("Skipping Multicall3 deployment in test environment")
+  }
 
   // Enhance shutdown to include subprocess cleanup
   const originalShutdown = queueManager.shutdown.bind(queueManager)

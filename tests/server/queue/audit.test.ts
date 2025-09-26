@@ -8,86 +8,19 @@ import {
   test,
 } from "bun:test"
 import { workerJobs } from "../../../src/server/db/schema"
-import type { BlockchainTestContext } from "../../helpers/blockchain"
-import {
-  cleanupBlockchainTestContext,
-  createBlockchainTestContext,
-} from "../../helpers/blockchain"
-import {
-  cleanTestDatabase,
-  createTestWorkerJobAudit,
-  setupTestDatabase,
-} from "../../helpers/database"
-import { testLogger } from "../../helpers/logger"
-import {
-  cleanJobQueue,
-  setupTestQueue,
-  submitJobAndWaitForCompletion,
-  teardownTestQueue,
-} from "../../helpers/queue"
-import type { TestServer } from "../../helpers/server"
-import { startTestServer, waitForServer } from "../../helpers/server"
+import { createTestWorkerJobAudit } from "../../helpers/database"
+import { submitJobAndWaitForCompletion } from "../../helpers/queue"
+import { createQueueTestSetup } from "../../helpers/queue-test-context"
 // Import global test setup
 import "../../setup"
 
-describe("Queue Audit Cleanup", () => {
-  let blockchainContext: BlockchainTestContext
-  let serverContext: TestServer
+describe("Queue Audit System", () => {
+  const testSetup = createQueueTestSetup({ workerCount: 1 })
 
-  beforeAll(async () => {
-    try {
-      testLogger.info("🔧 Setting up queue audit cleanup tests...")
-
-      // Setup test database and queue
-      await setupTestDatabase()
-      await setupTestQueue()
-
-      // Start testnet blockchain instance
-      testLogger.info("🔗 Starting test blockchain...")
-      blockchainContext = await createBlockchainTestContext()
-      testLogger.info(
-        `✅ Test blockchain started at ${blockchainContext.testnet.url}`,
-      )
-
-      // Start test server with workers enabled
-      serverContext = await startTestServer({ workerCountOverride: 1 })
-      await waitForServer(serverContext.url)
-
-      testLogger.info("✅ Queue audit cleanup test setup complete")
-    } catch (error) {
-      testLogger.error("❌ Queue audit cleanup test setup failed:", error)
-      throw error
-    }
-  })
-
-  beforeEach(async () => {
-    // Clean database and queue before each test
-    await cleanTestDatabase()
-    await cleanJobQueue()
-  })
-
-  afterEach(async () => {
-    // Clean database and queue after each test
-    await cleanTestDatabase()
-    await cleanJobQueue()
-  })
-
-  afterAll(async () => {
-    try {
-      testLogger.info("🧹 Cleaning up queue audit cleanup tests...")
-
-      // Shutdown server and cleanup queue
-      await serverContext.shutdown()
-      await teardownTestQueue(serverContext.serverApp)
-
-      // Cleanup blockchain
-      await cleanupBlockchainTestContext(blockchainContext)
-
-      testLogger.info("✅ Queue audit cleanup test cleanup complete")
-    } catch (error) {
-      testLogger.error("❌ Queue audit cleanup test cleanup failed:", error)
-    }
-  })
+  beforeAll(testSetup.beforeAll)
+  afterAll(testSetup.afterAll)
+  beforeEach(testSetup.beforeEach)
+  afterEach(testSetup.afterEach)
 
   test("should clean up old audit records", async () => {
     // Create old audit records (older than 24 hours)
@@ -101,6 +34,7 @@ describe("Queue Audit Cleanup", () => {
       startedAt: oldDate,
       completedAt: oldDate,
       durationMs: 100,
+      createdAt: oldDate,
     })
 
     const _oldAudit2 = await createTestWorkerJobAudit({
@@ -111,6 +45,7 @@ describe("Queue Audit Cleanup", () => {
       startedAt: oldDate,
       completedAt: oldDate,
       durationMs: 200,
+      createdAt: oldDate,
     })
 
     // Create recent audit record (should not be cleaned up)
@@ -125,14 +60,15 @@ describe("Queue Audit Cleanup", () => {
     })
 
     // Verify all records exist
-    const allRecordsBefore = await serverContext.serverApp.db
-      .select()
+    const allRecordsBefore = await testSetup
+      .getContext()
+      .server.serverApp.db.select()
       .from(workerJobs)
     expect(allRecordsBefore).toHaveLength(3)
 
     // Run cleanup job with 24-hour age limit
     const { auditRecord } = await submitJobAndWaitForCompletion(
-      serverContext.serverApp,
+      testSetup.getContext().server.serverApp,
       "cleanupAuditLog",
       { maxAge: 24 * 60 * 60 * 1000 }, // 24 hours in milliseconds
       0, // System user
@@ -143,8 +79,9 @@ describe("Queue Audit Cleanup", () => {
     expect(auditRecord.status).toBe("completed")
 
     // Check that old records were removed but recent one remains
-    const remainingRecords = await serverContext.serverApp.db
-      .select()
+    const remainingRecords = await testSetup
+      .getContext()
+      .server.serverApp.db.select()
       .from(workerJobs)
 
     // Should have the recent audit record plus the cleanup job audit record
@@ -163,13 +100,16 @@ describe("Queue Audit Cleanup", () => {
 
   test("should not remove running job audit records", async () => {
     // Create an audit record for a currently running job (no completedAt)
+    const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000) // Old date
+
     const _runningAudit = await createTestWorkerJobAudit({
       jobId: "running-job",
       type: "watchChain",
       userId: 1,
       status: "active",
-      startedAt: new Date(Date.now() - 25 * 60 * 60 * 1000), // Old start time
+      startedAt: oldDate,
       completedAt: null, // Not completed yet
+      createdAt: oldDate,
     })
 
     // Create an old completed job
@@ -178,14 +118,15 @@ describe("Queue Audit Cleanup", () => {
       type: "cleanupAuditLog",
       userId: 2,
       status: "completed",
-      startedAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
-      completedAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+      startedAt: oldDate,
+      completedAt: oldDate,
       durationMs: 100,
+      createdAt: oldDate,
     })
 
     // Run cleanup
     await submitJobAndWaitForCompletion(
-      serverContext.serverApp,
+      testSetup.getContext().server.serverApp,
       "cleanupAuditLog",
       { maxAge: 24 * 60 * 60 * 1000 },
       0,
@@ -193,8 +134,9 @@ describe("Queue Audit Cleanup", () => {
     )
 
     // Check remaining records
-    const remainingRecords = await serverContext.serverApp.db
-      .select()
+    const remainingRecords = await testSetup
+      .getContext()
+      .server.serverApp.db.select()
       .from(workerJobs)
 
     // Running job should still exist
@@ -223,6 +165,7 @@ describe("Queue Audit Cleanup", () => {
       status: "completed",
       startedAt: oneHourAgo,
       completedAt: oneHourAgo,
+      createdAt: oneHourAgo,
     })
 
     await createTestWorkerJobAudit({
@@ -231,6 +174,7 @@ describe("Queue Audit Cleanup", () => {
       status: "completed",
       startedAt: twoHoursAgo,
       completedAt: twoHoursAgo,
+      createdAt: twoHoursAgo,
     })
 
     await createTestWorkerJobAudit({
@@ -239,19 +183,21 @@ describe("Queue Audit Cleanup", () => {
       status: "completed",
       startedAt: threeDaysAgo,
       completedAt: threeDaysAgo,
+      createdAt: threeDaysAgo,
     })
 
     // Run cleanup with 90-minute age limit
     await submitJobAndWaitForCompletion(
-      serverContext.serverApp,
+      testSetup.getContext().server.serverApp,
       "cleanupAuditLog",
       { maxAge: 90 * 60 * 1000 }, // 90 minutes
       0,
       { timeoutMs: 10000 },
     )
 
-    const remainingRecords = await serverContext.serverApp.db
-      .select()
+    const remainingRecords = await testSetup
+      .getContext()
+      .server.serverApp.db.select()
       .from(workerJobs)
 
     // One hour old record should remain

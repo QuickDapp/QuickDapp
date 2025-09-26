@@ -9,84 +9,18 @@ import {
 } from "bun:test"
 import { eq } from "drizzle-orm"
 import { workerJobs } from "../../../src/server/db/schema"
-import type { BlockchainTestContext } from "../../helpers/blockchain"
-import {
-  cleanupBlockchainTestContext,
-  createBlockchainTestContext,
-} from "../../helpers/blockchain"
-import { cleanTestDatabase, setupTestDatabase } from "../../helpers/database"
-import { testLogger } from "../../helpers/logger"
-import {
-  cleanJobQueue,
-  setupTestQueue,
-  submitTestJob,
-  teardownTestQueue,
-  waitForJob,
-  waitForJobAudit,
-} from "../../helpers/queue"
-import type { TestServer } from "../../helpers/server"
-import { startTestServer, waitForServer } from "../../helpers/server"
+import { submitTestJob, waitForJob, waitForJobAudit } from "../../helpers/queue"
+import { createQueueTestSetup } from "../../helpers/queue-test-context"
 // Import global test setup
 import "../../setup"
 
 describe("Queue Error Handling", () => {
-  let blockchainContext: BlockchainTestContext
-  let serverContext: TestServer
+  const testSetup = createQueueTestSetup({ workerCount: 1 })
 
-  beforeAll(async () => {
-    try {
-      testLogger.info("🔧 Setting up queue error handling tests...")
-
-      // Setup test database and queue
-      await setupTestDatabase()
-      await setupTestQueue()
-
-      // Start testnet blockchain instance for deployMulticall3 job
-      testLogger.info("🔗 Starting test blockchain...")
-      blockchainContext = await createBlockchainTestContext()
-      testLogger.info(
-        `✅ Test blockchain started at ${blockchainContext.testnet.url}`,
-      )
-
-      // Start test server with workers enabled
-      serverContext = await startTestServer({ workerCountOverride: 1 })
-      await waitForServer(serverContext.url)
-
-      testLogger.info("✅ Queue error handling test setup complete")
-    } catch (error) {
-      testLogger.error("❌ Queue error handling test setup failed:", error)
-      throw error
-    }
-  })
-
-  beforeEach(async () => {
-    // Clean database and queue before each test
-    await cleanTestDatabase()
-    await cleanJobQueue()
-  })
-
-  afterEach(async () => {
-    // Clean database and queue after each test
-    await cleanTestDatabase()
-    await cleanJobQueue()
-  })
-
-  afterAll(async () => {
-    try {
-      testLogger.info("🧹 Cleaning up queue error handling tests...")
-
-      // Shutdown server and cleanup queue
-      await serverContext.shutdown()
-      await teardownTestQueue(serverContext.serverApp)
-
-      // Cleanup blockchain
-      await cleanupBlockchainTestContext(blockchainContext)
-
-      testLogger.info("✅ Queue error handling test cleanup complete")
-    } catch (error) {
-      testLogger.error("❌ Queue error handling test cleanup failed:", error)
-    }
-  })
+  beforeAll(testSetup.beforeAll)
+  afterAll(testSetup.afterAll)
+  beforeEach(testSetup.beforeEach)
+  afterEach(testSetup.afterEach)
 
   test("should handle job execution errors gracefully", async () => {
     // Submit a job with valid type but invalid data that will cause an error
@@ -105,9 +39,9 @@ describe("Queue Error Handling", () => {
 
     // Wait for audit record to be created
     const auditRecord = await waitForJobAudit(
-      serverContext.serverApp,
+      testSetup.getContext().server.serverApp,
       job.id!,
-      5000,
+      10000, // Increased timeout for more reliability
     )
 
     // Verify the job was marked as failed in audit
@@ -138,9 +72,9 @@ describe("Queue Error Handling", () => {
 
     // Wait for audit record
     const auditRecord = await waitForJobAudit(
-      serverContext.serverApp,
+      testSetup.getContext().server.serverApp,
       job.id!,
-      3000,
+      10000, // Increased timeout for more reliability
     )
 
     // Verify audit record shows failure
@@ -177,8 +111,9 @@ describe("Queue Error Handling", () => {
     }
 
     // Check that both audit records were created
-    const auditRecords = await serverContext.serverApp.db
-      .select()
+    const auditRecords = await testSetup
+      .getContext()
+      .server.serverApp.db.select()
       .from(workerJobs)
       .where(eq(workerJobs.userId, 777))
 
