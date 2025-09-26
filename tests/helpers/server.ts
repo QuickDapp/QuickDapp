@@ -50,8 +50,8 @@ export async function startTestServer(
         }
 
         // Stop workers if they exist
-        if (serverApp.workerManager) {
-          await serverApp.workerManager.shutdown()
+        if (serverApp.queueManager) {
+          await serverApp.queueManager.shutdown()
         }
 
         testLogger.info("✅ Test server shut down")

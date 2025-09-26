@@ -7,7 +7,7 @@ import { afterAll, beforeAll } from "bun:test"
 import { dbManager } from "../src/server/db/connection"
 import { closeTestDb, initTestDb } from "./helpers/database"
 import { testLogger } from "./helpers/logger"
-import { killAllActiveWorkers } from "./helpers/worker"
+import { killAllActiveWorkers } from "./helpers/queue"
 
 // Global test setup - runs once before all tests
 beforeAll(async () => {

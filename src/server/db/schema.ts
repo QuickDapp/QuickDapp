@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   json,
   pgTable,
@@ -38,31 +39,37 @@ export const notifications = pgTable("notifications", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
-// Worker jobs table for background task management
-export const workerJobs = pgTable("worker_jobs", {
-  id: serial("id").primaryKey(),
-  type: text("type").notNull(),
-  userId: integer("user_id").notNull(),
-  data: json("data").notNull(),
-  due: timestamp("due").notNull(),
-  started: timestamp("started"),
-  finished: timestamp("finished"),
-  removeAt: timestamp("remove_at").notNull(),
-  success: boolean("success"),
-  result: json("result"),
-  cronSchedule: text("cron_schedule"),
-  autoRescheduleOnFailure: boolean("auto_reschedule_on_failure")
-    .default(false)
-    .notNull(),
-  autoRescheduleOnFailureDelay: integer("auto_reschedule_on_failure_delay")
-    .default(0)
-    .notNull(),
-  removeDelay: integer("remove_delay").default(0).notNull(),
-  rescheduledFromJob: integer("rescheduled_from_job"),
-  persistent: boolean("persistent").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
+// Worker jobs table for audit trail (Redis handles active queue)
+export const workerJobs = pgTable(
+  "worker_jobs",
+  {
+    id: serial("id").primaryKey(),
+
+    // Essential job identification
+    jobId: text("job_id").notNull().unique(), // BullMQ job ID
+    type: text("type").notNull(), // Job type
+    userId: integer("user_id"), // NULLABLE for system jobs
+
+    // Job data and results
+    data: json("data").notNull(), // Job input data
+    result: json("result"), // Job output data
+    error: text("error"), // Error message if failed
+
+    // Execution metrics
+    status: text("status").notNull(), // completed, failed
+    startedAt: timestamp("started_at").notNull(), // When job started
+    completedAt: timestamp("completed_at"), // When job finished
+    durationMs: integer("duration_ms"), // Execution time in milliseconds
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    typeIdx: index("idx_worker_jobs_type").on(table.type),
+    statusIdx: index("idx_worker_jobs_status").on(table.status),
+    createdAtIdx: index("idx_worker_jobs_created_at").on(table.createdAt),
+    jobIdIdx: index("idx_worker_jobs_job_id").on(table.jobId),
+  }),
+)
 
 // Export types for use in application
 export type Setting = typeof settings.$inferSelect

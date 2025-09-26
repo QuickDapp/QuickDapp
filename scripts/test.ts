@@ -3,6 +3,7 @@
 import { existsSync, unlinkSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { $, Glob, spawn } from "bun"
+import { createTestRedisManager } from "./shared/redis-manager"
 import {
   type CommandSetup,
   createScriptRunner,
@@ -39,23 +40,44 @@ WORKER_LOG_LEVEL=debug
     console.log("")
   }
 
-  // Cleanup function to remove temporary files
-  const cleanup = () => {
+  // Set up isolated Redis for testing
+  const redisManager = createTestRedisManager(options.verbose)
+  console.log("📦 Setting up isolated Redis for tests...")
+  try {
+    await redisManager.ensureRedis()
+    console.log("✅ Test Redis ready on port 6380")
+  } catch (error) {
+    console.error("❌ Failed to start test Redis:", error)
+    process.exit(1)
+  }
+  console.log("")
+
+  // Cleanup function to remove temporary files and Redis
+  const cleanup = async () => {
     if (createdTempEnvFile && existsSync(envTestLocalPath)) {
       console.log("🧹 Cleaning up temporary debug logging configuration...")
       unlinkSync(envTestLocalPath)
       console.log("✅ Temporary files cleaned up")
     }
+
+    console.log("🧹 Cleaning up test Redis...")
+    await redisManager.cleanup()
+    console.log("✅ Test Redis cleaned up")
   }
 
   // Set up cleanup on exit
-  process.on("exit", cleanup)
-  process.on("SIGINT", () => {
-    cleanup()
+  process.on("exit", () => {
+    // Synchronous cleanup for exit event
+    if (createdTempEnvFile && existsSync(envTestLocalPath)) {
+      unlinkSync(envTestLocalPath)
+    }
+  })
+  process.on("SIGINT", async () => {
+    await cleanup()
     process.exit(0)
   })
-  process.on("SIGTERM", () => {
-    cleanup()
+  process.on("SIGTERM", async () => {
+    await cleanup()
     process.exit(0)
   })
 
@@ -176,16 +198,16 @@ WORKER_LOG_LEVEL=debug
     if (totalFailed > 0) {
       console.log("")
       console.log("❌ Some tests failed!")
-      cleanup()
+      await cleanup()
       process.exit(1)
     } else {
       console.log("")
       console.log("✅ All tests passed!")
-      cleanup()
+      await cleanup()
     }
   } catch (error) {
     console.error("❌ Test execution failed:", error)
-    cleanup()
+    await cleanup()
     process.exit(1)
   }
 }

@@ -218,37 +218,52 @@ export async function createTestNotification(
 }
 
 /**
- * Create test worker job
+ * Create test worker job audit record
  */
-export async function createTestWorkerJob(
-  jobData: { type: string; userId: number; data: any; due?: Date } = {
-    type: "testJob",
-    userId: 1,
-    data: { action: "test" },
-  },
+export async function createTestWorkerJobAudit(
+  auditData: {
+    jobId?: string
+    type?: string
+    userId?: number | null
+    data?: any
+    result?: any
+    error?: string | null
+    status?: string
+    startedAt?: Date
+    completedAt?: Date | null
+    durationMs?: number | null
+  } = {},
 ): Promise<any> {
-  const defaultJob: NewWorkerJob = {
-    due: new Date(),
-    removeAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-    ...jobData,
+  const defaultAudit = {
+    jobId: auditData.jobId ?? `test-job-${Date.now()}`,
+    type: auditData.type ?? "testJob",
+    userId: auditData.userId ?? null,
+    data: auditData.data ?? { action: "test" },
+    result: auditData.result ?? null,
+    error: auditData.error ?? null,
+    status: auditData.status ?? "completed",
+    startedAt: auditData.startedAt ?? new Date(),
+    completedAt: auditData.completedAt ?? new Date(),
+    durationMs: auditData.durationMs ?? 100,
   }
 
   const db = getTestDb()
-  const [job] = await db
+  const [audit] = await db
     .insert(schema.workerJobs)
-    .values(defaultJob)
+    .values(defaultAudit)
     .returning()
 
-  if (!job) {
-    throw new Error("Failed to create test worker job")
+  if (!audit) {
+    throw new Error("Failed to create test worker job audit record")
   }
 
-  testLogger.info("📝 Test worker job created:", {
-    id: job.id,
-    type: job.type,
-    userId: job.userId,
+  testLogger.info("📝 Test worker job audit record created:", {
+    id: audit.id,
+    jobId: audit.jobId,
+    type: audit.type,
+    status: audit.status,
   })
-  return job
+  return audit
 }
 
 /**

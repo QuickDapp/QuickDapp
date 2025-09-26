@@ -8,8 +8,8 @@ import { dbManager } from "./db/connection"
 import { notifications } from "./db/schema"
 import { getChain } from "./lib/chains"
 import type { Logger } from "./lib/logger"
+import { createQueueManager } from "./queue/worker"
 import type { ServerApp } from "./types"
-import { createWorkerManager } from "./workers"
 
 /**
  * Create notification function that can be shared between server and worker
@@ -63,8 +63,8 @@ export const createServerApp = async (options: {
   socketManager: ISocketManager
   rootLogger: Logger
 }): Promise<
-  Omit<ServerApp, "app" | "workerManager"> & {
-    workerManager?: ServerApp["workerManager"]
+  Omit<ServerApp, "app" | "queueManager"> & {
+    queueManager?: ServerApp["queueManager"]
   }
 > => {
   const {
@@ -123,7 +123,7 @@ export const createServerApp = async (options: {
   if (includeWorkerManager) {
     return {
       ...baseServerApp,
-      workerManager: await createWorkerManager(
+      queueManager: await createQueueManager(
         baseServerApp as any,
         workerCountOverride,
       ),

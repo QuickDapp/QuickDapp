@@ -5,7 +5,7 @@ import type { Elysia } from "elysia"
 import type { PublicClient, WalletClient } from "viem"
 import type * as schema from "./db/schema"
 import type { Logger } from "./lib/logger"
-import type { WorkerManager } from "./workers"
+import type { QueueManager } from "./queue/manager"
 
 /**
  * ServerApp type containing references to useful properties and methods
@@ -20,8 +20,8 @@ export type ServerApp = {
   rootLogger: Logger
   /** Create a logger with a category */
   createLogger: (category: string) => Logger
-  /** Worker manager for background job processing */
-  workerManager: WorkerManager
+  /** Queue manager for background job processing */
+  queueManager: QueueManager
   /** WebSocket manager for real-time communication */
   socketManager: ISocketManager
   /** Public blockchain client for reading */

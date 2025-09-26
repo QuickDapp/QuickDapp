@@ -66,7 +66,7 @@ describe("Server Integration Tests", () => {
       expect(serverApp.db).toBeDefined()
       expect(serverApp.rootLogger).toBeDefined()
       expect(serverApp.createLogger).toBeDefined()
-      expect(serverApp.workerManager).toBeDefined()
+      expect(serverApp.queueManager).toBeDefined()
 
       // Check logger functionality
       const testLogger = serverApp.createLogger("test")
@@ -75,17 +75,14 @@ describe("Server Integration Tests", () => {
       expect(typeof testLogger.error).toBe("function")
     })
 
-    it("should initialize worker manager", () => {
+    it("should initialize queue manager", () => {
       if (!testServer) throw new Error("Test server not initialized")
 
-      const { workerManager } = testServer.serverApp
+      const { queueManager } = testServer.serverApp
 
-      expect(workerManager).toBeDefined()
-      expect(typeof workerManager.submitJob).toBe("function")
-      expect(typeof workerManager.getWorkerCount).toBe("function")
-      expect(typeof workerManager.shutdown).toBe("function")
-      // Worker count should be 1 as set in beforeAll
-      expect(workerManager.getWorkerCount()).toBe(1)
+      expect(queueManager).toBeDefined()
+      expect(typeof queueManager.submitJob).toBe("function")
+      expect(typeof queueManager.shutdown).toBe("function")
     })
 
     it("should connect to database", () => {

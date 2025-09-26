@@ -7,6 +7,7 @@ import { createServerApp } from "./bootstrap"
 import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
 import { createRootLogger } from "./lib/logger"
+import { setupBullBoard, setupMetrics } from "./queue/monitoring"
 import type { ServerApp } from "./types"
 import { createWebSocket, SocketManager } from "./ws"
 
@@ -74,11 +75,11 @@ export const createApp = async (
   const serverApp: ServerApp = {
     ...bootstrapResult,
     app,
-    workerManager: bootstrapResult.workerManager!,
+    queueManager: bootstrapResult.queueManager!,
   }
 
   logger.info(
-    `Worker manager initialized with ${serverConfig.WORKER_COUNT} workers`,
+    `Queue manager initialized with ${serverConfig.WORKER_COUNT} workers`,
   )
 
   // Configure Elysia app
@@ -145,6 +146,12 @@ export const createApp = async (
   // Add WebSocket endpoint
   app.use(createWebSocket(serverApp))
 
+  // Add Bull Board dashboard for queue monitoring
+  setupBullBoard(app)
+
+  // Add Prometheus metrics endpoint
+  setupMetrics(app)
+
   // Serve static assets from Vite build (or configurable location)
   const staticDir =
     serverConfig.STATIC_ASSETS_FOLDER || path.join(import.meta.dir, "static")
@@ -175,6 +182,8 @@ export const createApp = async (
       )
       logger.info(`➜ Running at: ${server.url}`)
       logger.info(`➜ GraphQL endpoint: ${server.url}graphql`)
+      logger.info(`➜ Queue dashboard: ${server.url}admin/queues`)
+      logger.info(`➜ Metrics endpoint: ${server.url}metrics`)
       logger.info(`➜ Environment: ${serverConfig.NODE_ENV}`)
     },
   )

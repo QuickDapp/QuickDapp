@@ -5,6 +5,7 @@ import path from "node:path"
 import { spawn } from "bun"
 import { copyStaticSrc } from "./shared/copy-static-src"
 import { generateAbis } from "./shared/generate-abis"
+import { createDevRedisManager } from "./shared/redis-manager"
 import { createScriptRunner, type ScriptOptions } from "./shared/script-runner"
 
 interface DevOptions extends ScriptOptions {
@@ -12,7 +13,7 @@ interface DevOptions extends ScriptOptions {
 }
 
 async function devHandler(
-  _options: DevOptions,
+  options: DevOptions,
   config: { rootFolder: string; env: string },
 ) {
   console.log("🚀 Starting QuickDapp development server...")
@@ -25,6 +26,18 @@ async function devHandler(
     console.log("   cd sample-contracts && bun deploy.ts")
     console.log("")
   }
+
+  // Set up Redis for development
+  const redisManager = createDevRedisManager(options.verbose)
+  console.log("📦 Setting up Redis for job queue...")
+  try {
+    await redisManager.ensureRedis()
+    console.log("✅ Redis ready for job processing")
+  } catch (error) {
+    console.error("❌ Failed to start Redis:", error)
+    process.exit(1)
+  }
+  console.log("")
 
   // Copy static-src to static
   copyStaticSrc(config.rootFolder, true)

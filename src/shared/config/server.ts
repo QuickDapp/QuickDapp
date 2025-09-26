@@ -18,6 +18,12 @@ export interface ServerConfig extends ClientConfig {
   DATABASE_URL: string
   TX_BLOCK_CONFIRMATIONS_REQUIRED: number
 
+  // Redis & Queue Configuration
+  REDIS_URL: string
+  WORKER_QUEUE_CONCURRENCY: number
+  WORKER_QUEUE_JOB_ATTEMPTS: number
+  WORKER_QUEUE_STALLED_INTERVAL: number
+
   // Security
   SESSION_ENCRYPTION_KEY: string
   SERVER_WALLET_PRIVATE_KEY: string
@@ -63,6 +69,21 @@ export const serverConfig: ServerConfig = {
   TX_BLOCK_CONFIRMATIONS_REQUIRED: env
     .get("TX_BLOCK_CONFIRMATIONS_REQUIRED")
     .default(1)
+    .asInt(),
+
+  // Redis & Queue Configuration
+  REDIS_URL: env.get("REDIS_URL").required().asString(),
+  WORKER_QUEUE_CONCURRENCY: env
+    .get("WORKER_QUEUE_CONCURRENCY")
+    .default(5)
+    .asInt(),
+  WORKER_QUEUE_JOB_ATTEMPTS: env
+    .get("WORKER_QUEUE_JOB_ATTEMPTS")
+    .default(3)
+    .asInt(),
+  WORKER_QUEUE_STALLED_INTERVAL: env
+    .get("WORKER_QUEUE_STALLED_INTERVAL")
+    .default(30000)
     .asInt(),
 
   // Security

@@ -1,12 +1,12 @@
 import type { PublicClient } from "viem"
-import type { WorkerJob } from "../../db/schema"
 import type { Logger } from "../../lib/logger"
+import type { QueueJob } from "../../queue/types"
 import type { ServerApp } from "../../types"
 
 export interface JobParams {
   serverApp: ServerApp
   log: Logger
-  job: WorkerJob
+  job: QueueJob
 }
 
 export type JobRunner = (params: JobParams) => Promise<any>
@@ -26,33 +26,33 @@ export interface ChainFilterModule {
 }
 
 // Job data types for type safety
-export interface RemoveOldWorkerJobsData {
-  // No specific data needed for this job
+export interface CleanupAuditLogData {
+  retentionDays: number
 }
 
 export interface WatchChainData {
-  // No specific data needed for this job
+  fromBlock?: bigint
 }
 
 export interface DeployMulticall3Data {
   forceRedeploy?: boolean
 }
 
-// Discriminated union for job types
-export type JobType = "removeOldWorkerJobs" | "watchChain" | "deployMulticall3"
+// Discriminated union for job types (updated for new queue system)
+export type JobType = "watchChain" | "deployMulticall3" | "cleanupAuditLog"
 
 // Type-safe job configurations
-export type JobConfig<T extends JobType> = T extends "removeOldWorkerJobs"
-  ? { type: T; data?: RemoveOldWorkerJobsData }
+export type JobConfig<T extends JobType> = T extends "cleanupAuditLog"
+  ? { type: T; data: CleanupAuditLogData }
   : T extends "watchChain"
-    ? { type: T; data?: WatchChainData }
+    ? { type: T; data: WatchChainData }
     : T extends "deployMulticall3"
-      ? { type: T; data?: DeployMulticall3Data }
+      ? { type: T; data: DeployMulticall3Data }
       : never
 
 // Helper type to extract job data type from job type
-export type JobDataType<T extends JobType> = T extends "removeOldWorkerJobs"
-  ? RemoveOldWorkerJobsData
+export type JobDataType<T extends JobType> = T extends "cleanupAuditLog"
+  ? CleanupAuditLogData
   : T extends "watchChain"
     ? WatchChainData
     : T extends "deployMulticall3"
@@ -62,9 +62,9 @@ export type JobDataType<T extends JobType> = T extends "removeOldWorkerJobs"
 // Type guard for job types
 export const isValidJobType = (type: string): type is JobType => {
   return (
-    type === "removeOldWorkerJobs" ||
     type === "watchChain" ||
-    type === "deployMulticall3"
+    type === "deployMulticall3" ||
+    type === "cleanupAuditLog"
   )
 }
 
