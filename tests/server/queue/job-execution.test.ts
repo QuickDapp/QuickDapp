@@ -86,7 +86,7 @@ describe("Queue Job Execution", () => {
   })
 
   test("should execute cleanupAuditLog job successfully", async () => {
-    const { job, result, auditRecord } = await submitJobAndWaitForCompletion(
+    const { job, auditRecord } = await submitJobAndWaitForCompletion(
       serverContext.serverApp,
       "cleanupAuditLog",
       { maxAge: 24 * 60 * 60 * 1000 },
@@ -104,7 +104,7 @@ describe("Queue Job Execution", () => {
   })
 
   test("should execute job with different user", async () => {
-    const { job, result, auditRecord } = await submitJobAndWaitForCompletion(
+    const { job, auditRecord } = await submitJobAndWaitForCompletion(
       serverContext.serverApp,
       "cleanupAuditLog",
       { maxAge: 12 * 60 * 60 * 1000 },

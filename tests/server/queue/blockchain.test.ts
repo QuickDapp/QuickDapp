@@ -371,7 +371,7 @@ describe("Queue Blockchain Integration Tests", () => {
 
     test("should handle deployMulticall3 job successfully", async () => {
       // Test that we can execute deployMulticall3 jobs successfully
-      const { job, result, auditRecord } = await submitJobAndWaitForCompletion(
+      const { result, auditRecord } = await submitJobAndWaitForCompletion(
         serverContext.serverApp,
         "deployMulticall3",
         { forceRedeploy: false },
@@ -392,7 +392,7 @@ describe("Queue Blockchain Integration Tests", () => {
 
     test("should handle watchChain job successfully", async () => {
       // Test that we can execute watchChain jobs successfully
-      const { job, result, auditRecord } = await submitJobAndWaitForCompletion(
+      const { result, auditRecord } = await submitJobAndWaitForCompletion(
         serverContext.serverApp,
         "watchChain",
         {},

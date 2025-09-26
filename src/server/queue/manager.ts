@@ -1,6 +1,6 @@
 import { type JobsOptions, type RepeatOptions } from "bullmq"
 import { getJobPriority, jobQueue } from "./queues"
-import type { JobData, JobType, QueueJob } from "./types"
+import type { JobData, JobType } from "./types"
 
 export class QueueManager {
   /**

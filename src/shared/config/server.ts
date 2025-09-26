@@ -23,6 +23,7 @@ export interface ServerConfig extends ClientConfig {
   WORKER_QUEUE_CONCURRENCY: number
   WORKER_QUEUE_JOB_ATTEMPTS: number
   WORKER_QUEUE_STALLED_INTERVAL: number
+  WORKER_HEARTBEAT_INTERVAL?: number
 
   // Security
   SESSION_ENCRYPTION_KEY: string
@@ -85,6 +86,7 @@ export const serverConfig: ServerConfig = {
     .get("WORKER_QUEUE_STALLED_INTERVAL")
     .default(30000)
     .asInt(),
+  WORKER_HEARTBEAT_INTERVAL: env.get("WORKER_HEARTBEAT_INTERVAL").asInt(),
 
   // Security
   SESSION_ENCRYPTION_KEY: env

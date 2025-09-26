@@ -65,6 +65,7 @@ export const createServerApp = async (options: {
 }): Promise<
   Omit<ServerApp, "app" | "queueManager"> & {
     queueManager?: ServerApp["queueManager"]
+    workers?: any[]
   }
 > => {
   const {
@@ -121,12 +122,14 @@ export const createServerApp = async (options: {
   }
 
   if (includeWorkerManager) {
+    const { queueManager, workers } = await createQueueManager(
+      baseServerApp as any,
+      workerCountOverride,
+    )
     return {
       ...baseServerApp,
-      queueManager: await createQueueManager(
-        baseServerApp as any,
-        workerCountOverride,
-      ),
+      queueManager,
+      workers,
     }
   }
 

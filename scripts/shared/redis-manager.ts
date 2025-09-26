@@ -1,4 +1,4 @@
-import { $, spawn } from "bun"
+import { $ } from "bun"
 
 export interface RedisManagerOptions {
   port: number

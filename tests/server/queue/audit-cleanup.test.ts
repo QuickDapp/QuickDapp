@@ -7,7 +7,6 @@ import {
   expect,
   test,
 } from "bun:test"
-import { eq, lt } from "drizzle-orm"
 import { workerJobs } from "../../../src/server/db/schema"
 import type { BlockchainTestContext } from "../../helpers/blockchain"
 import {
@@ -94,7 +93,7 @@ describe("Queue Audit Cleanup", () => {
     // Create old audit records (older than 24 hours)
     const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000) // 25 hours ago
 
-    const oldAudit1 = await createTestWorkerJobAudit({
+    const _oldAudit1 = await createTestWorkerJobAudit({
       jobId: "old-job-1",
       type: "cleanupAuditLog",
       userId: 1,
@@ -104,7 +103,7 @@ describe("Queue Audit Cleanup", () => {
       durationMs: 100,
     })
 
-    const oldAudit2 = await createTestWorkerJobAudit({
+    const _oldAudit2 = await createTestWorkerJobAudit({
       jobId: "old-job-2",
       type: "watchChain",
       userId: 2,
@@ -115,7 +114,7 @@ describe("Queue Audit Cleanup", () => {
     })
 
     // Create recent audit record (should not be cleaned up)
-    const recentAudit = await createTestWorkerJobAudit({
+    const _recentAudit = await createTestWorkerJobAudit({
       jobId: "recent-job",
       type: "cleanupAuditLog",
       userId: 3,
@@ -164,7 +163,7 @@ describe("Queue Audit Cleanup", () => {
 
   test("should not remove running job audit records", async () => {
     // Create an audit record for a currently running job (no completedAt)
-    const runningAudit = await createTestWorkerJobAudit({
+    const _runningAudit = await createTestWorkerJobAudit({
       jobId: "running-job",
       type: "watchChain",
       userId: 1,
@@ -174,7 +173,7 @@ describe("Queue Audit Cleanup", () => {
     })
 
     // Create an old completed job
-    const oldCompletedAudit = await createTestWorkerJobAudit({
+    const _oldCompletedAudit = await createTestWorkerJobAudit({
       jobId: "old-completed-job",
       type: "cleanupAuditLog",
       userId: 2,

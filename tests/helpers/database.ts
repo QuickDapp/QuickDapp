@@ -6,12 +6,7 @@
  */
 
 import { dbManager, schema } from "@server/db/connection"
-import type {
-  NewNotification,
-  NewUser,
-  NewWorkerJob,
-  User,
-} from "@server/db/schema"
+import type { NewNotification, NewUser, User } from "@server/db/schema"
 import { serverConfig } from "@shared/config/server"
 import { testLogger } from "@tests/helpers/logger"
 import { sql } from "drizzle-orm"

@@ -188,5 +188,5 @@ export const createApp = async (
     },
   )
 
-  return { app, server, serverApp }
+  return { app, server, serverApp, workers: bootstrapResult.workers || [] }
 }

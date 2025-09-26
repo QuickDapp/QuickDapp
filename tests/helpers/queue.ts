@@ -359,3 +359,87 @@ export function createTestJobData(baseData: any = {}) {
     ...baseData,
   }
 }
+
+/**
+ * Get PIDs of all active worker subprocesses
+ */
+export function getWorkerProcessPids(): number[] {
+  return Array.from(activeWorkerProcesses)
+    .map((p) => p.pid)
+    .filter((pid) => pid !== undefined) as number[]
+}
+
+/**
+ * Wait for specific number of worker subprocesses to start
+ */
+export async function waitForWorkersReady(
+  expectedCount: number,
+  timeoutMs = 5000,
+): Promise<void> {
+  const startTime = Date.now()
+  const pollInterval = 100
+
+  while (Date.now() - startTime < timeoutMs) {
+    const activePids = getWorkerProcessPids()
+    if (activePids.length >= expectedCount) {
+      testLogger.debug(`${activePids.length} worker processes ready`)
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollInterval))
+  }
+
+  const activePids = getWorkerProcessPids()
+  throw new Error(
+    `Only ${activePids.length}/${expectedCount} worker processes started within ${timeoutMs}ms`,
+  )
+}
+
+/**
+ * Kill a specific worker subprocess by process ID
+ */
+export function killWorkerSubprocess(pid: number): void {
+  for (const process of activeWorkerProcesses) {
+    if (process.pid === pid) {
+      try {
+        if (!process.killed) {
+          process.kill("SIGKILL")
+          testLogger.debug(`Killed worker subprocess ${pid}`)
+        }
+        activeWorkerProcesses.delete(process)
+        return
+      } catch (error) {
+        testLogger.warn(`Failed to kill worker subprocess ${pid}:`, error)
+      }
+    }
+  }
+  testLogger.warn(`Worker subprocess ${pid} not found in active processes`)
+}
+
+/**
+ * Get count of active worker subprocesses
+ */
+export function getActiveWorkerCount(): number {
+  return activeWorkerProcesses.size
+}
+
+/**
+ * Register a worker subprocess for tracking (used by test server)
+ */
+export function trackWorkerProcess(process: ChildProcess): void {
+  activeWorkerProcesses.add(process)
+  testLogger.debug(`Tracking worker process ${process.pid}`)
+}
+
+/**
+ * Ensure no orphaned worker processes remain
+ */
+export async function ensureNoOrphanedWorkers(): Promise<void> {
+  const orphanedPids = getWorkerProcessPids()
+  if (orphanedPids.length > 0) {
+    testLogger.warn(
+      `Found ${orphanedPids.length} orphaned worker processes: ${orphanedPids.join(", ")}`,
+    )
+    killAllActiveWorkers()
+  }
+}
