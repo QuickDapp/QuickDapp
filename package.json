@@ -26,6 +26,8 @@
     "lint:fix": "bun run typecheck && biome check --write .",
     "format": "biome format --write .",
     "db": "bun run scripts/db.ts",
+    "redis:dev": "docker run --rm -p 6379:6379 redis:latest",
+    "redis:test": "docker run --rm -p 6380:6379 redis:latest",
     "showdocs": "retype start ./docs",
     "prepare": "husky",
     "postinstall": "husky install"

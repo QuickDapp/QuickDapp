@@ -32,6 +32,7 @@ QuickDapp is a highly opinionated framework that helps you quickly build and dep
 - **Node.js** v22.0.0 or higher
 - **Bun** v1.0.0 or higher
 - **PostgreSQL** 14+ running locally
+- **Redis** 6+ running locally
 - **Git**
 
 ## Quick Start
@@ -49,13 +50,31 @@ CREATE DATABASE quickdapp_dev;
 \q
 ```
 
+### 2. Setup Redis
+
+Install and start Redis for background job processing:
+
+```bash
+# macOS (using Homebrew)
+brew install redis
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install redis-server
+
+# Start Redis for development (port 6379)
+bun redis:dev
+
+# In a separate terminal, start Redis for testing (port 6380)
+bun redis:test
+```
+
 Update the database connection in `.env.local` if your PostgreSQL setup differs:
 
 ```env
 DATABASE_URL=postgresql://postgres:@localhost:5432/quickdapp_dev
 ```
 
-### 2. Install Dependencies
+### 3. Install Dependencies
 
 ```bash
 bun install
@@ -63,13 +82,13 @@ curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
 
-### 3. Setup Database Schema
+### 4. Setup Database Schema
 
 ```bash
 bun run db push
 ```
 
-### 4. Start Local Blockchain
+### 5. Start Local Blockchain
 
 In a **separate terminal**, start the local blockchain:
 
@@ -82,13 +101,13 @@ This will start a Hardhat node on `http://localhost:8545` with:
 - Block time: 1 second
 - 10 pre-funded test accounts
 
-### 5. Deploy Sample Contracts
+### 6. Deploy Sample Contracts
 
 ```bash
 bun run sample-contracts/deploy.ts
 ```
 
-### 6. Start Development Server
+### 7. Start Development Server
 
 ```bash
 bun run dev

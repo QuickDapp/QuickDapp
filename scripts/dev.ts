@@ -27,14 +27,14 @@ async function devHandler(
     console.log("")
   }
 
-  // Set up Redis for development
+  // Check Redis connection for development
   const redisManager = createDevRedisManager(options.verbose)
-  console.log("📦 Setting up Redis for job queue...")
+  console.log("📦 Checking Redis connection for job queue...")
   try {
-    await redisManager.ensureRedis()
+    await redisManager.checkConnection()
     console.log("✅ Redis ready for job processing")
   } catch (error) {
-    console.error("❌ Failed to start Redis:", error)
+    console.error("❌ Redis connection failed:", error)
     process.exit(1)
   }
   console.log("")

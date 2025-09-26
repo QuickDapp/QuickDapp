@@ -40,29 +40,25 @@ WORKER_LOG_LEVEL=debug
     console.log("")
   }
 
-  // Set up isolated Redis for testing
+  // Check Redis connection for testing
   const redisManager = createTestRedisManager(options.verbose)
-  console.log("📦 Setting up isolated Redis for tests...")
+  console.log("📦 Checking Redis connection for tests...")
   try {
-    await redisManager.ensureRedis()
+    await redisManager.checkConnection()
     console.log("✅ Test Redis ready on port 6380")
   } catch (error) {
-    console.error("❌ Failed to start test Redis:", error)
+    console.error("❌ Redis connection failed:", error)
     process.exit(1)
   }
   console.log("")
 
-  // Cleanup function to remove temporary files and Redis
+  // Cleanup function to remove temporary files
   const cleanup = async () => {
     if (createdTempEnvFile && existsSync(envTestLocalPath)) {
       console.log("🧹 Cleaning up temporary debug logging configuration...")
       unlinkSync(envTestLocalPath)
       console.log("✅ Temporary files cleaned up")
     }
-
-    console.log("🧹 Cleaning up test Redis...")
-    await redisManager.cleanup()
-    console.log("✅ Test Redis cleaned up")
   }
 
   // Set up cleanup on exit

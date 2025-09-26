@@ -10,6 +10,7 @@ import type { NewNotification, NewUser, User } from "@server/db/schema"
 import { serverConfig } from "@shared/config/server"
 import { testLogger } from "@tests/helpers/logger"
 import { sql } from "drizzle-orm"
+import { createTestRedisManager } from "../../scripts/shared/redis-manager"
 
 /**
  * Initialize the shared test database connection
@@ -128,6 +129,9 @@ export async function setupTestDatabase(): Promise<void> {
 
     // Reset sequences for consistent test IDs
     await resetTestDatabaseSequences()
+
+    // Clear Redis data for clean test state
+    await cleanTestRedis()
 
     testLogger.info("✅ Test database setup complete")
   } catch (error) {
@@ -291,6 +295,23 @@ export async function getTestDatabaseStats(): Promise<{
     notifications: notificationCount ? Number(notificationCount.count) : 0,
     workerJobs: jobCount ? Number(jobCount.count) : 0,
     settings: settingCount ? Number(settingCount.count) : 0,
+  }
+}
+
+/**
+ * Clean test Redis instance
+ * Removes all data from Redis to ensure clean state between tests
+ */
+export async function cleanTestRedis(): Promise<void> {
+  testLogger.info("🧹 Cleaning test Redis...")
+
+  try {
+    const redisManager = createTestRedisManager(false)
+    await redisManager.flushAll()
+    testLogger.info("✅ Test Redis cleaned")
+  } catch (error) {
+    testLogger.error("❌ Test Redis cleaning failed:", error)
+    throw error
   }
 }
 
