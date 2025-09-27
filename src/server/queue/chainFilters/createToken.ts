@@ -14,9 +14,10 @@ const ERC20_NEW_TOKEN_EVENT = parseAbiItem(
 export const createFilter: ChainFilterModule["createFilter"] = (
   chainClient,
   fromBlock,
+  log,
 ) => {
   if (!chainClient) {
-    console.warn("createToken filter: No chain client provided")
+    log?.warn("createToken filter: No chain client provided")
     return null
   }
 
@@ -34,7 +35,7 @@ export const createFilter: ChainFilterModule["createFilter"] = (
 
     return chainClient.createEventFilter(filterConfig)
   } catch (error) {
-    console.error("createToken filter: Failed to create filter:", error)
+    log?.error("createToken filter: Failed to create filter:", error)
     return null
   }
 }

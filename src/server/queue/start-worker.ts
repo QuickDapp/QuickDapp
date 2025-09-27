@@ -10,18 +10,24 @@ import { createRootLogger, getLogLevel } from "../lib/logger"
 import type { ServerApp } from "../types"
 import { WorkerIPCMessageType } from "./ipc-types"
 import { createProcessor } from "./processor"
-import { getSharedRedisConnection } from "./redis"
+import { RedisManager } from "./redis"
 import { WorkerSocketManager } from "./socket-manager"
 
 export const startWorker = async () => {
+  // Create logger first so we can use it for all logging
+  const tempLogger = createRootLogger(
+    "worker-startup",
+    getLogLevel(serverConfig.WORKER_LOG_LEVEL),
+  )
+
   const workerId = process.env.WORKER_ID
 
   if (!workerId) {
-    console.error("WORKER_ID environment variable is required")
+    tempLogger.error("WORKER_ID environment variable is required")
     process.exit(1)
   }
 
-  // Create worker-specific logger
+  // Create worker-specific logger with proper ID
   const logger = createRootLogger(
     `worker-${workerId}`,
     getLogLevel(serverConfig.WORKER_LOG_LEVEL),
@@ -57,10 +63,13 @@ export const startWorker = async () => {
       queueManager: null as any, // Workers don't need queue manager
     }
 
+    // Create Redis manager for worker
+    const redisManager = new RedisManager(logger)
+
     // Create BullMQ worker with configurable concurrency
     const bullWorker = new Worker("jobs", createProcessor(serverApp), {
-      connection: getSharedRedisConnection(),
-      concurrency: serverConfig.WORKER_QUEUE_CONCURRENCY, // Default: 1
+      connection: redisManager.getConnection(),
+      concurrency: serverConfig.WORKER_QUEUE_CONCURRENCY,
       stalledInterval: serverConfig.WORKER_QUEUE_STALLED_INTERVAL,
       maxStalledCount: 1,
     })
@@ -108,7 +117,6 @@ export const startWorker = async () => {
     process.on("SIGTERM", shutdown)
     process.on("SIGINT", shutdown)
 
-    // Optional: Send periodic heartbeat
     if (serverConfig.WORKER_HEARTBEAT_INTERVAL) {
       setInterval(() => {
         if (process.send) {

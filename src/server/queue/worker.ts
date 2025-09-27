@@ -156,7 +156,7 @@ export const createQueueManager = async (
   )
 
   // Create QueueManager instance
-  const queueManager = new QueueManager()
+  const queueManager = new QueueManager(serverApp)
 
   // Setup default jobs
   await setupDefaultJobs(queueManager, logger)

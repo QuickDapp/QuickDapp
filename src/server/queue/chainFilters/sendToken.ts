@@ -12,9 +12,10 @@ const TOKEN_TRANSFERRED_EVENT = parseAbiItem(
 export const createFilter: ChainFilterModule["createFilter"] = (
   chainClient,
   fromBlock,
+  log,
 ) => {
   if (!chainClient) {
-    console.warn("sendToken filter: No chain client provided")
+    log?.warn("sendToken filter: No chain client provided")
     return null
   }
 
@@ -24,7 +25,7 @@ export const createFilter: ChainFilterModule["createFilter"] = (
       fromBlock,
     })
   } catch (error) {
-    console.error("sendToken filter: Failed to create filter:", error)
+    log?.error("sendToken filter: Failed to create filter:", error)
     return null
   }
 }

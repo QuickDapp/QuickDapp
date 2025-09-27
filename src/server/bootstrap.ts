@@ -8,6 +8,8 @@ import { dbManager } from "./db/connection"
 import { notifications } from "./db/schema"
 import { getChain } from "./lib/chains"
 import type { Logger } from "./lib/logger"
+import { QueueService } from "./queue/queues"
+import { RedisManager } from "./queue/redis"
 import { createQueueManager } from "./queue/worker"
 import type { ServerApp } from "./types"
 
@@ -107,10 +109,15 @@ export const createServerApp = async (options: {
 
   rootLogger.info(`Blockchain clients connected to ${chain.name} (${rpcUrl})`)
 
+  // Create Redis manager
+  const redisManager = new RedisManager(rootLogger)
+  rootLogger.info("Redis manager created")
+
   const baseServerApp = {
     db,
     rootLogger,
     createLogger: (category: string) => rootLogger.child(category),
+    redisManager,
     publicClient,
     walletClient,
     socketManager,
@@ -121,17 +128,26 @@ export const createServerApp = async (options: {
     ),
   }
 
+  // Create queue service (needs baseServerApp for logger)
+  const queueService = new QueueService(baseServerApp as any, redisManager)
+  rootLogger.info("Queue service created")
+
+  const serverAppWithServices = {
+    ...baseServerApp,
+    queueService,
+  }
+
   if (includeWorkerManager) {
     const { queueManager, workers } = await createQueueManager(
-      baseServerApp as any,
+      serverAppWithServices as any,
       workerCountOverride,
     )
     return {
-      ...baseServerApp,
+      ...serverAppWithServices,
       queueManager,
       workers,
     }
   }
 
-  return baseServerApp
+  return serverAppWithServices
 }

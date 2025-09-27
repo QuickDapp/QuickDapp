@@ -17,7 +17,11 @@ export interface Job {
 
 // Chain filter types for blockchain monitoring
 export interface ChainFilterModule {
-  createFilter: (chainClient: PublicClient, fromBlock: bigint) => any
+  createFilter: (
+    chainClient: PublicClient,
+    fromBlock: bigint,
+    log?: Logger,
+  ) => any
   processChanges: (
     serverApp: ServerApp,
     log: Logger,

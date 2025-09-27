@@ -50,7 +50,7 @@ const recreateFilters = async (params: JobParams) => {
           ? BigInt(1) // Start from block 1 in test mode to catch all events
           : await client.getBlockNumber()
 
-      const filter = await chainFilter!.createFilter(client, fromBlock)
+      const filter = await chainFilter!.createFilter(client, fromBlock, log)
 
       if (filter) {
         activeFilters[filterName] = {

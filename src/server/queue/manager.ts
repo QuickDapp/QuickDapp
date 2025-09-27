@@ -1,8 +1,14 @@
 import { type JobsOptions, type RepeatOptions } from "bullmq"
-import { getJobPriority, jobQueue } from "./queues"
+import type { ServerApp } from "../types"
+import type { QueueService } from "./queues"
 import type { JobData, JobType } from "./types"
 
 export class QueueManager {
+  private queueService: QueueService
+
+  constructor(serverApp: ServerApp) {
+    this.queueService = serverApp.queueService
+  }
   /**
    * Submit a job to the queue with type safety
    */
@@ -12,9 +18,9 @@ export class QueueManager {
     userId?: number | null,
     options?: JobsOptions,
   ): Promise<string> {
-    const priority = getJobPriority(type)
+    const priority = this.queueService.getJobPriority(type)
 
-    const job = await jobQueue.add(
+    const job = await this.queueService.getJobQueue().add(
       type,
       {
         userId: userId ?? null,
@@ -42,14 +48,14 @@ export class QueueManager {
     data: JobData<T>,
     repeatJobKey: string,
   ): Promise<void> {
-    const priority = getJobPriority(type)
+    const priority = this.queueService.getJobPriority(type)
 
     const repeatOptions: RepeatOptions = {
       pattern,
       key: repeatJobKey,
     }
 
-    await jobQueue.add(
+    await this.queueService.getJobQueue().add(
       type,
       {
         userId: null, // System jobs have no user
@@ -66,6 +72,7 @@ export class QueueManager {
    * Remove a scheduled cron job
    */
   async removeCronJob(repeatJobKey: string): Promise<void> {
+    const jobQueue = this.queueService.getJobQueue()
     const repeatableJobs = await jobQueue.getRepeatableJobs()
 
     for (const job of repeatableJobs) {
@@ -80,6 +87,7 @@ export class QueueManager {
    * Get queue health statistics
    */
   async getHealth() {
+    const jobQueue = this.queueService.getJobQueue()
     const [waiting, active, completed, failed, delayed] = await Promise.all([
       jobQueue.getWaiting(),
       jobQueue.getActive(),
@@ -107,28 +115,28 @@ export class QueueManager {
    * Get job by ID
    */
   async getJob(jobId: string) {
-    return await jobQueue.getJob(jobId)
+    return await this.queueService.getJobQueue().getJob(jobId)
   }
 
   /**
    * Get all repeatable jobs
    */
   async getRepeatableJobs() {
-    return await jobQueue.getRepeatableJobs()
+    return await this.queueService.getJobQueue().getRepeatableJobs()
   }
 
   /**
    * Pause the queue
    */
   async pause(): Promise<void> {
-    await jobQueue.pause()
+    await this.queueService.getJobQueue().pause()
   }
 
   /**
    * Resume the queue
    */
   async resume(): Promise<void> {
-    await jobQueue.resume()
+    await this.queueService.getJobQueue().resume()
   }
 
   /**
@@ -139,13 +147,13 @@ export class QueueManager {
     maxJobs: number,
     type: "completed" | "failed" = "completed",
   ): Promise<void> {
-    await jobQueue.clean(maxAge, maxJobs, type)
+    await this.queueService.getJobQueue().clean(maxAge, maxJobs, type)
   }
 
   /**
    * Graceful shutdown
    */
   async shutdown(): Promise<void> {
-    await jobQueue.close()
+    await this.queueService.gracefulShutdown()
   }
 }

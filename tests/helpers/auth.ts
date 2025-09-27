@@ -311,6 +311,8 @@ function createMockServerApp(): ServerApp {
     db: {} as any,
     rootLogger: testLogger,
     createLogger: (category: string) => testLogger.child(category),
+    redisManager: {} as any,
+    queueService: {} as any,
     queueManager: {} as any,
     socketManager: {} as any,
     publicClient: {} as any,

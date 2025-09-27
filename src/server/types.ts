@@ -6,6 +6,8 @@ import type { PublicClient, WalletClient } from "viem"
 import type * as schema from "./db/schema"
 import type { Logger } from "./lib/logger"
 import type { QueueManager } from "./queue/manager"
+import type { QueueService } from "./queue/queues"
+import type { RedisManager } from "./queue/redis"
 
 /**
  * ServerApp type containing references to useful properties and methods
@@ -20,6 +22,10 @@ export type ServerApp = {
   rootLogger: Logger
   /** Create a logger with a category */
   createLogger: (category: string) => Logger
+  /** Redis manager for cache and queue connections */
+  redisManager: RedisManager
+  /** Queue service for BullMQ queue and events management */
+  queueService: QueueService
   /** Queue manager for background job processing */
   queueManager: QueueManager
   /** WebSocket manager for real-time communication */
