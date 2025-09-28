@@ -11,13 +11,43 @@ interface DbOptions extends ScriptOptions {
   force?: boolean
 }
 
+async function runDrizzleCommand(args: string[]): Promise<void> {
+  // Use tee to both display output and capture it
+  const tempFile = `/tmp/drizzle-output-${Date.now()}.txt`
+
+  try {
+    // Run command with tee to capture output while showing it
+    await $`drizzle-kit ${args} 2>&1 | tee ${tempFile}`.nothrow()
+
+    // Read captured output for error checking
+    const result = await $`cat ${tempFile}`.text()
+
+    // Check for error patterns in output regardless of exit code
+    if (
+      result.includes("PostgresError") ||
+      result.includes("ERROR") ||
+      result.includes("permission denied")
+    ) {
+      throw new Error("Command failed with database error")
+    }
+  } finally {
+    // Clean up temp file
+    await $`rm -f ${tempFile}`.nothrow()
+  }
+}
+
 async function generateHandler(
   _options: DbOptions,
   _config: { rootFolder: string; env: string },
 ) {
   console.log("🔧 Generating DrizzleORM migrations...")
-  await $`drizzle-kit generate`
-  console.log("✅ Migrations generated successfully")
+  try {
+    await runDrizzleCommand(["generate"])
+    console.log("✅ Migrations generated successfully")
+  } catch (error) {
+    console.error("❌ Failed to generate migrations:", error)
+    process.exit(1)
+  }
 }
 
 async function migrateHandler(
@@ -25,8 +55,13 @@ async function migrateHandler(
   _config: { rootFolder: string; env: string },
 ) {
   console.log("🚀 Running DrizzleORM migrations...")
-  await $`drizzle-kit migrate`
-  console.log("✅ Migrations applied successfully")
+  try {
+    await runDrizzleCommand(["migrate"])
+    console.log("✅ Migrations applied successfully")
+  } catch (error) {
+    console.error("❌ Failed to run migrations:", error)
+    process.exit(1)
+  }
 }
 
 async function pushHandler(
@@ -34,12 +69,14 @@ async function pushHandler(
   _config: { rootFolder: string; env: string },
 ) {
   console.log("📦 Pushing schema changes to database...")
-  if (options.force) {
-    await $`drizzle-kit push --force`
-  } else {
-    await $`drizzle-kit push`
+  try {
+    const args = options.force ? ["push", "--force"] : ["push"]
+    await runDrizzleCommand(args)
+    console.log("✅ Schema changes pushed successfully")
+  } catch (error) {
+    console.error("❌ Failed to push schema changes:", error)
+    process.exit(1)
   }
-  console.log("✅ Schema changes pushed successfully")
 }
 
 // Define subcommands
