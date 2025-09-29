@@ -1,5 +1,6 @@
 /**
  * GraphQL error codes for consistent error handling throughout the application
+ * Available on both client and server side
  */
 export enum GraphQLErrorCode {
   // Authentication errors
