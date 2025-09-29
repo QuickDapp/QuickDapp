@@ -1,6 +1,7 @@
 import { GraphQLError } from "graphql"
 import { SiweMessage } from "siwe"
 import { serverConfig } from "../../shared/config/server"
+import { GraphQLErrorCode } from "../../shared/graphql/errors"
 import { AuthService } from "../auth"
 import {
   getNotificationsForUser,
@@ -8,9 +9,8 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "../db/notifications"
-import { createUserIfNotExists } from "../db/users"
+import { getUser } from "../db/users"
 import { getChainId } from "../lib/chains"
-import { GraphQLErrorCode } from "../lib/errors"
 import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
 import type { Resolvers } from "./types"
@@ -20,6 +20,24 @@ import type { Resolvers } from "./types"
  */
 export function createResolvers(serverApp: ServerApp): Resolvers {
   const logger = serverApp.createLogger(LOG_CATEGORIES.GRAPHQL_RESOLVERS)
+
+  // Helper function to get authenticated user and validate they exist
+  const getAuthenticatedUser = async (context: any) => {
+    if (!context.user) {
+      throw new GraphQLError("Authentication required", {
+        extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
+      })
+    }
+
+    const user = await getUser(serverApp.db, context.user.wallet)
+    if (!user) {
+      throw new GraphQLError("User not found", {
+        extensions: { code: GraphQLErrorCode.NOT_FOUND },
+      })
+    }
+
+    return user
+  }
 
   return {
     Query: {
@@ -50,11 +68,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
       // User notifications (auth required)
       getMyNotifications: async (_, { pageParam }, context) => {
         try {
-          // Get or create user record
-          const user = await createUserIfNotExists(
-            serverApp.db,
-            context.user!.wallet,
-          )
+          const user = await getAuthenticatedUser(context)
 
           // Fetch notifications
           const [notifications, total] = await getNotificationsForUser(
@@ -86,11 +100,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
       getMyUnreadNotificationsCount: async (_, __, context) => {
         try {
-          // Get or create user record
-          const user = await createUserIfNotExists(
-            serverApp.db,
-            context.user!.wallet,
-          )
+          const user = await getAuthenticatedUser(context)
 
           const count = await getUnreadNotificationsCountForUser(
             serverApp.db,
@@ -175,11 +185,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
       markNotificationAsRead: async (_, { id }, context) => {
         try {
-          // Get or create user record
-          const user = await createUserIfNotExists(
-            serverApp.db,
-            context.user!.wallet,
-          )
+          const user = await getAuthenticatedUser(context)
 
           const success = await markNotificationAsRead(
             serverApp.db,
@@ -219,11 +225,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
       markAllNotificationsAsRead: async (_, __, context) => {
         try {
-          // Get or create user record
-          const user = await createUserIfNotExists(
-            serverApp.db,
-            context.user!.wallet,
-          )
+          const user = await getAuthenticatedUser(context)
 
           const updatedCount = await markAllNotificationsAsRead(
             serverApp.db,
