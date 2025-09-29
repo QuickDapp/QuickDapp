@@ -1,17 +1,5 @@
 import { gql } from "graphql-tag"
 
-export const GET_HEALTH = gql`
-  query GetHealth {
-    health
-  }
-`
-
-export const GET_VERSION = gql`
-  query GetVersion {
-    version
-  }
-`
-
 export const GET_MY_NOTIFICATIONS = gql`
   query GetMyNotifications($pageParam: PageParam!) {
     getMyNotifications(pageParam: $pageParam) {

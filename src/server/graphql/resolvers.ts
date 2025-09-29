@@ -1,39 +1,30 @@
 import { GraphQLError } from "graphql"
 import { SiweMessage } from "siwe"
 import { serverConfig } from "../../shared/config/server"
-import { type AuthenticatedUser, AuthService } from "../auth"
+import { AuthService } from "../auth"
 import {
   getNotificationsForUser,
   getUnreadNotificationsCountForUser,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-  type PageParam,
 } from "../db/notifications"
 import { createUserIfNotExists } from "../db/users"
 import { getChainId } from "../lib/chains"
 import { GraphQLErrorCode } from "../lib/errors"
 import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
-
-export interface GraphQLContext {
-  serverApp: ServerApp
-  user?: AuthenticatedUser
-}
+import type { Resolvers } from "./types"
 
 /**
  * GraphQL resolvers with standard error handling
  */
-export function createResolvers(serverApp: ServerApp) {
+export function createResolvers(serverApp: ServerApp): Resolvers {
   const logger = serverApp.createLogger(LOG_CATEGORIES.GRAPHQL_RESOLVERS)
 
   return {
     Query: {
       // Token validation (requires auth header, but validates it)
-      validateToken: async (
-        _: unknown,
-        __: unknown,
-        context: GraphQLContext,
-      ) => {
+      validateToken: async (_, __, context) => {
         try {
           if (context.user) {
             return {
@@ -57,11 +48,7 @@ export function createResolvers(serverApp: ServerApp) {
       },
 
       // User notifications (auth required)
-      getMyNotifications: async (
-        _: unknown,
-        { pageParam }: { pageParam: PageParam },
-        context: GraphQLContext,
-      ) => {
+      getMyNotifications: async (_, { pageParam }, context) => {
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
@@ -97,11 +84,7 @@ export function createResolvers(serverApp: ServerApp) {
         }
       },
 
-      getMyUnreadNotificationsCount: async (
-        _: unknown,
-        __: unknown,
-        context: GraphQLContext,
-      ) => {
+      getMyUnreadNotificationsCount: async (_, __, context) => {
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
@@ -127,11 +110,7 @@ export function createResolvers(serverApp: ServerApp) {
 
     Mutation: {
       // Authentication mutations (no auth required)
-      generateSiweMessage: async (
-        _: unknown,
-        { address }: { address: string },
-        context: GraphQLContext,
-      ) => {
+      generateSiweMessage: async (_, { address }, context) => {
         try {
           const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
           logger.debug(`Generating SIWE message for address: ${address}`)
@@ -162,11 +141,7 @@ export function createResolvers(serverApp: ServerApp) {
         }
       },
 
-      authenticateWithSiwe: async (
-        _: unknown,
-        { message, signature }: { message: string; signature: string },
-        context: GraphQLContext,
-      ) => {
+      authenticateWithSiwe: async (_, { message, signature }, context) => {
         try {
           const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
           const authService = new AuthService(serverApp)
@@ -198,11 +173,7 @@ export function createResolvers(serverApp: ServerApp) {
         }
       },
 
-      markNotificationAsRead: async (
-        _: unknown,
-        { id }: { id: number },
-        context: GraphQLContext,
-      ) => {
+      markNotificationAsRead: async (_, { id }, context) => {
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
@@ -246,11 +217,7 @@ export function createResolvers(serverApp: ServerApp) {
         }
       },
 
-      markAllNotificationsAsRead: async (
-        _: unknown,
-        __: unknown,
-        context: GraphQLContext,
-      ) => {
+      markAllNotificationsAsRead: async (_, __, context) => {
         try {
           // Get or create user record
           const user = await createUserIfNotExists(
