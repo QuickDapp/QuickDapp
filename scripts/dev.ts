@@ -2,11 +2,10 @@
 
 import { existsSync } from "node:fs"
 import path from "node:path"
-import { spawn } from "bun"
+import { $, spawn } from "bun"
 import { watch } from "fs"
 import { copyStaticSrc } from "./shared/copy-static-src"
 import { generateAbis } from "./shared/generate-abis"
-import { generateTypes } from "./shared/generate-types"
 import { createScriptRunner, type ScriptOptions } from "./shared/script-runner"
 
 interface DevOptions extends ScriptOptions {
@@ -43,7 +42,7 @@ async function devHandler(
   // Generate GraphQL types
   console.log("🔧 Generating GraphQL types...")
   try {
-    await generateTypes({ verbose: false })
+    await $`bun run codegen`
     console.log("✅ GraphQL types generated")
   } catch (error) {
     console.warn("⚠️  GraphQL type generation failed:", error)
@@ -80,7 +79,7 @@ async function devHandler(
   const runCodegen = async () => {
     console.log("📝 GraphQL files changed, regenerating types...")
     try {
-      await generateTypes({ verbose: false })
+      await $`bun run codegen`
       console.log("✅ Types regenerated")
     } catch (error) {
       console.error("❌ Type regeneration failed:", error)

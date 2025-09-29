@@ -16,6 +16,7 @@ const config: CodegenConfig = {
         useIndexSignature: true,
         allowEnumStringTypes: true,
         printFieldsOnNewLines: true,
+        useTypeImports: true,
         scalars: {
           DateTime: "Date | string",
           JSON: "any",
