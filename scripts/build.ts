@@ -5,7 +5,7 @@ import { zip } from "@hiddentao/zip-json"
 import { $ } from "bun"
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { copyStaticSrc } from "./shared/copy-static-src"
-import { generateAbis } from "./shared/generate-abis"
+import { generateTypes } from "./shared/generate-types"
 import {
   type CommandSetup,
   createScriptRunner,
@@ -62,14 +62,10 @@ async function buildHandler(
     }
   }
 
-  // Step 2: Generate ABIs
-  console.log("🔧 Generating ABIs...")
-  try {
-    await generateAbis({ verbose: false })
-    console.log("✅ ABIs generated")
-  } catch (error) {
-    console.warn("⚠️  ABI generation failed, using defaults:", error)
-  }
+  // Step 2: Generate types (GraphQL + ABIs)
+  console.log("🔧 Generating types...")
+  await generateTypes({ verbose: options.verbose || false })
+  console.log("✅ Types generated")
 
   // Step 3: Lint and type check
   try {

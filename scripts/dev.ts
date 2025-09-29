@@ -3,8 +3,10 @@
 import { existsSync } from "node:fs"
 import path from "node:path"
 import { spawn } from "bun"
+import { watch } from "fs"
 import { copyStaticSrc } from "./shared/copy-static-src"
 import { generateAbis } from "./shared/generate-abis"
+import { generateTypes } from "./shared/generate-types"
 import { createScriptRunner, type ScriptOptions } from "./shared/script-runner"
 
 interface DevOptions extends ScriptOptions {
@@ -37,6 +39,15 @@ async function devHandler(
   } catch (error) {
     console.warn("⚠️  ABI generation failed, using defaults:", error)
   }
+
+  // Generate GraphQL types
+  console.log("🔧 Generating GraphQL types...")
+  try {
+    await generateTypes({ verbose: false })
+    console.log("✅ GraphQL types generated")
+  } catch (error) {
+    console.warn("⚠️  GraphQL type generation failed:", error)
+  }
   console.log("")
 
   // Start the server with watch mode
@@ -61,6 +72,36 @@ async function devHandler(
     stdout: "inherit",
     stderr: "inherit",
   })
+
+  // Watch GraphQL files and regenerate types on changes
+  const graphqlPath = path.join(config.rootFolder, "src/shared/graphql")
+  let codegenTimeout: Timer | null = null
+
+  const runCodegen = async () => {
+    console.log("📝 GraphQL files changed, regenerating types...")
+    try {
+      await generateTypes({ verbose: false })
+      console.log("✅ Types regenerated")
+    } catch (error) {
+      console.error("❌ Type regeneration failed:", error)
+    }
+  }
+
+  // Watch for changes in GraphQL files
+  watch(graphqlPath, { recursive: true }, (_event, filename) => {
+    if (
+      filename &&
+      filename.endsWith(".ts") &&
+      !filename.includes("generated/") &&
+      !filename.includes("codegen.ts")
+    ) {
+      // Debounce to avoid multiple rapid regenerations
+      if (codegenTimeout) clearTimeout(codegenTimeout)
+      codegenTimeout = setTimeout(runCodegen, 500)
+    }
+  })
+
+  console.log("👀 Watching GraphQL files for changes...")
 
   // Handle graceful shutdown
   const handleShutdown = () => {
