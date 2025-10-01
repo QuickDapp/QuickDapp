@@ -1,9 +1,6 @@
 import { eq } from "drizzle-orm"
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
-import type * as schema from "./schema"
 import { users } from "./schema"
-
-export type Database = PostgresJsDatabase<typeof schema>
+import { type DatabaseOrTransaction, withTransaction } from "./shared"
 
 export interface User {
   id: number
@@ -17,7 +14,7 @@ export interface User {
  * Get user by wallet address
  */
 export async function getUser(
-  db: Database,
+  db: DatabaseOrTransaction,
   wallet: string,
 ): Promise<User | undefined> {
   const result = await db
@@ -33,10 +30,10 @@ export async function getUser(
  * Create user if they don't exist, otherwise return existing user
  */
 export async function createUserIfNotExists(
-  db: Database,
+  db: DatabaseOrTransaction,
   wallet: string,
 ): Promise<User> {
-  return db.transaction(async (tx) => {
+  return withTransaction(db, async (tx) => {
     // Check if user exists
     let user = await getUser(tx, wallet)
 
@@ -61,7 +58,7 @@ export async function createUserIfNotExists(
  * Update user settings
  */
 export async function updateUserSettings(
-  db: Database,
+  db: DatabaseOrTransaction,
   wallet: string,
   settings: any,
 ): Promise<User | undefined> {

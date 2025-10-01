@@ -1,9 +1,6 @@
 import { and, count, desc, eq } from "drizzle-orm"
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
-import type * as schema from "./schema"
 import { notifications } from "./schema"
-
-export type Database = PostgresJsDatabase<typeof schema>
+import { type DatabaseOrTransaction, withTransaction } from "./shared"
 
 export interface Notification {
   id: number
@@ -23,11 +20,11 @@ export interface PageParam {
  * Get notifications for a user with pagination
  */
 export async function getNotificationsForUser(
-  db: Database,
+  db: DatabaseOrTransaction,
   userId: number,
   pageParam: PageParam,
 ): Promise<[Notification[], number]> {
-  return db.transaction(async (tx) => {
+  return withTransaction(db, async (tx) => {
     // Get notifications with pagination
     const notificationsResult = await tx
       .select()
@@ -53,7 +50,7 @@ export async function getNotificationsForUser(
  * Get unread notifications count for user
  */
 export async function getUnreadNotificationsCountForUser(
-  db: Database,
+  db: DatabaseOrTransaction,
   userId: number,
 ): Promise<number> {
   const result = await db
@@ -68,7 +65,7 @@ export async function getUnreadNotificationsCountForUser(
  * Create a notification for a user
  */
 export async function createNotification(
-  db: Database,
+  db: DatabaseOrTransaction,
   userId: number,
   data: any,
 ): Promise<Notification> {
@@ -88,7 +85,7 @@ export async function createNotification(
  * Mark a specific notification as read
  */
 export async function markNotificationAsRead(
-  db: Database,
+  db: DatabaseOrTransaction,
   userId: number,
   notificationId: number,
 ): Promise<boolean> {
@@ -113,7 +110,7 @@ export async function markNotificationAsRead(
  * Mark all notifications as read for a user
  */
 export async function markAllNotificationsAsRead(
-  db: Database,
+  db: DatabaseOrTransaction,
   userId: number,
 ): Promise<number> {
   const result = await db
