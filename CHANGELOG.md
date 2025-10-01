@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.2.0](https://github.com/QuickDapp/QuickDapp/compare/v3.1.0...v3.2.0) (2025-10-01)
+
+
+### Features
+
+* add GraphQL code generation with TypeScript support ([add0d69](https://github.com/QuickDapp/QuickDapp/commit/add0d69a93e6355f4761b974ae67f193287f9b43))
+* add transaction retry logic with exponential backoff ([feac9d9](https://github.com/QuickDapp/QuickDapp/commit/feac9d9df119afb9c10eb6782a8f33ce58ded483))
+
+
+### Bug Fixes
+
+* improve GraphQL code generation integration in development workflow ([d6c27c5](https://github.com/QuickDapp/QuickDapp/commit/d6c27c54733999ba02a5a105b937dce847928529))
+* **scripts:** improve error handling in database scripts ([de48fc9](https://github.com/QuickDapp/QuickDapp/commit/de48fc9ad75a80dba4b43e1beff4d6939bbb776e))
+
 ## [3.1.0](https://github.com/QuickDapp/QuickDapp/compare/v3.0.4...v3.1.0) (2025-09-23)
 
 
