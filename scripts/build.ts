@@ -279,7 +279,7 @@ if (process.env.WORKER_ID) {
     const outputPath = path.join(BINARY_PATHS.BINARIES_DIR, platform.name)
 
     try {
-      await $`bun build ${BINARY_PATHS.BINARY_ENTRY} --compile --target ${platform.target} --outfile ${outputPath}`.cwd(
+      await $`bun build ${BINARY_PATHS.BINARY_ENTRY} --compile --target ${platform.target} --outfile ${outputPath} --minify --sourcemap`.cwd(
         PATHS.DIST_SERVER,
       )
     } catch (error) {
