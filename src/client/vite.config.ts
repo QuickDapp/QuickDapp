@@ -54,6 +54,7 @@ export default defineConfig({
   build: {
     outDir: "../../dist/client",
     emptyOutDir: true,
+    sourcemap: true,
     rollupOptions: {
       output: {
         entryFileNames: "assets/[name].[hash].js",
