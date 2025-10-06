@@ -103,6 +103,6 @@ const subcommands: SubcommandConfig[] = [
 createScriptRunner({
   name: "db",
   description: "Database management utilities",
-  env: "development",
+  env: process.env.NODE_ENV || "development",
   subcommands,
 })
