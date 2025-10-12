@@ -9,7 +9,9 @@ export type { Logger } from "@hiddentao/logger"
 export { LogLevel } from "@hiddentao/logger"
 
 // Initialize Sentry if DSN is provided
-if (serverConfig.SENTRY_DSN) {
+let sentryInitialized = false
+if (!sentryInitialized && serverConfig.SENTRY_DSN) {
+  sentryInitialized = true
   Sentry.init({
     dsn: serverConfig.SENTRY_DSN,
     environment: process.env.NODE_ENV || "development",
