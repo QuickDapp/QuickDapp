@@ -8,6 +8,7 @@ import { dbManager } from "./db/connection"
 import { notifications } from "./db/schema"
 import { getChain } from "./lib/chains"
 import type { Logger } from "./lib/logger"
+import { startSpan } from "./lib/logger"
 import type { ServerApp } from "./types"
 import { createWorkerManager } from "./workers"
 
@@ -110,6 +111,7 @@ export const createServerApp = async (options: {
     db,
     rootLogger,
     createLogger: (category: string) => rootLogger.child(category),
+    startSpan,
     publicClient,
     walletClient,
     socketManager,

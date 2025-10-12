@@ -1,10 +1,26 @@
 import { Logger, LogLevel } from "@hiddentao/logger"
 import { ConsoleTransport } from "@hiddentao/logger/transports/console"
+import * as Sentry from "@sentry/node"
 import { serverConfig } from "../../shared/config/server"
+import { SentryTransport } from "./sentryTransport"
 
 // Export the Logger type and LogLevel enum for use in other modules
 export type { Logger } from "@hiddentao/logger"
 export { LogLevel } from "@hiddentao/logger"
+
+// Initialize Sentry if DSN is provided
+if (serverConfig.SENTRY_DSN) {
+  Sentry.init({
+    dsn: serverConfig.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: serverConfig.SENTRY_TRACES_SAMPLE_RATE,
+    profileSessionSampleRate: serverConfig.SENTRY_PROFILE_SESSION_SAMPLE_RATE,
+    sendDefaultPii: true,
+    _experiments: {
+      enableLogs: true,
+    },
+  })
+}
 
 // Map our string log levels to LogLevel enum
 export const getLogLevel = (level: string): LogLevel => {
@@ -35,6 +51,11 @@ export const createRootLogger = (
 
   // Add console transport with timestamps
   logger.addTransport(new ConsoleTransport({ showTimestamps: true }))
+
+  // Add Sentry transport if DSN is configured
+  if (serverConfig.SENTRY_DSN) {
+    logger.addTransport(new SentryTransport())
+  }
 
   return logger
 }
@@ -74,3 +95,18 @@ export const LOG_CATEGORIES = {
 } as const
 
 export type LogCategory = (typeof LOG_CATEGORIES)[keyof typeof LOG_CATEGORIES]
+
+/**
+ * Helper function to start a Sentry performance span
+ */
+export const startSpan = async <T>(
+  operation: string,
+  cb: (span: Sentry.Span) => Promise<T>,
+): Promise<T> => {
+  const spanContext = {
+    name: operation,
+    op: operation,
+  }
+
+  return Sentry.startSpan(spanContext, cb)
+}

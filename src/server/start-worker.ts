@@ -3,6 +3,7 @@
  * This file is imported by src/server/index.ts when running in worker mode
  */
 
+import * as Sentry from "@sentry/node"
 import { serverConfig } from "../shared/config/server"
 import { createServerApp } from "./bootstrap"
 import { createRootLogger, getLogLevel } from "./lib/logger"
@@ -10,6 +11,20 @@ import type { ServerApp } from "./types"
 import { WorkerIPCMessageType } from "./workers/ipc-types"
 import { WorkerSocketManager } from "./workers/socket-manager"
 import { runWorker } from "./workers/worker"
+
+// Initialize Sentry for worker process if DSN is configured
+if (serverConfig.SENTRY_WORKER_DSN) {
+  Sentry.init({
+    dsn: serverConfig.SENTRY_WORKER_DSN,
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: serverConfig.SENTRY_TRACES_SAMPLE_RATE,
+    profileSessionSampleRate: serverConfig.SENTRY_PROFILE_SESSION_SAMPLE_RATE,
+    sendDefaultPii: true,
+    _experiments: {
+      enableLogs: true,
+    },
+  })
+}
 
 export const startWorker = async () => {
   // Create worker root logger instance
@@ -50,6 +65,13 @@ export const startWorker = async () => {
     // Set up graceful shutdown
     const shutdown = async () => {
       logger.info("Worker process shutting down")
+
+      // Flush Sentry events if enabled
+      if (serverConfig.SENTRY_WORKER_DSN) {
+        await Sentry.close(2000)
+        logger.info("Sentry events flushed")
+      }
+
       if (process.send) {
         process.send({
           type: WorkerIPCMessageType.WorkerShutdown,
@@ -62,10 +84,24 @@ export const startWorker = async () => {
     process.on("SIGTERM", shutdown)
     process.on("SIGINT", shutdown)
 
+    // Handle uncaught exceptions
+    process.on("uncaughtException", (error) => {
+      logger.error("Worker uncaught exception:", error)
+      Sentry.captureException(error)
+      process.exit(1)
+    })
+
+    process.on("unhandledRejection", (reason) => {
+      logger.error("Worker unhandled rejection:", reason)
+      Sentry.captureException(reason)
+      process.exit(1)
+    })
+
     // Start the worker loop
     await runWorker(serverApp)
   } catch (err: any) {
     logger.error("Worker process error:", err)
+    Sentry.captureException(err)
     if (process.send) {
       process.send({
         type: WorkerIPCMessageType.WorkerError,

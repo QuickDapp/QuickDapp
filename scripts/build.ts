@@ -105,7 +105,7 @@ async function buildHandler(
 
   // Step 8: Copy server static directory to dist/server (if bundling)
   if (shouldBundle) {
-    console.log("📁 Copying server static directory to dist/server...")
+    console.log("📁 Copying server static directry to dist/server...")
     cpSync(PATHS.SERVER_STATIC, PATHS.DIST_SERVER_STATIC, { recursive: true })
     console.log("✅ Server static directory copied to dist/server")
   } else {

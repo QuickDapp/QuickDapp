@@ -1,6 +1,7 @@
 import path from "node:path"
 import { cors } from "@elysiajs/cors"
 import { staticPlugin } from "@elysiajs/static"
+import * as Sentry from "@sentry/node"
 import { serverConfig } from "@shared/config/server"
 import { Elysia } from "elysia"
 import { createServerApp } from "./bootstrap"
@@ -27,6 +28,12 @@ export const createApp = async (
       // Disconnect from database
       await dbManager.disconnect()
       logger.info("Database disconnected")
+
+      // Flush Sentry events if enabled
+      if (serverConfig.SENTRY_DSN) {
+        await Sentry.close(2000)
+        logger.info("Sentry events flushed")
+      }
     } catch (error) {
       logger.error("Error during shutdown:", error)
     }
@@ -41,11 +48,13 @@ export const createApp = async (
   // Handle uncaught exceptions
   process.on("uncaughtException", (error) => {
     logger.error("Uncaught exception:", error)
+    Sentry.captureException(error)
     process.exit(1)
   })
 
   process.on("unhandledRejection", (reason, promise) => {
     logger.error("Unhandled rejection at:", promise, "reason:", reason)
+    Sentry.captureException(reason)
     process.exit(1)
   })
 
@@ -92,6 +101,9 @@ export const createApp = async (
         set.status = 404
         return { error: "Not found" }
       }
+
+      // Capture exception in Sentry
+      Sentry.captureException(error)
 
       // Log and return 500 for actual server errors
       logger.error(`Unhandled error (Request: ${request.url}):`, error)

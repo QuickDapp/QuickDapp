@@ -4,7 +4,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type { Elysia } from "elysia"
 import type { PublicClient, WalletClient } from "viem"
 import type * as schema from "./db/schema"
-import type { Logger } from "./lib/logger"
+import type { Logger, startSpan } from "./lib/logger"
 import type { WorkerManager } from "./workers"
 
 /**
@@ -20,6 +20,8 @@ export type ServerApp = {
   rootLogger: Logger
   /** Create a logger with a category */
   createLogger: (category: string) => Logger
+  /** Start a Sentry performance monitoring span */
+  startSpan: typeof startSpan
   /** Worker manager for background job processing */
   workerManager: WorkerManager
   /** WebSocket manager for real-time communication */

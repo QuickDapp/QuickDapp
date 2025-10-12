@@ -311,6 +311,9 @@ function createMockServerApp(): ServerApp {
     db: {} as any,
     rootLogger: testLogger,
     createLogger: (category: string) => testLogger.child(category),
+    startSpan: (() => {
+      // Mock implementation
+    }) as any,
     workerManager: {} as any,
     socketManager: {} as any,
     publicClient: {} as any,
