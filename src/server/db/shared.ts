@@ -1,9 +1,16 @@
 import type { PgTransaction } from "drizzle-orm/pg-core"
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import { startSpan } from "../lib/logger"
 import type * as schema from "./schema"
 
-export type Database = PostgresJsDatabase<typeof schema>
-export type Transaction = PgTransaction<any, typeof schema>
+export type Database = PostgresJsDatabase<typeof schema> & {
+  startSpan: typeof startSpan
+}
+
+export type Transaction = PgTransaction<any, typeof schema> & {
+  startSpan: typeof startSpan
+}
+
 export type DatabaseOrTransaction = Database | Transaction
 
 const MAX_RETRIES = 3
@@ -88,14 +95,21 @@ export async function withTransaction<T>(
   // Check if db is already a transaction by looking for transaction-specific properties
   if ("rollback" in db && "commit" in db) {
     // It's already a transaction, use it directly (no retry logic for nested transactions)
-    return fn(db as Transaction)
+    const tx = db as Transaction
+    if (!tx.startSpan) {
+      ;(tx as any).startSpan = startSpan
+    }
+    return fn(tx)
   }
 
   // It's a database connection, create a new transaction with retry logic
   let lastError: any
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      return await (db as Database).transaction(fn as any)
+      return await (db as Database).transaction((tx) => {
+        ;(tx as any).startSpan = startSpan
+        return fn(tx as any as Transaction)
+      })
     } catch (error) {
       lastError = error
 

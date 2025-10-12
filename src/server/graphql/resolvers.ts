@@ -43,210 +43,249 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
     Query: {
       // Token validation (requires auth header, but validates it)
       validateToken: async (_, __, context) => {
-        try {
-          if (context.user) {
-            return {
-              valid: true,
-              wallet: context.user.wallet,
+        return serverApp.startSpan("graphql.Query.validateToken", async () => {
+          try {
+            if (context.user) {
+              return {
+                valid: true,
+                wallet: context.user.wallet,
+              }
+            } else {
+              return {
+                valid: false,
+                wallet: null,
+              }
             }
-          } else {
+          } catch (error) {
+            const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+            logger.error("Error validating token:", error)
             return {
               valid: false,
               wallet: null,
             }
           }
-        } catch (error) {
-          const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
-          logger.error("Error validating token:", error)
-          return {
-            valid: false,
-            wallet: null,
-          }
-        }
+        })
       },
 
       // User notifications (auth required)
       getMyNotifications: async (_, { pageParam }, context) => {
-        try {
-          const user = await getAuthenticatedUser(context)
+        return serverApp.startSpan(
+          "graphql.Query.getMyNotifications",
+          async () => {
+            try {
+              const user = await getAuthenticatedUser(context)
 
-          // Fetch notifications
-          const [notifications, total] = await getNotificationsForUser(
-            serverApp.db,
-            user.id,
-            pageParam,
-          )
+              // Fetch notifications
+              const [notifications, total] = await getNotificationsForUser(
+                serverApp.db,
+                user.id,
+                pageParam,
+              )
 
-          logger.debug(
-            `Retrieved ${notifications.length} notifications for user ${user.wallet}`,
-          )
+              logger.debug(
+                `Retrieved ${notifications.length} notifications for user ${user.wallet}`,
+              )
 
-          return {
-            notifications,
-            startIndex: pageParam.startIndex,
-            total,
-          }
-        } catch (error) {
-          logger.error("Failed to get notifications:", error)
-          throw new GraphQLError("Failed to retrieve notifications", {
-            extensions: {
-              code: GraphQLErrorCode.DATABASE_ERROR,
-              originalError:
-                error instanceof Error ? error.message : String(error),
-            },
-          })
-        }
+              return {
+                notifications,
+                startIndex: pageParam.startIndex,
+                total,
+              }
+            } catch (error) {
+              logger.error("Failed to get notifications:", error)
+              throw new GraphQLError("Failed to retrieve notifications", {
+                extensions: {
+                  code: GraphQLErrorCode.DATABASE_ERROR,
+                  originalError:
+                    error instanceof Error ? error.message : String(error),
+                },
+              })
+            }
+          },
+        )
       },
 
       getMyUnreadNotificationsCount: async (_, __, context) => {
-        try {
-          const user = await getAuthenticatedUser(context)
+        return serverApp.startSpan(
+          "graphql.Query.getMyUnreadNotificationsCount",
+          async () => {
+            try {
+              const user = await getAuthenticatedUser(context)
 
-          const count = await getUnreadNotificationsCountForUser(
-            serverApp.db,
-            user.id,
-          )
+              const count = await getUnreadNotificationsCountForUser(
+                serverApp.db,
+                user.id,
+              )
 
-          logger.debug(`User ${user.wallet} has ${count} unread notifications`)
+              logger.debug(
+                `User ${user.wallet} has ${count} unread notifications`,
+              )
 
-          return count
-        } catch (error) {
-          logger.error("Failed to get unread notifications count:", error)
-          // For count queries, return 0 on error rather than throwing
-          return 0
-        }
+              return count
+            } catch (error) {
+              logger.error("Failed to get unread notifications count:", error)
+              // For count queries, return 0 on error rather than throwing
+              return 0
+            }
+          },
+        )
       },
     },
 
     Mutation: {
       // Authentication mutations (no auth required)
       generateSiweMessage: async (_, { address }, context) => {
-        try {
-          const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
-          logger.debug(`Generating SIWE message for address: ${address}`)
+        return serverApp.startSpan(
+          "graphql.Mutation.generateSiweMessage",
+          async () => {
+            try {
+              const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+              logger.debug(`Generating SIWE message for address: ${address}`)
 
-          const message = new SiweMessage({
-            domain: new URL(serverConfig.BASE_URL).hostname,
-            address,
-            statement: "Sign in to QuickDapp",
-            uri: serverConfig.BASE_URL,
-            version: "1",
-            chainId: getChainId(),
-            nonce: Math.random().toString(36).substring(2, 15),
-          })
+              const message = new SiweMessage({
+                domain: new URL(serverConfig.BASE_URL).hostname,
+                address,
+                statement: "Sign in to QuickDapp",
+                uri: serverConfig.BASE_URL,
+                version: "1",
+                chainId: getChainId(),
+                nonce: Math.random().toString(36).substring(2, 15),
+              })
 
-          const messageString = message.prepareMessage()
+              const messageString = message.prepareMessage()
 
-          return {
-            message: messageString,
-            nonce: message.nonce || "",
-          }
-        } catch (error) {
-          logger.error("Failed to generate SIWE message:", error)
-          throw new GraphQLError("Failed to generate SIWE message", {
-            extensions: {
-              code: GraphQLErrorCode.INTERNAL_ERROR,
-            },
-          })
-        }
+              return {
+                message: messageString,
+                nonce: message.nonce || "",
+              }
+            } catch (error) {
+              logger.error("Failed to generate SIWE message:", error)
+              throw new GraphQLError("Failed to generate SIWE message", {
+                extensions: {
+                  code: GraphQLErrorCode.INTERNAL_ERROR,
+                },
+              })
+            }
+          },
+        )
       },
 
       authenticateWithSiwe: async (_, { message, signature }, context) => {
-        try {
-          const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
-          const authService = new AuthService(serverApp)
+        return serverApp.startSpan(
+          "graphql.Mutation.authenticateWithSiwe",
+          async () => {
+            try {
+              const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+              const authService = new AuthService(serverApp)
 
-          logger.debug("Authenticating with SIWE message")
+              logger.debug("Authenticating with SIWE message")
 
-          const authResult = await authService.authenticateWithSiwe(
-            message,
-            signature,
-          )
+              const authResult = await authService.authenticateWithSiwe(
+                message,
+                signature,
+              )
 
-          return {
-            success: true,
-            token: authResult.token,
-            wallet: authResult.user.wallet,
-            error: null,
-          }
-        } catch (error) {
-          logger.error("SIWE authentication failed:", error)
+              return {
+                success: true,
+                token: authResult.token,
+                wallet: authResult.user.wallet,
+                error: null,
+              }
+            } catch (error) {
+              logger.error("SIWE authentication failed:", error)
 
-          // Return error in result rather than throwing for better UX
-          return {
-            success: false,
-            token: null,
-            wallet: null,
-            error:
-              error instanceof Error ? error.message : "Authentication failed",
-          }
-        }
+              // Return error in result rather than throwing for better UX
+              return {
+                success: false,
+                token: null,
+                wallet: null,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Authentication failed",
+              }
+            }
+          },
+        )
       },
 
       markNotificationAsRead: async (_, { id }, context) => {
-        try {
-          const user = await getAuthenticatedUser(context)
+        return serverApp.startSpan(
+          "graphql.Mutation.markNotificationAsRead",
+          async () => {
+            try {
+              const user = await getAuthenticatedUser(context)
 
-          const success = await markNotificationAsRead(
-            serverApp.db,
-            user.id,
-            id,
-          )
+              const success = await markNotificationAsRead(
+                serverApp.db,
+                user.id,
+                id,
+              )
 
-          if (!success) {
-            throw new GraphQLError(
-              "Notification not found or not owned by user",
-              {
-                extensions: { code: GraphQLErrorCode.NOT_FOUND },
-              },
-            )
-          }
+              if (!success) {
+                throw new GraphQLError(
+                  "Notification not found or not owned by user",
+                  {
+                    extensions: { code: GraphQLErrorCode.NOT_FOUND },
+                  },
+                )
+              }
 
-          logger.debug(
-            `Marked notification ${id} as read for user ${user.wallet}`,
-          )
+              logger.debug(
+                `Marked notification ${id} as read for user ${user.wallet}`,
+              )
 
-          return { success: true }
-        } catch (error) {
-          if (error instanceof GraphQLError) {
-            throw error
-          }
+              return { success: true }
+            } catch (error) {
+              if (error instanceof GraphQLError) {
+                throw error
+              }
 
-          logger.error("Failed to mark notification as read:", error)
-          throw new GraphQLError("Failed to mark notification as read", {
-            extensions: {
-              code: GraphQLErrorCode.DATABASE_ERROR,
-              originalError:
-                error instanceof Error ? error.message : String(error),
-            },
-          })
-        }
+              logger.error("Failed to mark notification as read:", error)
+              throw new GraphQLError("Failed to mark notification as read", {
+                extensions: {
+                  code: GraphQLErrorCode.DATABASE_ERROR,
+                  originalError:
+                    error instanceof Error ? error.message : String(error),
+                },
+              })
+            }
+          },
+        )
       },
 
       markAllNotificationsAsRead: async (_, __, context) => {
-        try {
-          const user = await getAuthenticatedUser(context)
+        return serverApp.startSpan(
+          "graphql.Mutation.markAllNotificationsAsRead",
+          async () => {
+            try {
+              const user = await getAuthenticatedUser(context)
 
-          const updatedCount = await markAllNotificationsAsRead(
-            serverApp.db,
-            user.id,
-          )
+              const updatedCount = await markAllNotificationsAsRead(
+                serverApp.db,
+                user.id,
+              )
 
-          logger.debug(
-            `Marked ${updatedCount} notifications as read for user ${user.wallet}`,
-          )
+              logger.debug(
+                `Marked ${updatedCount} notifications as read for user ${user.wallet}`,
+              )
 
-          return { success: true }
-        } catch (error) {
-          logger.error("Failed to mark all notifications as read:", error)
-          throw new GraphQLError("Failed to mark all notifications as read", {
-            extensions: {
-              code: GraphQLErrorCode.DATABASE_ERROR,
-              originalError:
-                error instanceof Error ? error.message : String(error),
-            },
-          })
-        }
+              return { success: true }
+            } catch (error) {
+              logger.error("Failed to mark all notifications as read:", error)
+              throw new GraphQLError(
+                "Failed to mark all notifications as read",
+                {
+                  extensions: {
+                    code: GraphQLErrorCode.DATABASE_ERROR,
+                    originalError:
+                      error instanceof Error ? error.message : String(error),
+                  },
+                },
+              )
+            }
+          },
+        )
       },
     },
   }

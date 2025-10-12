@@ -17,13 +17,15 @@ export async function getUser(
   db: DatabaseOrTransaction,
   wallet: string,
 ): Promise<User | undefined> {
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.wallet, wallet.toLowerCase()))
-    .limit(1)
+  return db.startSpan("db.users.getUser", async () => {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.wallet, wallet.toLowerCase()))
+      .limit(1)
 
-  return result[0]
+    return result[0]
+  })
 }
 
 /**
@@ -33,24 +35,26 @@ export async function createUserIfNotExists(
   db: DatabaseOrTransaction,
   wallet: string,
 ): Promise<User> {
-  return withTransaction(db, async (tx) => {
-    // Check if user exists
-    let user = await getUser(tx, wallet)
+  return db.startSpan("db.users.createUserIfNotExists", async () => {
+    return withTransaction(db, async (tx) => {
+      // Check if user exists
+      let user = await getUser(tx, wallet)
 
-    if (!user) {
-      // Create new user
-      const result = await tx
-        .insert(users)
-        .values({
-          wallet: wallet.toLowerCase(),
-          settings: {},
-        })
-        .returning()
+      if (!user) {
+        // Create new user
+        const result = await tx
+          .insert(users)
+          .values({
+            wallet: wallet.toLowerCase(),
+            settings: {},
+          })
+          .returning()
 
-      user = result[0]!
-    }
+        user = result[0]!
+      }
 
-    return user
+      return user
+    })
   })
 }
 
@@ -62,14 +66,16 @@ export async function updateUserSettings(
   wallet: string,
   settings: any,
 ): Promise<User | undefined> {
-  const result = await db
-    .update(users)
-    .set({
-      settings,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.wallet, wallet.toLowerCase()))
-    .returning()
+  return db.startSpan("db.users.updateUserSettings", async () => {
+    const result = await db
+      .update(users)
+      .set({
+        settings,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.wallet, wallet.toLowerCase()))
+      .returning()
 
-  return result[0]
+    return result[0]
+  })
 }

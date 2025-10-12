@@ -24,25 +24,27 @@ export async function getNotificationsForUser(
   userId: number,
   pageParam: PageParam,
 ): Promise<[Notification[], number]> {
-  return withTransaction(db, async (tx) => {
-    // Get notifications with pagination
-    const notificationsResult = await tx
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt))
-      .limit(pageParam.perPage)
-      .offset(pageParam.startIndex)
+  return db.startSpan("db.notifications.getNotificationsForUser", async () => {
+    return withTransaction(db, async (tx) => {
+      // Get notifications with pagination
+      const notificationsResult = await tx
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(pageParam.perPage)
+        .offset(pageParam.startIndex)
 
-    // Get total count
-    const totalResult = await tx
-      .select({ count: count() })
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
+      // Get total count
+      const totalResult = await tx
+        .select({ count: count() })
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
 
-    const total = totalResult[0]?.count ?? 0
+      const total = totalResult[0]?.count ?? 0
 
-    return [notificationsResult, total]
+      return [notificationsResult, total]
+    })
   })
 }
 
@@ -53,12 +55,19 @@ export async function getUnreadNotificationsCountForUser(
   db: DatabaseOrTransaction,
   userId: number,
 ): Promise<number> {
-  const result = await db
-    .select({ count: count() })
-    .from(notifications)
-    .where(and(eq(notifications.userId, userId), eq(notifications.read, false)))
+  return db.startSpan(
+    "db.notifications.getUnreadNotificationsCountForUser",
+    async () => {
+      const result = await db
+        .select({ count: count() })
+        .from(notifications)
+        .where(
+          and(eq(notifications.userId, userId), eq(notifications.read, false)),
+        )
 
-  return result[0]?.count ?? 0
+      return result[0]?.count ?? 0
+    },
+  )
 }
 
 /**
@@ -69,16 +78,18 @@ export async function createNotification(
   userId: number,
   data: any,
 ): Promise<Notification> {
-  const result = await db
-    .insert(notifications)
-    .values({
-      userId,
-      data,
-      read: false,
-    })
-    .returning()
+  return db.startSpan("db.notifications.createNotification", async () => {
+    const result = await db
+      .insert(notifications)
+      .values({
+        userId,
+        data,
+        read: false,
+      })
+      .returning()
 
-  return result[0]!
+    return result[0]!
+  })
 }
 
 /**
@@ -89,21 +100,23 @@ export async function markNotificationAsRead(
   userId: number,
   notificationId: number,
 ): Promise<boolean> {
-  const result = await db
-    .update(notifications)
-    .set({
-      read: true,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(notifications.id, notificationId),
-        eq(notifications.userId, userId),
-      ),
-    )
-    .returning()
+  return db.startSpan("db.notifications.markNotificationAsRead", async () => {
+    const result = await db
+      .update(notifications)
+      .set({
+        read: true,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId),
+        ),
+      )
+      .returning()
 
-  return result.length > 0
+    return result.length > 0
+  })
 }
 
 /**
@@ -113,14 +126,21 @@ export async function markAllNotificationsAsRead(
   db: DatabaseOrTransaction,
   userId: number,
 ): Promise<number> {
-  const result = await db
-    .update(notifications)
-    .set({
-      read: true,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(notifications.userId, userId), eq(notifications.read, false)))
-    .returning()
+  return db.startSpan(
+    "db.notifications.markAllNotificationsAsRead",
+    async () => {
+      const result = await db
+        .update(notifications)
+        .set({
+          read: true,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(eq(notifications.userId, userId), eq(notifications.read, false)),
+        )
+        .returning()
 
-  return result.length
+      return result.length
+    },
+  )
 }

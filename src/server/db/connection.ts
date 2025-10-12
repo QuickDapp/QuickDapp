@@ -1,14 +1,15 @@
-import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { serverConfig } from "../../shared/config/server"
-import { createDummyLogger, type Logger } from "../lib/logger"
+import { createDummyLogger, type Logger, startSpan } from "../lib/logger"
 import * as schema from "./schema"
+import type { Database } from "./shared"
 
 // Global logger state - starts as dummy, gets set by bootstrap
 let logger: Logger = createDummyLogger()
 
 // Global connection state to prevent multiple connections
-let globalDb: PostgresJsDatabase<typeof schema> | null = null
+let globalDb: Database | null = null
 let globalClient: postgres.Sql | null = null
 let globalConnectionPromise: Promise<void> | null = null
 let isGloballyConnected = false
@@ -39,7 +40,7 @@ class DatabaseConnectionManager {
     idleTimeout?: number
     connectTimeout?: number
     databaseUrl?: string
-  }): Promise<PostgresJsDatabase<typeof schema>> {
+  }): Promise<Database> {
     // If already connected globally, return existing db
     if (isGloballyConnected && globalDb) {
       logger.debug("Reusing existing database connection")
@@ -136,8 +137,8 @@ class DatabaseConnectionManager {
         },
       })
 
-      // Create drizzle instance
-      globalDb = drizzle(globalClient, {
+      // Create drizzle instance and attach startSpan method
+      const baseDb = drizzle(globalClient, {
         schema,
         logger: {
           logQuery: (query, params) => {
@@ -145,6 +146,8 @@ class DatabaseConnectionManager {
           },
         },
       })
+
+      globalDb = Object.assign(baseDb, { startSpan }) as Database
 
       // Test the connection
       await globalClient`SELECT 1 as test`
@@ -178,7 +181,7 @@ class DatabaseConnectionManager {
     }
   }
 
-  getDb(): PostgresJsDatabase<typeof schema> {
+  getDb(): Database {
     if (!isGloballyConnected || !globalDb) {
       throw new Error("Database not connected. Call connect() first.")
     }

@@ -1,9 +1,8 @@
 import type { NotificationData } from "@shared/notifications/types"
 import type { ISocketManager } from "@shared/websocket/socket-manager"
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import type { Elysia } from "elysia"
 import type { PublicClient, WalletClient } from "viem"
-import type * as schema from "./db/schema"
+import type { Database } from "./db/shared"
 import type { Logger, startSpan } from "./lib/logger"
 import type { WorkerManager } from "./workers"
 
@@ -15,7 +14,7 @@ export type ServerApp = {
   /** The server application instance */
   app: Elysia
   /** Database instance */
-  db: PostgresJsDatabase<typeof schema>
+  db: Database
   /** Root logger instance */
   rootLogger: Logger
   /** Create a logger with a category */
