@@ -12,6 +12,7 @@ import {
 import { getUser } from "../db/users"
 import { getChainId } from "../lib/chains"
 import { LOG_CATEGORIES } from "../lib/logger"
+import { setSentryUser } from "../lib/sentry"
 import type { ServerApp } from "../types"
 import type { Resolvers } from "./types"
 
@@ -20,6 +21,26 @@ import type { Resolvers } from "./types"
  */
 export function createResolvers(serverApp: ServerApp): Resolvers {
   const logger = serverApp.createLogger(LOG_CATEGORIES.GRAPHQL_RESOLVERS)
+
+  /**
+   * Helper to wrap resolver execution with Sentry span and user context
+   */
+  const withSpan = async <T>(
+    spanName: string,
+    context: any,
+    callback: () => Promise<T>,
+  ): Promise<T> => {
+    return serverApp.startSpan(spanName, async (span) => {
+      if (context.user) {
+        setSentryUser({ id: context.user.id, wallet: context.user.wallet })
+        span.setAttributes({
+          "user.id": context.user.id,
+          "user.wallet": context.user.wallet,
+        })
+      }
+      return callback()
+    })
+  }
 
   // Helper function to get authenticated user and validate they exist
   const getAuthenticatedUser = async (context: any) => {
@@ -43,7 +64,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
     Query: {
       // Token validation (requires auth header, but validates it)
       validateToken: async (_, __, context) => {
-        return serverApp.startSpan("graphql.Query.validateToken", async () => {
+        return withSpan("graphql.Query.validateToken", context, async () => {
           try {
             if (context.user) {
               return {
@@ -69,8 +90,9 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
       // User notifications (auth required)
       getMyNotifications: async (_, { pageParam }, context) => {
-        return serverApp.startSpan(
+        return withSpan(
           "graphql.Query.getMyNotifications",
+          context,
           async () => {
             try {
               const user = await getAuthenticatedUser(context)
@@ -106,8 +128,9 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
       },
 
       getMyUnreadNotificationsCount: async (_, __, context) => {
-        return serverApp.startSpan(
+        return withSpan(
           "graphql.Query.getMyUnreadNotificationsCount",
+          context,
           async () => {
             try {
               const user = await getAuthenticatedUser(context)
@@ -135,8 +158,9 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
     Mutation: {
       // Authentication mutations (no auth required)
       generateSiweMessage: async (_, { address }, context) => {
-        return serverApp.startSpan(
+        return withSpan(
           "graphql.Mutation.generateSiweMessage",
+          context,
           async () => {
             try {
               const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
@@ -171,8 +195,9 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
       },
 
       authenticateWithSiwe: async (_, { message, signature }, context) => {
-        return serverApp.startSpan(
+        return withSpan(
           "graphql.Mutation.authenticateWithSiwe",
+          context,
           async () => {
             try {
               const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
@@ -210,8 +235,9 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
       },
 
       markNotificationAsRead: async (_, { id }, context) => {
-        return serverApp.startSpan(
+        return withSpan(
           "graphql.Mutation.markNotificationAsRead",
+          context,
           async () => {
             try {
               const user = await getAuthenticatedUser(context)
@@ -255,8 +281,9 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
       },
 
       markAllNotificationsAsRead: async (_, __, context) => {
-        return serverApp.startSpan(
+        return withSpan(
           "graphql.Mutation.markAllNotificationsAsRead",
+          context,
           async () => {
             try {
               const user = await getAuthenticatedUser(context)
