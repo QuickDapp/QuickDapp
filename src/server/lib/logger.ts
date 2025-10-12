@@ -2,7 +2,7 @@ import { Logger, LogLevel } from "@hiddentao/logger"
 import { ConsoleTransport } from "@hiddentao/logger/transports/console"
 import * as Sentry from "@sentry/node"
 import { serverConfig } from "../../shared/config/server"
-import { SentryTransport } from "./sentryTransport"
+import { SentryTransport } from "./sentry"
 
 // Export the Logger type and LogLevel enum for use in other modules
 export type { Logger } from "@hiddentao/logger"

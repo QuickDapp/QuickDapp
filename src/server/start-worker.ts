@@ -7,26 +7,22 @@ import * as Sentry from "@sentry/node"
 import { serverConfig } from "../shared/config/server"
 import { createServerApp } from "./bootstrap"
 import { createRootLogger, getLogLevel } from "./lib/logger"
+import { initializeSentry } from "./lib/sentry"
 import type { ServerApp } from "./types"
 import { WorkerIPCMessageType } from "./workers/ipc-types"
 import { WorkerSocketManager } from "./workers/socket-manager"
 import { runWorker } from "./workers/worker"
 
-// Initialize Sentry for worker process if DSN is configured
-if (serverConfig.SENTRY_WORKER_DSN) {
-  Sentry.init({
-    dsn: serverConfig.SENTRY_WORKER_DSN,
-    environment: process.env.NODE_ENV || "development",
-    tracesSampleRate: serverConfig.SENTRY_TRACES_SAMPLE_RATE,
-    profileSessionSampleRate: serverConfig.SENTRY_PROFILE_SESSION_SAMPLE_RATE,
-    sendDefaultPii: true,
-    _experiments: {
-      enableLogs: true,
-    },
-  })
-}
-
 export const startWorker = async () => {
+  // Initialize Sentry for worker process if DSN is configured
+  if (serverConfig.SENTRY_WORKER_DSN) {
+    initializeSentry({
+      dsn: serverConfig.SENTRY_WORKER_DSN,
+      environment: serverConfig.NODE_ENV,
+      tracesSampleRate: serverConfig.SENTRY_TRACES_SAMPLE_RATE,
+      profileSessionSampleRate: serverConfig.SENTRY_PROFILE_SESSION_SAMPLE_RATE,
+    })
+  }
   // Create worker root logger instance
   const logger = createRootLogger(
     `worker-${process.env.WORKER_ID}`,

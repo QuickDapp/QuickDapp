@@ -8,6 +8,7 @@ import { createServerApp } from "./bootstrap"
 import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
 import { createRootLogger } from "./lib/logger"
+import { initializeSentry } from "./lib/sentry"
 import type { ServerApp } from "./types"
 import { createWebSocket, SocketManager } from "./ws"
 
@@ -15,6 +16,16 @@ import { createWebSocket, SocketManager } from "./ws"
 export const createApp = async (
   options: { workerCountOverride?: number } = {},
 ) => {
+  // Initialize Sentry if DSN is provided
+  if (serverConfig.SENTRY_DSN) {
+    initializeSentry({
+      dsn: serverConfig.SENTRY_DSN,
+      environment: serverConfig.NODE_ENV,
+      tracesSampleRate: serverConfig.SENTRY_TRACES_SAMPLE_RATE,
+      profileSessionSampleRate: serverConfig.SENTRY_PROFILE_SESSION_SAMPLE_RATE,
+    })
+  }
+
   const startTime = performance.now()
 
   // Create root logger instance

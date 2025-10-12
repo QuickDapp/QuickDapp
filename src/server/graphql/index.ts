@@ -9,6 +9,7 @@ import { defaultResolvers } from "../../shared/graphql/resolvers"
 import { typeDefs } from "../../shared/graphql/schema"
 import { AuthService } from "../auth"
 import { LOG_CATEGORIES } from "../lib/logger"
+import { setSentryUser } from "../lib/sentry"
 import type { ServerApp } from "../types"
 import { createResolvers } from "./resolvers"
 
@@ -67,92 +68,97 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
       },
     ],
     context: async ({ request, params }) => {
-      // Debug request headers
-      logger.debug(`Incoming request: ${request.method} ${request.url}`)
-      logger.debug(
-        `Authorization header: ${request.headers.get("Authorization")}`,
-      )
-
-      // GraphQL operations require POST, but allow GET for GraphiQL
-      const isGraphQLOperation = request.method === "POST"
-      const isGraphiQLRequest = request.method === "GET"
-
-      if (!isGraphQLOperation && !isGraphiQLRequest) {
-        throw new Error(
-          `GraphQL endpoint only supports GET (GraphiQL) and POST requests, received ${request.method}`,
+      return serverApp.startSpan("graphql.request", async (span) => {
+        // Debug request headers
+        logger.debug(`Incoming request: ${request.method} ${request.url}`)
+        logger.debug(
+          `Authorization header: ${request.headers.get("Authorization")}`,
         )
-      }
 
-      // Extract operation name and check if any field requires auth
-      let operationName: string | undefined
-      let requiresAuth = false
+        // GraphQL operations require POST, but allow GET for GraphiQL
+        const isGraphQLOperation = request.method === "POST"
+        const isGraphiQLRequest = request.method === "GET"
 
-      // Skip auth checks for GraphiQL GET requests
-      if (isGraphiQLRequest) {
-        operationName = "graphiql"
-        requiresAuth = false
-      } else if (params?.operationName) {
-        operationName = params.operationName
-        requiresAuth = authHelper.requiresAuth(operationName)
-        logger.debug(`Operation name from params: ${operationName}`)
-      } else if (params?.query) {
-        // Use GraphQL's parse function to extract all field names
-        try {
-          const document = parse(params.query)
-          const operation = document.definitions[0] as OperationDefinitionNode
-
-          // Check all selections in the query
-          const fieldNames: string[] = []
-          for (const selection of operation.selectionSet.selections) {
-            if (selection.kind === "Field" && selection.name?.value) {
-              fieldNames.push(selection.name.value)
-            }
-          }
-
-          // Use the first field name as the operation name for logging
-          operationName = fieldNames[0]
-
-          // Check if ANY field requires auth - if so, require auth for entire query
-          requiresAuth = fieldNames.some((fieldName) =>
-            authHelper.requiresAuth(fieldName),
+        if (!isGraphQLOperation && !isGraphiQLRequest) {
+          throw new Error(
+            `GraphQL endpoint only supports GET (GraphiQL) and POST requests, received ${request.method}`,
           )
-
-          logger.debug(`Operation name extracted from query: ${operationName}`)
-          logger.debug(`Query fields: [${fieldNames.join(", ")}]`)
-        } catch (error) {
-          logger.error(
-            `Failed to parse GraphQL query for operation name:`,
-            error,
-          )
-          throw new Error("Invalid GraphQL query: unable to parse operation")
         }
-      }
 
-      if (!operationName) {
-        logger.error("No operation name found in GraphQL request")
-        throw new Error("Invalid GraphQL request: no operation name found")
-      }
+        // Extract operation name and check if any field requires auth
+        let operationName: string | undefined
+        let requiresAuth = false
 
-      logger.debug(`Operation requires auth: ${requiresAuth}`)
+        // Skip auth checks for GraphiQL GET requests
+        if (isGraphiQLRequest) {
+          operationName = "graphiql"
+          requiresAuth = false
+        } else if (params?.operationName) {
+          operationName = params.operationName
+          requiresAuth = authHelper.requiresAuth(operationName)
+          logger.debug(`Operation name from params: ${operationName}`)
+        } else if (params?.query) {
+          // Use GraphQL's parse function to extract all field names
+          try {
+            const document = parse(params.query)
+            const operation = document.definitions[0] as OperationDefinitionNode
 
-      let user: any = null
+            // Check all selections in the query
+            const fieldNames: string[] = []
+            for (const selection of operation.selectionSet.selections) {
+              if (selection.kind === "Field" && selection.name?.value) {
+                fieldNames.push(selection.name.value)
+              }
+            }
 
-      // Always try to authenticate if Authorization header is present
-      const authHeader = request.headers.get("Authorization")
-      if (authHeader) {
-        logger.debug(`Authorization header present, attempting authentication`)
-        try {
-          user = await authService.authenticateRequest(request)
-          logger.debug(`User authenticated: ${user.wallet}`)
-        } catch (error) {
-          // If auth is required and authentication failed, throw error
-          if (requiresAuth) {
-            logger.debug(
-              `Auth required for operation ${operationName} but authentication failed:`,
-              error instanceof Error ? error.message : String(error),
+            // Use the first field name as the operation name for logging
+            operationName = fieldNames[0]
+
+            // Check if ANY field requires auth - if so, require auth for entire query
+            requiresAuth = fieldNames.some((fieldName) =>
+              authHelper.requiresAuth(fieldName),
             )
-            throw error // Re-throw the GraphQLError from AuthService
-          } else {
+
+            logger.debug(
+              `Operation name extracted from query: ${operationName}`,
+            )
+            logger.debug(`Query fields: [${fieldNames.join(", ")}]`)
+          } catch (error) {
+            logger.error(
+              `Failed to parse GraphQL query for operation name:`,
+              error,
+            )
+            throw new Error("Invalid GraphQL query: unable to parse operation")
+          }
+        }
+
+        if (!operationName) {
+          logger.error("No operation name found in GraphQL request")
+          throw new Error("Invalid GraphQL request: no operation name found")
+        }
+
+        logger.debug(`Operation requires auth: ${requiresAuth}`)
+
+        let user: any = null
+
+        // Always try to authenticate if Authorization header is present
+        const authHeader = request.headers.get("Authorization")
+        if (authHeader) {
+          logger.debug(
+            `Authorization header present, attempting authentication`,
+          )
+          try {
+            user = await authService.authenticateRequest(request)
+            logger.debug(`User authenticated: ${user.wallet}`)
+          } catch (error) {
+            // If auth is required and authentication failed, throw error
+            if (requiresAuth) {
+              logger.debug(
+                `Auth required for operation ${operationName} but authentication failed:`,
+                error instanceof Error ? error.message : String(error),
+              )
+              throw error // Re-throw the GraphQLError from AuthService
+            }
             // If auth is not required but token was invalid, just log it
             logger.debug(
               `Optional authentication failed for operation ${operationName}:`,
@@ -160,23 +166,38 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
             )
             user = null
           }
+        } else if (requiresAuth) {
+          // No auth header but auth is required
+          logger.debug(
+            `Auth required for operation ${operationName} but no Authorization header`,
+          )
+          throw new GraphQLError("Authentication required", {
+            extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
+          })
         }
-      } else if (requiresAuth) {
-        // No auth header but auth is required
-        logger.debug(
-          `Auth required for operation ${operationName} but no Authorization header`,
-        )
-        throw new GraphQLError("Authentication required", {
-          extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
-        })
-      }
 
-      return {
-        serverApp,
-        user,
-        operationName,
-        requiresAuth,
-      }
+        // Set span attributes for monitoring
+        span.setAttributes({
+          "graphql.operation": operationName,
+          "graphql.requiresAuth": requiresAuth,
+        })
+
+        // Set user context in Sentry if authenticated
+        if (user) {
+          setSentryUser({ id: user.id, wallet: user.wallet })
+          span.setAttributes({
+            "user.id": user.id,
+            "user.wallet": user.wallet,
+          })
+        }
+
+        return {
+          serverApp,
+          user,
+          operationName,
+          requiresAuth,
+        }
+      })
     },
     logging: {
       debug: (...args) => logger.debug(args.join(" ")),

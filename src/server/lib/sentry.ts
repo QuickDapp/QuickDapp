@@ -5,6 +5,43 @@ import * as Sentry from "@sentry/node"
 const { logger } = Sentry
 
 /**
+ * Initialize Sentry with configuration
+ */
+export const initializeSentry = (options: {
+  dsn: string
+  environment: string
+  tracesSampleRate: number
+  profileSessionSampleRate: number
+}): void => {
+  Sentry.init({
+    dsn: options.dsn,
+    environment: options.environment,
+    tracesSampleRate: options.tracesSampleRate,
+    profileSessionSampleRate: options.profileSessionSampleRate,
+    _experiments: {
+      enableLogs: true,
+    },
+  })
+}
+
+/**
+ * Set the current user in Sentry scope
+ */
+export const setSentryUser = (user: { id: number; wallet: string }): void => {
+  Sentry.setUser({
+    id: String(user.id),
+    username: user.wallet,
+  })
+}
+
+/**
+ * Clear the current user from Sentry scope
+ */
+export const clearSentryUser = (): void => {
+  Sentry.setUser(null)
+}
+
+/**
  * Custom transport for logging to Sentry
  */
 export class SentryTransport implements Transport {
