@@ -82,6 +82,7 @@
     "graphql-yoga": "^5.15.1",
     "jose": "^6.0.12",
     "json-bigint-patch": "^0.0.8",
+    "p-debounce": "^4.0.0",
     "postgres": "^3.4.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
