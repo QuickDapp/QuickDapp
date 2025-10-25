@@ -71,7 +71,7 @@ Setup your production database and run migrations:
 
 ```shell
 # Run database migrations
-NODE_ENV=production bun run db migrate
+NODE_ENV=production bun run db push
 ```
 
 ### 4. Deploy Application

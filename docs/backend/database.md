@@ -276,11 +276,8 @@ bun run db generate
 ### Running Migrations
 
 ```shell
-# Development: Push schema directly (destructive)
+# Apply migration files to database
 bun run db push
-
-# Production: Run migrations safely
-bun run db migrate
 ```
 
 ### Migration Files

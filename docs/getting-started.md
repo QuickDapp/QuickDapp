@@ -1,3 +1,7 @@
+---
+order: 98
+---
+
 # Getting started
 
 ## Step 0 - Pre-requisites
@@ -18,8 +22,8 @@ QuickDapp exclusively uses Bun as its runtime and package manager. npm/yarn/pnpm
 Clone or fork the QuickDapp repository from GitHub:
 
 ```shell
-git clone https://github.com/QuickDapp/quickdapp-v3.git
-cd quickdapp-v3
+git clone https://github.com/QuickDapp/quickdapp.git
+cd quickdapp
 ```
 
 ## Step 2 - Dependencies
@@ -45,7 +49,7 @@ If you haven't already, create the `quickdapp_dev` database, ensuring the `postg
 psql -U postgres -c 'CREATE DATABASE quickdapp_dev'
 ```
 
-Let's get the dev database setup:
+Let's get the dev database setup with our tables:
 
 ```shell
 bun run db push
@@ -55,7 +59,9 @@ This command uses DrizzleORM to set up your database schema based on the definit
 
 ## Step 4 - Local smart contract development
 
-QuickDapp includes a sample ERC-20 token factory contract for local development. The contracts are located in the `sample-contracts/` directory and use a simple factory pattern (not Diamond Standard).
+QuickDapp includes a sample ERC-20 token factory contract for local development. The factory contract allows you to deploy custom ERC-20 tokens through the QuickDapp interface.
+
+The contracts are located in the `sample-contracts/` directory and use a simple factory pattern.
 
 ### Install Foundry (if not already installed)
 
@@ -75,7 +81,7 @@ cd sample-contracts
 bun devnet.ts
 ```
 
-This starts a local blockchain on `http://localhost:8545` with pre-funded test accounts.
+This starts a local [Hardhat](https://hardhat.org/) blockchain on `http://localhost:8545` with pre-funded test accounts.
 
 ### Deploy contracts locally
 
@@ -89,9 +95,7 @@ bun deploy.ts
 This will:
 - Build the contracts using Foundry
 - Deploy the ERC-20Factory contract to your local node
-- Automatically save the contract address to `../.env.local`
-
-The factory contract allows you to deploy custom ERC-20 tokens through the QuickDapp interface.
+- Automatically save the contract address to `../.env.local` so that our QuickDapp app can use it straightaway.
 
 ## Step 5 - Setup wallet
 
@@ -121,7 +125,7 @@ This will:
 * Start the backend server on http://localhost:3000
 * GraphQL endpoint at http://localhost:3000/graphql and health at http://localhost:3000/health
 * Start the Vite frontend development server on http://localhost:5173
-* Generate contract ABIs and copy static assets
+* Generate smart contract ABIs, typescript types, and copy static assets
 * Enable hot reload for both frontend and backend changes
 
 The development server provides live reloading for an optimal development experience.
@@ -130,22 +134,15 @@ The development server provides live reloading for an optimal development experi
 
 Goto http://localhost:5173 in your Metamask-enabled browser to interact with the dapp!
 
-The development setup includes:
-* Full Web3 wallet integration via RainbowKit
-* GraphQL API with authentication
-* Real-time WebSocket connections
-* Background job processing
-* Comprehensive logging
-
 ## Step 8 - Run tests
 
-QuickDapp includes a basic test framework. Run tests with:
+QuickDapp includes a full suite of integration tests for the backend server and GraphQL routes. Run tests with:
 
 ```shell
 bun run test
 ```
 
-You can add your own tests to the `tests/` directory. The test framework includes database isolation, server lifecycle management, and GraphQL testing utilities.
+You can add your own tests to the `tests/` directory.
 
 ## Step 9 - Deploying to production
 
@@ -171,7 +168,7 @@ We will setup a PostgreSQL database for production use. You can use any PostgreS
 * [Railway](https://railway.app/)
 * [Supabase](https://supabase.com/)
 
-Once you have your production database connection string, add it to your `.env.production` file (or create a production environment file):
+Once you have your production database connection string, add it to your `.env.production` file (or create one if it doesn't exist):
 
 ```ini
 DATABASE_URL="postgresql://user:password@host:5432/database"
@@ -180,7 +177,7 @@ DATABASE_URL="postgresql://user:password@host:5432/database"
 Now setup the production database schema:
 
 ```shell
-bun run db migrate
+NODE_ENV=production bun run db push
 ```
 
 ## Step 11 - Deploy contracts to Sepolia
@@ -224,8 +221,6 @@ In the project folder, build the production apps:
 
 ```shell
 bun run build
-# Optionally bundle client into server static assets so server serves the SPA:
-# bun run build --bundle
 ```
 
 Now, run the production apps:
@@ -241,6 +236,7 @@ Now goto http://localhost:3000 in your Metamask-enabled browser to interact with
 QuickDapp supports several deployment options:
 
 **Option A: Binary deployment**
+
 Build a self-contained binary with embedded assets:
 
 ```shell
@@ -249,6 +245,7 @@ bun run build
 ```
 
 **Option B: Docker deployment**
+
 Build and run as Docker containers:
 
 ```shell
@@ -270,4 +267,3 @@ Now that you have QuickDapp running, explore the documentation to learn about:
 * [Frontend development](./frontend/) - Building React components and Web3 integrations  
 * [Worker system](./worker/) - Adding background jobs and cron tasks
 * [Command line tools](./command-line/) - Development and deployment commands
-* [Testing](./getting-started.md#step-8---run-tests) - Writing and running tests
