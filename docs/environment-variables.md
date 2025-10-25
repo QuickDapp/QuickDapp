@@ -1,65 +1,103 @@
-# Environment Variables
+---
+order: 97
+---
 
-QuickDapp is configured via environment variables.
+# Environment variables
 
-## Required
+Environment variables are the primary means through which to pass configuration to your app at both build-time and runtime. 
 
-```bash
-DATABASE_URL=postgresql://user:password@host:5432/database
-SESSION_ENCRYPTION_KEY=your_min_32_characters_key
-SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
+The [dotenv](https://www.npmjs.com/package/dotenv) loads environment varibles from various `.env*` files in the project root folder whilst still allowing for overrides specified directly via the shell/terminal environment itself.
+
+Environment variables are loaded in the following order, with later places taking precendence over earlier ones:
+
+1. `.env`
+2. `.env.development` or `.env.production` or `.env.test`, depending on the value of the `NODE_ENV` environment variable.
+3. `.env.local` - only loaded in development mode.
+4. `process.env` - values set at runtime via the shell environment
+
+What this means is that if the same environment variable is declared in multiple places then its final value during runtime is determined by the above order.
+
+Some key points to note:
+
+* The `.env` file is **required.** This file should contain any values which are unlikely to change across environments. It gets bundled into production and Docker builds and will be checked into source control. 
+* The `.env.development` and `.env.production` files are already _git-ignored_ and should **never** be checked into source control since they are intended to contain sensitive information (e.g API keys).
+  * The `.env.development` file gets loaded when the `NODE_ENV` shell environment variable = `development`, which is the default fallback value assumed if none set.
+  * The `.env.production` file gets loaded when when the `NODE_ENV` shell environment variable = `production`, which is the value set by the QuickDapp build script.
+* The `.env.local` file is for further customization during development (i.e. when `NODE_ENV` = `development`), e.g if you are temporarily testing a value different to the default. It also does not get checked into version control.
+
+!!!
+**DO NOT** store sensitive information (e.g API keys) in the core `.env` file. Use the environment-specific or `.env.local` files to store such information.
+!!!
+
+The files use the INI file format:
+
+```ini
+# a comment
+SERVER_WALLET_PRIVATE_KEY=0x...
+# quotes are allowed
+APP_NAME="quickest dapp"
+
+# another comment after some space
 BASE_URL=http://localhost:3000
-CHAIN_RPC_ENDPOINT=http://localhost:8545
-SERVER_CHAIN_RPC_ENDPOINT=http://localhost:8545
-WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
 
-Notes:
-- SESSION_ENCRYPTION_KEY must be at least 32 characters (validated on startup).
-- CHAIN_RPC_ENDPOINT is used by client-side code and exposed to frontend.
-- SERVER_CHAIN_RPC_ENDPOINT is used by server-side blockchain operations only.
+**Example**
 
-## Common optional
+Let's assume that:
 
-```bash
-# App/server
-WEB_ENABLED=true
-HOST=localhost
-PORT=3000
-WORKER_COUNT=1            # or "cpus" (applies at runtime)
-STATIC_ASSETS_FOLDER=     # optional
+* `.env` contains `APP_NAME=root`
+* `.env.development` contains `APP_NAME=dev`
+* `.env.production` contains `APP_NAME=prod`
+* `.env.local` contains `APP_NAME=local`
 
-# Logging
-LOG_LEVEL=info            # trace|debug|info|warn|error
-WORKER_LOG_LEVEL=info
+When the dev server is run, at runtime the `process.env.APP_NAME` value will equal `local`. If we delete the `.env.local` file and restart the server then the runtime value will be `dev`.
 
-# Blockchain
-CHAIN=anvil
-FACTORY_CONTRACT_ADDRESS=0x...
+If we restore the `.env.local` file but this time run the production server then the runtime value will be `prod`. 
 
-# Confirmations
-TX_BLOCK_CONFIRMATIONS_REQUIRED=1
+## Client-side vs Server-side
 
-# External services
-SENTRY_DSN=
-SENTRY_WORKER_DSN=
-SENTRY_AUTH_TOKEN=
-MAILGUN_API_KEY=
-MAILGUN_API_ENDPOINT=
-MAILGUN_FROM_ADDRESS=
+There are two types of environment variables: _client-side_ and _server-side_.
+
+_Client-side_ environment variables are made available client-side in the browser. Since these variables are accessible browser-side they must **not** hold sensitive passwords, API keys or any other information that browser clients are not meant to see. 
+
+_Server-side_ environment variables are **only** available server-side and are **never** sent to the browser. Thus these variables can hold sensitive passwords, API keys and other information that browser clients are not meant to see.
+
+_Note: All client-side environment variables are automatically available to server-side code._
+
+## Overriding at runtime
+
+Environment variables can be overridden at runtime by setting them in the shell/environment prior to starting the app. For example:
+
+```
+LOG_LEVEL=warning pnpm prod
 ```
 
-## Client-visible
+## Programmatic access
 
-Safe to expose:
-- APP_NAME
-- APP_VERSION
-- NODE_ENV
-- BASE_URL
-- CHAIN
-- CHAIN_RPC_ENDPOINT
-- WALLETCONNECT_PROJECT_ID
-- FACTORY_CONTRACT_ADDRESS
-- SENTRY_DSN
+The `src/config/**` modules are responsible for loading, parsing and ensuring the right syntax for each of the various environment variables. It is recommended that your code access environment variables through this rather than accessing `process.env` directly. 
 
-Keep secrets server-side.
+### Client-side
+
+```typescript
+import { clientConfig } from '@shared/config/client'
+
+console.log(clientConfig.BASE_URL) 
+```
+
+### Server-side
+
+```typescript
+import { serverConfig } from '@shared/config/server'
+
+console.log(serverConfig.APP_NAME) 
+```
+
+
+## Adding your own variables
+
+To add your own custom environment variable:
+
+1. Add your variable to either `src/config/client.ts` or `src/config/server.ts` depending on whether it is a client-side or server-side variable. Follow the conventions used for existing environment variables.
+1. Add a default value for your variable to the `.env` file, again following the conventions shown in the file for other variables. If your variable does not have a default value then set its value inside `.env` to the empty string (`""`).
+1. Optionally add a value override for your variable to either or both of `.env.development` and `.env.production`.
+

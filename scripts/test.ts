@@ -63,7 +63,10 @@ WORKER_LOG_LEVEL=debug
     // Set up test database first
     console.log("📦 Setting up test database...")
     try {
-      await $`bun run db push --force`
+      console.log("  🔧 Generating migrations...")
+      await $`bun run db generate`
+      console.log("  🚀 Applying migrations...")
+      await $`bun run db push`
       console.log("✅ Test database schema updated successfully")
     } catch (error) {
       console.error("❌ Failed to set up test database:", error)

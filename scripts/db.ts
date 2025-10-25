@@ -7,9 +7,7 @@ import {
   type SubcommandConfig,
 } from "./shared/script-runner"
 
-interface DbOptions extends ScriptOptions {
-  force?: boolean
-}
+interface DbOptions extends ScriptOptions {}
 
 async function runDrizzleCommand(args: string[]): Promise<void> {
   // Use tee to both display output and capture it
@@ -50,31 +48,16 @@ async function generateHandler(
   }
 }
 
-async function migrateHandler(
+async function pushHandler(
   _options: DbOptions,
   _config: { rootFolder: string; env: string },
 ) {
-  console.log("🚀 Running DrizzleORM migrations...")
+  console.log("🚀 Applying migrations to database...")
   try {
     await runDrizzleCommand(["migrate"])
     console.log("✅ Migrations applied successfully")
   } catch (error) {
-    console.error("❌ Failed to run migrations:", error)
-    process.exit(1)
-  }
-}
-
-async function pushHandler(
-  options: DbOptions,
-  _config: { rootFolder: string; env: string },
-) {
-  console.log("📦 Pushing schema changes to database...")
-  try {
-    const args = options.force ? ["push", "--force"] : ["push"]
-    await runDrizzleCommand(args)
-    console.log("✅ Schema changes pushed successfully")
-  } catch (error) {
-    console.error("❌ Failed to push schema changes:", error)
+    console.error("❌ Failed to apply migrations:", error)
     process.exit(1)
   }
 }
@@ -87,15 +70,9 @@ const subcommands: SubcommandConfig[] = [
     handler: generateHandler,
   },
   {
-    name: "migrate",
-    description: "Run DrizzleORM migrations",
-    handler: migrateHandler,
-  },
-  {
     name: "push",
-    description: "Push schema changes to database",
+    description: "Apply migration files to database",
     handler: pushHandler,
-    options: (cmd) => cmd.option("-f, --force", "force the operation"),
   },
 ]
 

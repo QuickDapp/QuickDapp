@@ -180,8 +180,7 @@ bun run build          # Build for production
 
 # Database
 bun run db generate    # Generate DrizzleORM migrations
-bun run db push        # Push schema changes to database
-bun run db migrate     # Run migrations (production)
+bun run db push        # Apply migration files to database
 
 # Testing
 bun run test           # Run all tests
