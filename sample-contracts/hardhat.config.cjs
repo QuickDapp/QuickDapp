@@ -20,6 +20,10 @@ module.exports = {
         count: 10,
         accountsBalance: "10000000000000000000000", // 10000 ETH
       },
+      mining: {
+        auto: true,
+        interval: 1000,
+      }
     },
   },
 };

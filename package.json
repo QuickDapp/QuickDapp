@@ -90,7 +90,7 @@
     "reconnecting-websocket": "^4.4.0",
     "siwe": "^3.0.0",
     "tailwind-merge": "^2.5.4",
-    "viem": "^2.35.1",
+    "viem": "^2.38.4",
     "wagmi": "^2.16.5"
   }
 }
