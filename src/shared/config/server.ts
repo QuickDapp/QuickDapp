@@ -16,14 +16,21 @@ export interface ServerConfig extends ClientConfig {
 
   // Database
   DATABASE_URL: string
-  TX_BLOCK_CONFIRMATIONS_REQUIRED: number
 
   // Security
   SESSION_ENCRYPTION_KEY: string
   SERVER_WALLET_PRIVATE_KEY: string
+  ALLOWED_SIWE_ORIGINS: string[]
 
-  // Blockchain (server-side)
-  SERVER_CHAIN_RPC_ENDPOINT: string
+  // Per-chain RPC endpoints (server-only)
+  SERVER_ANVIL_CHAIN_RPC?: string
+  SERVER_MAINNET_CHAIN_RPC?: string
+  SERVER_SEPOLIA_CHAIN_RPC?: string
+  SERVER_BASE_CHAIN_RPC?: string
+
+  // WebSocket configuration
+  SOCKET_MAX_CONNECTIONS_PER_USER: number
+  SOCKET_MAX_TOTAL_CONNECTIONS: number
 
   // External services (optional)
   MAILGUN_API_KEY?: string
@@ -65,10 +72,6 @@ export const serverConfig: ServerConfig = {
 
   // Database
   DATABASE_URL: env.get("DATABASE_URL").required().asString(),
-  TX_BLOCK_CONFIRMATIONS_REQUIRED: env
-    .get("TX_BLOCK_CONFIRMATIONS_REQUIRED")
-    .default(1)
-    .asInt(),
 
   // Security
   SESSION_ENCRYPTION_KEY: env
@@ -79,12 +82,29 @@ export const serverConfig: ServerConfig = {
     .get("SERVER_WALLET_PRIVATE_KEY")
     .required()
     .asString(),
-
-  // Blockchain (server-side)
-  SERVER_CHAIN_RPC_ENDPOINT: env
-    .get("SERVER_CHAIN_RPC_ENDPOINT")
+  ALLOWED_SIWE_ORIGINS: env
+    .get("ALLOWED_SIWE_ORIGINS")
     .required()
-    .asString(),
+    .asString()
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0),
+
+  // Per-chain RPC endpoints (server-only)
+  SERVER_ANVIL_CHAIN_RPC: env.get("SERVER_ANVIL_CHAIN_RPC").asString(),
+  SERVER_MAINNET_CHAIN_RPC: env.get("SERVER_MAINNET_CHAIN_RPC").asString(),
+  SERVER_SEPOLIA_CHAIN_RPC: env.get("SERVER_SEPOLIA_CHAIN_RPC").asString(),
+  SERVER_BASE_CHAIN_RPC: env.get("SERVER_BASE_CHAIN_RPC").asString(),
+
+  // WebSocket configuration
+  SOCKET_MAX_CONNECTIONS_PER_USER: env
+    .get("SOCKET_MAX_CONNECTIONS_PER_USER")
+    .default(5)
+    .asInt(),
+  SOCKET_MAX_TOTAL_CONNECTIONS: env
+    .get("SOCKET_MAX_TOTAL_CONNECTIONS")
+    .default(10000)
+    .asInt(),
 
   // External services (optional)
   MAILGUN_API_KEY: env.get("MAILGUN_API_KEY").asString(),
@@ -112,10 +132,10 @@ export function validateConfig() {
     "DATABASE_URL",
     "SESSION_ENCRYPTION_KEY",
     "SERVER_WALLET_PRIVATE_KEY",
+    "ALLOWED_SIWE_ORIGINS",
     "BASE_URL",
-    "CHAIN_RPC_ENDPOINT",
-    "SERVER_CHAIN_RPC_ENDPOINT",
     "WALLETCONNECT_PROJECT_ID",
+    "SUPPORTED_CHAINS",
   ]
 
   const missing = requiredForDev.filter((key) => {
@@ -135,6 +155,37 @@ export function validateConfig() {
       "SESSION_ENCRYPTION_KEY must be at least 32 characters long",
     )
   }
+}
+
+// Get RPC endpoint for a specific chain
+export function getChainRpcEndpoint(chainName: string): string | undefined {
+  const normalizedName = chainName.toLowerCase()
+  switch (normalizedName) {
+    case "anvil":
+      return serverConfig.SERVER_ANVIL_CHAIN_RPC
+    case "mainnet":
+    case "ethereum":
+      return serverConfig.SERVER_MAINNET_CHAIN_RPC
+    case "sepolia":
+      return serverConfig.SERVER_SEPOLIA_CHAIN_RPC
+    case "base":
+      return serverConfig.SERVER_BASE_CHAIN_RPC
+    default:
+      return undefined
+  }
+}
+
+// Get RPC endpoint for a specific chain, throwing if not configured
+export function requireChainRpcEndpoint(chainName: string): string {
+  const rpcUrl = getChainRpcEndpoint(chainName)
+  if (!rpcUrl) {
+    const envVarName = `SERVER_${chainName.toUpperCase()}_CHAIN_RPC`
+    throw new Error(
+      `RPC endpoint not configured for chain "${chainName}". ` +
+        `Set the ${envVarName} environment variable.`,
+    )
+  }
+  return rpcUrl
 }
 
 // Re-export client config and types for convenience

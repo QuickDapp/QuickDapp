@@ -6,7 +6,7 @@ import { createPublicClient, createWalletClient, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { dbManager } from "./db/connection"
 import { notifications } from "./db/schema"
-import { getChain } from "./lib/chains"
+import { getChain, getChainName, getChainRpcUrl } from "./lib/chains"
 import type { Logger } from "./lib/logger"
 import { startSpan } from "./lib/logger"
 import type { ServerApp } from "./types"
@@ -90,11 +90,14 @@ export const createServerApp = async (options: {
 
   // Create blockchain clients
   const chain = getChain()
-  const rpcUrl = serverConfig.SERVER_CHAIN_RPC_ENDPOINT
+  const chainName = getChainName()
+  const rpcUrl = getChainRpcUrl()
 
   const publicClient = createPublicClient({
     chain,
     transport: http(rpcUrl),
+    // Disable caching in test mode for accurate block numbers
+    ...(serverConfig.NODE_ENV === "test" ? { cacheTime: 0 } : {}),
   })
 
   const walletClient = createWalletClient({
@@ -105,7 +108,7 @@ export const createServerApp = async (options: {
     ),
   })
 
-  rootLogger.info(`Blockchain clients connected to ${chain.name} (${rpcUrl})`)
+  rootLogger.info(`Blockchain clients connected to ${chainName} (${rpcUrl})`)
 
   const baseServerApp = {
     db,

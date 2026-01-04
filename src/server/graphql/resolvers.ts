@@ -11,7 +11,12 @@ import {
 } from "../db/notifications"
 import { getUser } from "../db/users"
 import { getChainId } from "../lib/chains"
+import {
+  generateVerificationCodeAndBlob,
+  validateEmailFormat,
+} from "../lib/emailVerification"
 import { LOG_CATEGORIES } from "../lib/logger"
+import { Mailer } from "../lib/mailer"
 import { setSentryUser } from "../lib/sentry"
 import type { ServerApp } from "../types"
 import type { Resolvers } from "./types"
@@ -220,6 +225,108 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               logger.error("SIWE authentication failed:", error)
 
               // Return error in result rather than throwing for better UX
+              return {
+                success: false,
+                token: null,
+                wallet: null,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Authentication failed",
+              }
+            }
+          },
+        )
+      },
+
+      sendEmailVerificationCode: async (
+        _: any,
+        { email }: { email: string },
+        context: any,
+      ) => {
+        return withSpan(
+          "graphql.Mutation.sendEmailVerificationCode",
+          context,
+          async () => {
+            try {
+              const authLogger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+
+              if (!validateEmailFormat(email)) {
+                return {
+                  success: false,
+                  blob: null,
+                  error: "Invalid email format",
+                }
+              }
+
+              authLogger.debug("Generating email verification code")
+
+              const { code, blob } = await generateVerificationCodeAndBlob(
+                authLogger,
+                email,
+              )
+
+              const mailer = new Mailer(authLogger)
+              await mailer.send({
+                to: email,
+                subject: "Your verification code",
+                text: `Your verification code is: ${code}`,
+                html: `<p>Your verification code is: <strong>${code}</strong></p>`,
+              })
+
+              authLogger.debug("Email verification code sent")
+
+              return {
+                success: true,
+                blob,
+                error: null,
+              }
+            } catch (error) {
+              logger.error("Failed to send email verification code:", error)
+
+              return {
+                success: false,
+                blob: null,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to send verification code",
+              }
+            }
+          },
+        )
+      },
+
+      authenticateWithEmail: async (
+        _: any,
+        { email, code, blob }: { email: string; code: string; blob: string },
+        context: any,
+      ) => {
+        return withSpan(
+          "graphql.Mutation.authenticateWithEmail",
+          context,
+          async () => {
+            try {
+              const authLogger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+              const authService = new AuthService(serverApp)
+
+              authLogger.debug("Authenticating with email verification code")
+
+              const authResult = await authService.authenticateWithEmail(
+                email,
+                code,
+                blob,
+              )
+
+              return {
+                success: true,
+                token: authResult.token,
+                wallet: authResult.user.wallet,
+                error: null,
+              }
+            } catch (error) {
+              logger.error("Email authentication failed:", error)
+
               return {
                 success: false,
                 token: null,

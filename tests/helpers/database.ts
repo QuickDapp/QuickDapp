@@ -74,6 +74,7 @@ export async function cleanTestDatabase(): Promise<void> {
     // First: Tables that reference other tables
     await db.execute(sql`TRUNCATE TABLE notifications RESTART IDENTITY CASCADE`)
     await db.execute(sql`TRUNCATE TABLE worker_jobs RESTART IDENTITY CASCADE`)
+    await db.execute(sql`TRUNCATE TABLE user_auth RESTART IDENTITY CASCADE`)
 
     // Then: Tables that are referenced by others
     await db.execute(sql`TRUNCATE TABLE users RESTART IDENTITY CASCADE`)
@@ -101,6 +102,7 @@ export async function resetTestDatabaseSequences(): Promise<void> {
     // Reset all sequence counters to start from 1
     await db.execute(sql`ALTER SEQUENCE settings_id_seq RESTART WITH 1`)
     await db.execute(sql`ALTER SEQUENCE users_id_seq RESTART WITH 1`)
+    await db.execute(sql`ALTER SEQUENCE user_auth_id_seq RESTART WITH 1`)
     await db.execute(sql`ALTER SEQUENCE notifications_id_seq RESTART WITH 1`)
     await db.execute(sql`ALTER SEQUENCE worker_jobs_id_seq RESTART WITH 1`)
 
@@ -167,11 +169,12 @@ export async function seedTestDatabase(): Promise<void> {
  * Create test user
  */
 export async function createTestUser(
-  userData: { wallet?: string; settings?: any } = {},
+  userData: { wallet?: string; settings?: any; disabled?: boolean } = {},
 ): Promise<User> {
   const defaultUser: NewUser = {
     wallet: "0x742d35Cc6634C0532925a3b8D39A6Fa678e88CfD",
     settings: { theme: "dark" },
+    disabled: false,
     ...userData,
   }
 
@@ -184,6 +187,22 @@ export async function createTestUser(
 
   testLogger.info("📝 Test user created:", { id: user.id, wallet: user.wallet })
   return user
+}
+
+/**
+ * Set user disabled status
+ */
+export async function setTestUserDisabled(
+  userId: number,
+  disabled: boolean,
+): Promise<void> {
+  const db = getTestDb()
+  await db
+    .update(schema.users)
+    .set({ disabled, updatedAt: new Date() })
+    .where(sql`id = ${userId}`)
+
+  testLogger.info("📝 Test user disabled status updated:", { userId, disabled })
 }
 
 /**
@@ -221,15 +240,23 @@ export async function createTestNotification(
  * Create test worker job
  */
 export async function createTestWorkerJob(
-  jobData: { type: string; userId: number; data: any; due?: Date } = {
+  jobData: {
+    tag?: string
+    type: string
+    userId: number
+    data: any
+    due?: Date
+  } = {
     type: "testJob",
     userId: 1,
     data: { action: "test" },
   },
 ): Promise<any> {
+  const tag = jobData.tag || `test:${Date.now()}-${Math.random()}`
   const defaultJob: NewWorkerJob = {
+    tag,
     due: new Date(),
-    removeAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+    removeAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     ...jobData,
   }
 

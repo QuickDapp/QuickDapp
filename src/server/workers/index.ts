@@ -14,7 +14,7 @@ import {
 } from "./ipc-types"
 
 export interface WorkerJob {
-  id: string
+  tag: string
   type: string
   data: unknown
   userId: number
@@ -163,13 +163,14 @@ export const createWorkerManager = async (
   // Create the WorkerManager instance first so we can use submitJob
   const workerManager = {
     submitJob: async (job: WorkerJob) => {
-      logger.debug(`Scheduling job ${job.id} of type ${job.type}`)
+      logger.debug(`Scheduling job ${job.tag} of type ${job.type}`)
       await scheduleJob(serverApp, {
+        tag: job.tag,
         type: job.type,
         userId: job.userId,
         data: job.data,
       })
-      logger.debug(`Job ${job.id} scheduled successfully`)
+      logger.debug(`Job ${job.tag} scheduled successfully`)
     },
 
     getWorkerCount: () => workers.length,
@@ -184,10 +185,10 @@ export const createWorkerManager = async (
   // Schedule Multicall3 deployment immediately
   logger.info("Scheduling Multicall3 deployment check...")
   await workerManager.submitJob({
-    id: `multicall3-deploy-startup-${Date.now()}`,
+    tag: "deploy-multicall3",
     type: "deployMulticall3",
     data: { forceRedeploy: false },
-    userId: 0, // System job
+    userId: 0,
   })
 
   return workerManager

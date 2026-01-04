@@ -153,6 +153,7 @@ export const stopTestWorker = async (
 export const submitJobAndWait = async (
   serverApp: ServerApp,
   jobConfig: {
+    tag: string
     type: string
     userId: number
     data?: any
@@ -177,6 +178,7 @@ export const submitJobAndWait = async (
 export const submitCronJobAndWait = async (
   serverApp: ServerApp,
   jobConfig: {
+    tag: string
     type: string
     userId: number
     data?: any
@@ -333,6 +335,7 @@ export const waitForTestJobCompletion = async (
  */
 export const createTestJobConfig = (
   overrides: Partial<{
+    tag: string
     type: string
     userId: number
     data: any
@@ -340,19 +343,21 @@ export const createTestJobConfig = (
     autoRescheduleOnFailureDelay: number
   }> = {},
 ) => {
+  const testId = `test-${Date.now()}-${Math.random()}`
   const baseData = {
     testRun: true,
-    testId: `test-${Date.now()}-${Math.random()}`,
+    testId,
     ...(overrides.data || {}),
   }
 
   return {
+    tag: overrides.tag || `test:${testId}`,
     type: "removeOldWorkerJobs",
-    userId: 9999, // Use high user ID to avoid conflicts with system jobs (which use 0)
+    userId: 9999,
     autoRescheduleOnFailure: false,
     autoRescheduleOnFailureDelay: 0,
     ...overrides,
-    data: baseData, // Ensure data is always set with test markers
+    data: baseData,
   }
 }
 
@@ -363,6 +368,7 @@ export const createTestJobConfig = (
 export const submitTestJobAndWait = async (
   serverApp: ServerApp,
   jobConfig: {
+    tag?: string
     type: string
     userId?: number
     data?: any

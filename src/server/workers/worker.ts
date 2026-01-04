@@ -21,30 +21,32 @@ const setupDefaultJobs = async (serverApp: ServerApp) => {
 
   logger.debug("Setting up default jobs")
 
-  // Remove old jobs every minute
+  // Remove old jobs every hour
   await scheduleCronJob(
     serverApp,
     {
+      tag: "cron:removeOldWorkerJobs",
       type: "removeOldWorkerJobs",
       userId: 0,
       data: {},
       autoRescheduleOnFailure: true,
       autoRescheduleOnFailureDelay: ONE_MINUTE,
     },
-    "0 * * * * *", // every minute
+    "0 0 * * * *",
   )
 
   // Watch chain every 3 seconds
   await scheduleCronJob(
     serverApp,
     {
+      tag: "cron:watchChain",
       type: "watchChain",
       userId: 0,
       data: {},
       autoRescheduleOnFailure: true,
       autoRescheduleOnFailureDelay: 10 * ONE_SECOND,
     },
-    "*/3 * * * * *", // every 3 seconds
+    "*/3 * * * * *",
   )
 
   logger.debug("Default jobs scheduled")

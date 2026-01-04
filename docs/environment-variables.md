@@ -9,15 +9,27 @@ DATABASE_URL=postgresql://user:password@host:5432/database
 SESSION_ENCRYPTION_KEY=your_min_32_characters_key
 SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
 BASE_URL=http://localhost:3000
-CHAIN_RPC_ENDPOINT=http://localhost:8545
-SERVER_CHAIN_RPC_ENDPOINT=http://localhost:8545
+SUPPORTED_CHAINS=anvil
 WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
 
 Notes:
 - SESSION_ENCRYPTION_KEY must be at least 32 characters (validated on startup).
-- CHAIN_RPC_ENDPOINT is used by client-side code and exposed to frontend.
-- SERVER_CHAIN_RPC_ENDPOINT is used by server-side blockchain operations only.
+- SUPPORTED_CHAINS is a comma-separated list of chain names (first is primary).
+
+## Per-chain RPC endpoints (server-only)
+
+```bash
+SERVER_ANVIL_CHAIN_RPC=http://localhost:8545
+SERVER_MAINNET_CHAIN_RPC=https://eth.llamarpc.com
+SERVER_SEPOLIA_CHAIN_RPC=https://rpc.sepolia.org
+SERVER_BASE_CHAIN_RPC=https://mainnet.base.org
+```
+
+Notes:
+- Set the RPC endpoint for each chain you want to support.
+- Client-side uses viem's built-in public RPCs for each chain.
+- Server-side uses these environment variables for blockchain operations.
 
 ## Common optional
 
@@ -33,12 +45,8 @@ STATIC_ASSETS_FOLDER=     # optional
 LOG_LEVEL=info            # trace|debug|info|warn|error
 WORKER_LOG_LEVEL=info
 
-# Blockchain
-CHAIN=anvil
+# Smart contracts
 FACTORY_CONTRACT_ADDRESS=0x...
-
-# Confirmations
-TX_BLOCK_CONFIRMATIONS_REQUIRED=1
 
 # External services
 SENTRY_DSN=
@@ -56,8 +64,7 @@ Safe to expose:
 - APP_VERSION
 - NODE_ENV
 - BASE_URL
-- CHAIN
-- CHAIN_RPC_ENDPOINT
+- SUPPORTED_CHAINS
 - WALLETCONNECT_PROJECT_ID
 - FACTORY_CONTRACT_ADDRESS
 - SENTRY_DSN

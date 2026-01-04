@@ -92,6 +92,7 @@ describe("Worker Database Cleanup", () => {
 
     for (let i = 0; i < 3; i++) {
       const job = await scheduleJob(serverContext.serverApp, {
+        tag: `test:old-job-${i}-${Date.now()}`,
         type: "removeOldWorkerJobs",
         userId: i,
         removeDelay: -1000, // Already expired
@@ -134,6 +135,7 @@ describe("Worker Database Cleanup", () => {
   test("should not remove persistent jobs even when old", async () => {
     // Create both persistent and non-persistent old jobs
     const persistentJob = await scheduleJob(serverContext.serverApp, {
+      tag: `test:persistent-job-${Date.now()}`,
       type: "removeOldWorkerJobs",
       userId: 1,
       removeDelay: -1000, // Already expired
@@ -141,6 +143,7 @@ describe("Worker Database Cleanup", () => {
     })
 
     const nonPersistentJob = await scheduleJob(serverContext.serverApp, {
+      tag: `test:non-persistent-job-${Date.now()}`,
       type: "removeOldWorkerJobs",
       userId: 2,
       removeDelay: -1000, // Already expired

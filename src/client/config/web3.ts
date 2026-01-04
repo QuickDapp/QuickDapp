@@ -1,13 +1,17 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit"
 import type { ClientConfig } from "@shared/config/client"
-import { getSupportedChains } from "@shared/contracts/chain"
+import {
+  getChainTransports,
+  getPrimaryChain,
+  getSupportedChains,
+} from "@shared/contracts/chain"
 import { createPublicClient, http } from "viem"
 
 // Track if we've already shown the warning to avoid duplicates
 let hasShownPlaceholderWarning = false
 
 export const createWeb3Config = (clientConfig: ClientConfig) => {
-  const supportedChains = getSupportedChains(clientConfig.CHAIN)
+  const supportedChains = getSupportedChains()
   const chains = supportedChains as any // Type assertion to work around RainbowKit type constraints
 
   // Handle placeholder WALLETCONNECT_PROJECT_ID
@@ -27,19 +31,17 @@ export const createWeb3Config = (clientConfig: ClientConfig) => {
     appName: clientConfig.APP_NAME,
     projectId,
     chains,
-    transports: {
-      [chains[0].id]: http(clientConfig.CHAIN_RPC_ENDPOINT),
-    },
+    transports: getChainTransports(),
     ssr: false,
   })
 }
 
 // Create public client for read-only operations
-export const createPublicWeb3Client = (clientConfig: ClientConfig) => {
-  const chains = getSupportedChains(clientConfig.CHAIN)
+export const createPublicWeb3Client = () => {
+  const primaryChain = getPrimaryChain()
 
   return createPublicClient({
-    chain: chains[0],
-    transport: http(clientConfig.CHAIN_RPC_ENDPOINT),
+    chain: primaryChain,
+    transport: http(),
   })
 }

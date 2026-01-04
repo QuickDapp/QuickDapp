@@ -12,8 +12,10 @@ import {
 import { ONE_HOUR, THIRTY_MINUTES } from "../../shared/constants"
 import type { ServerApp } from "../types"
 import { type NewWorkerJob, type WorkerJob, workerJobs } from "./schema"
+import { type DatabaseOrTransaction, withTransaction } from "./shared"
 
 export interface WorkerJobConfig<T = unknown> {
+  tag: string
   type: string
   userId: number
   due?: Date
@@ -26,25 +28,20 @@ export interface WorkerJobConfig<T = unknown> {
 
 const dateFrom = (timestamp: number): Date => new Date(timestamp)
 
-const pendingJobsFilter = (extraCriteria: any = {}) => {
-  const baseFilter = and(
+const pendingJobsFilter = () => {
+  return and(
     isNull(workerJobs.finished),
     or(
       isNull(workerJobs.started),
       lte(workerJobs.started, dateFrom(Date.now() - THIRTY_MINUTES)),
     ),
   )
-
-  // Only apply extraCriteria if it has actual content
-  return extraCriteria && Object.keys(extraCriteria).length > 0
-    ? and(baseFilter, extraCriteria)
-    : baseFilter
 }
 
-const cancelPendingJobs = async (serverApp: ServerApp, filter: any) => {
+const cancelPendingJobs = async (db: DatabaseOrTransaction, tag: string) => {
   const now = new Date()
 
-  await serverApp.db
+  await db
     .update(workerJobs)
     .set({
       started: now,
@@ -53,7 +50,7 @@ const cancelPendingJobs = async (serverApp: ServerApp, filter: any) => {
       result: { error: "Job cancelled due to new job being created" },
       updatedAt: now,
     })
-    .where(and(pendingJobsFilter(), filter))
+    .where(and(pendingJobsFilter(), eq(workerJobs.tag, tag)))
 }
 
 const sanitizeJobData = (data?: any): object => {
@@ -62,10 +59,11 @@ const sanitizeJobData = (data?: any): object => {
 
 const generateJobDates = (due?: Date, removeDelay?: number) => {
   due = due || new Date()
+  const effectiveRemoveDelay = removeDelay || ONE_HOUR
 
   return {
     due,
-    removeAt: dateFrom(due.getTime() + (removeDelay ?? ONE_HOUR)),
+    removeAt: dateFrom(due.getTime() + effectiveRemoveDelay),
   }
 }
 
@@ -73,32 +71,29 @@ export const scheduleJob = async <T = unknown>(
   serverApp: ServerApp,
   job: WorkerJobConfig<T>,
 ): Promise<WorkerJob> => {
-  await cancelPendingJobs(
-    serverApp,
-    and(eq(workerJobs.type, job.type), eq(workerJobs.userId, job.userId)),
-  )
+  return withTransaction(serverApp.db, async (tx) => {
+    await cancelPendingJobs(tx, job.tag)
 
-  const jobData = {
-    userId: job.userId,
-    ...generateJobDates(job.due, job.removeDelay),
-    type: job.type,
-    data: sanitizeJobData(job.data),
-    autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
-    autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
-    removeDelay: job.removeDelay,
-    persistent: !!job.persistent,
-  } satisfies NewWorkerJob
+    const jobData = {
+      tag: job.tag,
+      userId: job.userId,
+      ...generateJobDates(job.due, job.removeDelay),
+      type: job.type,
+      data: sanitizeJobData(job.data),
+      autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
+      autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
+      removeDelay: job.removeDelay,
+      persistent: !!job.persistent,
+    } satisfies NewWorkerJob
 
-  const [newJob] = await serverApp.db
-    .insert(workerJobs)
-    .values(jobData)
-    .returning()
+    const [newJob] = await tx.insert(workerJobs).values(jobData).returning()
 
-  if (!newJob) {
-    throw new Error("Failed to create job")
-  }
+    if (!newJob) {
+      throw new Error("Failed to create job")
+    }
 
-  return newJob
+    return newJob
+  })
 }
 
 export const scheduleCronJob = async <T = unknown>(
@@ -106,35 +101,32 @@ export const scheduleCronJob = async <T = unknown>(
   job: WorkerJobConfig<T>,
   cronSchedule: string,
 ): Promise<WorkerJob> => {
-  await cancelPendingJobs(
-    serverApp,
-    and(eq(workerJobs.type, job.type), eq(workerJobs.userId, job.userId)),
-  )
+  return withTransaction(serverApp.db, async (tx) => {
+    await cancelPendingJobs(tx, job.tag)
 
-  const nextDate = parseCronExpression(cronSchedule).getNextDate(new Date())
+    const nextDate = parseCronExpression(cronSchedule).getNextDate(new Date())
 
-  const jobData = {
-    userId: job.userId,
-    ...generateJobDates(nextDate, job.removeDelay),
-    type: job.type,
-    data: sanitizeJobData(job.data),
-    cronSchedule,
-    autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
-    autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
-    removeDelay: job.removeDelay,
-    persistent: !!job.persistent,
-  } satisfies NewWorkerJob
+    const jobData = {
+      tag: job.tag,
+      userId: job.userId,
+      ...generateJobDates(nextDate, job.removeDelay),
+      type: job.type,
+      data: sanitizeJobData(job.data),
+      cronSchedule,
+      autoRescheduleOnFailure: !!job.autoRescheduleOnFailure,
+      autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay || 0,
+      removeDelay: job.removeDelay,
+      persistent: !!job.persistent,
+    } satisfies NewWorkerJob
 
-  const [newJob] = await serverApp.db
-    .insert(workerJobs)
-    .values(jobData)
-    .returning()
+    const [newJob] = await tx.insert(workerJobs).values(jobData).returning()
 
-  if (!newJob) {
-    throw new Error("Failed to create cron job")
-  }
+    if (!newJob) {
+      throw new Error("Failed to create cron job")
+    }
 
-  return newJob
+    return newJob
+  })
 }
 
 export const getTotalPendingJobs = async (
@@ -244,35 +236,32 @@ export const rescheduleFailedJob = async (
   serverApp: ServerApp,
   job: WorkerJob,
 ): Promise<WorkerJob> => {
-  await cancelPendingJobs(
-    serverApp,
-    and(eq(workerJobs.type, job.type), eq(workerJobs.userId, job.userId)),
-  )
+  return withTransaction(serverApp.db, async (tx) => {
+    await cancelPendingJobs(tx, job.tag)
 
-  const dueDate = dateFrom(Date.now() + job.autoRescheduleOnFailureDelay)
+    const dueDate = dateFrom(Date.now() + job.autoRescheduleOnFailureDelay)
 
-  const jobData = {
-    ...generateJobDates(dueDate, job.removeDelay),
-    userId: job.userId,
-    type: job.type,
-    data: sanitizeJobData(job.data),
-    cronSchedule: job.cronSchedule,
-    autoRescheduleOnFailure: job.autoRescheduleOnFailure,
-    autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay,
-    removeDelay: job.removeDelay,
-    rescheduledFromJob: job.id,
-  } satisfies NewWorkerJob
+    const jobData = {
+      tag: job.tag,
+      ...generateJobDates(dueDate, job.removeDelay),
+      userId: job.userId,
+      type: job.type,
+      data: sanitizeJobData(job.data),
+      cronSchedule: job.cronSchedule,
+      autoRescheduleOnFailure: job.autoRescheduleOnFailure,
+      autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay,
+      removeDelay: job.removeDelay,
+      rescheduledFromJob: job.id,
+    } satisfies NewWorkerJob
 
-  const [newJob] = await serverApp.db
-    .insert(workerJobs)
-    .values(jobData)
-    .returning()
+    const [newJob] = await tx.insert(workerJobs).values(jobData).returning()
 
-  if (!newJob) {
-    throw new Error("Failed to reschedule job")
-  }
+    if (!newJob) {
+      throw new Error("Failed to reschedule job")
+    }
 
-  return newJob
+    return newJob
+  })
 }
 
 export const rescheduleCronJob = async (
@@ -283,36 +272,35 @@ export const rescheduleCronJob = async (
     throw new Error("Cannot reschedule job without cron schedule")
   }
 
-  await cancelPendingJobs(
-    serverApp,
-    and(eq(workerJobs.type, job.type), eq(workerJobs.userId, job.userId)),
-  )
+  return withTransaction(serverApp.db, async (tx) => {
+    await cancelPendingJobs(tx, job.tag)
 
-  const nextDate = parseCronExpression(job.cronSchedule).getNextDate(new Date())
+    const nextDate = parseCronExpression(job.cronSchedule!).getNextDate(
+      new Date(),
+    )
 
-  const jobData = {
-    ...generateJobDates(nextDate, job.removeDelay),
-    userId: job.userId,
-    type: job.type,
-    data: sanitizeJobData(job.data),
-    cronSchedule: job.cronSchedule,
-    autoRescheduleOnFailure: job.autoRescheduleOnFailure,
-    autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay,
-    removeDelay: job.removeDelay,
-    persistent: job.persistent, // Preserve persistent flag
-    rescheduledFromJob: job.id,
-  } satisfies NewWorkerJob
+    const jobData = {
+      tag: job.tag,
+      ...generateJobDates(nextDate, job.removeDelay),
+      userId: job.userId,
+      type: job.type,
+      data: sanitizeJobData(job.data),
+      cronSchedule: job.cronSchedule,
+      autoRescheduleOnFailure: job.autoRescheduleOnFailure,
+      autoRescheduleOnFailureDelay: job.autoRescheduleOnFailureDelay,
+      removeDelay: job.removeDelay,
+      persistent: job.persistent,
+      rescheduledFromJob: job.id,
+    } satisfies NewWorkerJob
 
-  const [newJob] = await serverApp.db
-    .insert(workerJobs)
-    .values(jobData)
-    .returning()
+    const [newJob] = await tx.insert(workerJobs).values(jobData).returning()
 
-  if (!newJob) {
-    throw new Error("Failed to reschedule cron job")
-  }
+    if (!newJob) {
+      throw new Error("Failed to reschedule cron job")
+    }
 
-  return newJob
+    return newJob
+  })
 }
 
 export const removeOldJobs = async (
@@ -322,6 +310,7 @@ export const removeOldJobs = async (
   const conditions = [
     lte(workerJobs.removeAt, new Date()),
     isNotNull(workerJobs.started),
+    isNotNull(workerJobs.finished),
     eq(workerJobs.persistent, false),
   ]
 

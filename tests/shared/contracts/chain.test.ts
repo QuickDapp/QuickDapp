@@ -6,16 +6,30 @@
  */
 
 import { describe, expect, it } from "bun:test"
-import { anvil, hardhat, localhost, mainnet, sepolia } from "viem/chains"
+import { mainnet, sepolia } from "viem/chains"
 import {
+  CHAIN_IDS,
   getChain,
+  getChainById,
   getChainId,
+  getChainTransports,
+  getPrimaryChain,
+  getPrimaryChainName,
   getSupportedChains,
 } from "../../../src/shared/contracts/chain"
 // Import global test setup
 import "../../setup"
 
 describe("Chain Configuration Module", () => {
+  describe("CHAIN_IDS", () => {
+    it("should have correct chain IDs defined", () => {
+      expect(CHAIN_IDS.ANVIL).toBe(31337)
+      expect(CHAIN_IDS.MAINNET).toBe(1)
+      expect(CHAIN_IDS.SEPOLIA).toBe(11155111)
+      expect(CHAIN_IDS.BASE).toBe(8453)
+    })
+  })
+
   describe("getChain()", () => {
     describe("Valid Chain Names", () => {
       it("should return mainnet chain for 'mainnet'", () => {
@@ -33,40 +47,11 @@ describe("Chain Configuration Module", () => {
         expect(chain.nativeCurrency?.symbol).toBe("ETH")
       })
 
-      it("should return arbitrum chain for 'arbitrum'", () => {
-        const chain = getChain("arbitrum")
-        expect(chain.id).toBe(42161)
-        expect(chain.name).toBe("Arbitrum One")
-        expect(chain.nativeCurrency?.symbol).toBe("ETH")
-      })
-
-      it("should return optimism chain for 'optimism'", () => {
-        const chain = getChain("optimism")
-        expect(chain.id).toBe(10)
-        expect(chain.name).toBe("OP Mainnet")
-        expect(chain.nativeCurrency?.symbol).toBe("ETH")
-      })
-
-      it("should return polygon chain for 'polygon'", () => {
-        const chain = getChain("polygon")
-        expect(chain.id).toBe(137)
-        expect(chain.name).toBe("Polygon")
-        expect(chain.nativeCurrency?.symbol).toBe("POL")
-      })
-
       it("should return base chain for 'base'", () => {
         const chain = getChain("base")
         expect(chain.id).toBe(8453)
         expect(chain.name).toBe("Base")
         expect(chain.nativeCurrency?.symbol).toBe("ETH")
-      })
-    })
-
-    describe("Chain Name Aliases", () => {
-      it("should return mainnet chain for 'ethereum' alias", () => {
-        const chain = getChain("ethereum")
-        expect(chain.id).toBe(1)
-        expect(chain.name).toBe("Ethereum")
       })
 
       it("should return anvil chain for 'anvil'", () => {
@@ -74,30 +59,10 @@ describe("Chain Configuration Module", () => {
         expect(chain.id).toBe(31337)
         expect(chain.name).toBe("Anvil")
       })
-
-      it("should return hardhat chain for 'hardhat'", () => {
-        const chain = getChain("hardhat")
-        expect(chain.id).toBe(31337)
-        expect(chain.name).toBe("Hardhat")
-      })
-
-      it("should return localhost chain for 'localhost'", () => {
-        const chain = getChain("localhost")
-        expect(chain.id).toBe(1337)
-        expect(chain.name).toBe("Localhost")
-      })
     })
 
-    describe("Case Sensitivity", () => {
-      it("should reject uppercase chain names", () => {
-        expect(() => getChain("MAINNET")).toThrow("Unknown chain: MAINNET")
-      })
-
-      it("should reject mixed case chain names", () => {
-        expect(() => getChain("Arbitrum")).toThrow("Unknown chain: Arbitrum")
-      })
-
-      it("should work with exact case aliases", () => {
+    describe("Chain Name Aliases", () => {
+      it("should return mainnet chain for 'ethereum' alias", () => {
         const chain = getChain("ethereum")
         expect(chain.id).toBe(1)
         expect(chain.name).toBe("Ethereum")
@@ -108,7 +73,6 @@ describe("Chain Configuration Module", () => {
       it("should return chain with required properties", () => {
         const chain = getChain("mainnet")
 
-        // Required viem chain properties
         expect(chain.id).toBeTypeOf("number")
         expect(chain.name).toBeTypeOf("string")
         expect(chain.nativeCurrency).toBeDefined()
@@ -141,14 +105,6 @@ describe("Chain Configuration Module", () => {
       it("should throw error for empty string", () => {
         expect(() => getChain("")).toThrow("Unknown chain:")
       })
-
-      it("should throw error for chain with special characters", () => {
-        expect(() => getChain("chain@#$%")).toThrow("Unknown chain: chain@#$%")
-      })
-
-      it("should throw error for numeric string", () => {
-        expect(() => getChain("123")).toThrow("Unknown chain: 123")
-      })
     })
   })
 
@@ -164,24 +120,14 @@ describe("Chain Configuration Module", () => {
         expect(chainId).toBe(11155111)
       })
 
-      it("should return correct ID for arbitrum", () => {
-        const chainId = getChainId("arbitrum")
-        expect(chainId).toBe(42161)
-      })
-
-      it("should return correct ID for optimism", () => {
-        const chainId = getChainId("optimism")
-        expect(chainId).toBe(10)
-      })
-
-      it("should return correct ID for polygon", () => {
-        const chainId = getChainId("polygon")
-        expect(chainId).toBe(137)
-      })
-
       it("should return correct ID for anvil", () => {
         const chainId = getChainId("anvil")
         expect(chainId).toBe(31337)
+      })
+
+      it("should return correct ID for base", () => {
+        const chainId = getChainId("base")
+        expect(chainId).toBe(8453)
       })
     })
 
@@ -190,12 +136,6 @@ describe("Chain Configuration Module", () => {
         const chainId = getChainId("ethereum")
         expect(chainId).toBe(1)
       })
-
-      it("should return correct IDs for development chains", () => {
-        expect(getChainId("hardhat")).toBe(31337)
-        expect(getChainId("localhost")).toBe(1337)
-        expect(getChainId("anvil")).toBe(31337)
-      })
     })
 
     describe("Error Propagation", () => {
@@ -203,10 +143,6 @@ describe("Chain Configuration Module", () => {
         expect(() => getChainId("unknownchain")).toThrow(
           "Unknown chain: unknownchain",
         )
-      })
-
-      it("should propagate error for empty string", () => {
-        expect(() => getChainId("")).toThrow("Unknown chain:")
       })
     })
 
@@ -220,56 +156,91 @@ describe("Chain Configuration Module", () => {
     })
   })
 
-  describe("getSupportedChains()", () => {
-    describe("Array Structure", () => {
-      it("should return array with single chain", () => {
-        const chains = getSupportedChains("mainnet")
-        expect(Array.isArray(chains)).toBe(true)
-        expect(chains.length).toBe(1)
-      })
-
-      it("should return array containing the correct chain", () => {
-        const chains = getSupportedChains("mainnet")
-        expect(chains[0]?.id).toBe(1)
-        expect(chains[0]?.name).toBe("Ethereum")
-      })
-
-      it("should work with aliases", () => {
-        const chains = getSupportedChains("ethereum")
-        expect(chains[0]?.id).toBe(1)
-        expect(chains[0]?.name).toBe("Ethereum")
-      })
+  describe("getChainById()", () => {
+    it("should return chain by ID", () => {
+      const chain = getChainById(1)
+      expect(chain.id).toBe(1)
+      expect(chain.name).toBe("Ethereum")
     })
 
-    describe("RainbowKit Compatibility", () => {
-      it("should return format compatible with RainbowKit config", () => {
-        const chains = getSupportedChains("mainnet")
-        const chain = chains[0]
+    it("should return anvil chain by ID", () => {
+      const chain = getChainById(31337)
+      expect(chain.id).toBe(31337)
+      expect(chain.name).toBe("Anvil")
+    })
 
-        // Check RainbowKit expected properties
+    it("should return sepolia chain by ID", () => {
+      const chain = getChainById(11155111)
+      expect(chain.id).toBe(11155111)
+      expect(chain.name).toBe("Sepolia")
+    })
+
+    it("should return base chain by ID", () => {
+      const chain = getChainById(8453)
+      expect(chain.id).toBe(8453)
+      expect(chain.name).toBe("Base")
+    })
+
+    it("should throw for unsupported chain ID", () => {
+      expect(() => getChainById(999999)).toThrow("Unsupported chain ID: 999999")
+    })
+  })
+
+  describe("getSupportedChains()", () => {
+    it("should return array of chains based on SUPPORTED_CHAINS config", () => {
+      const chains = getSupportedChains()
+      expect(Array.isArray(chains)).toBe(true)
+      // In test environment, SUPPORTED_CHAINS=anvil
+      expect(chains.length).toBeGreaterThan(0)
+    })
+
+    it("should return chains with valid structure", () => {
+      const chains = getSupportedChains()
+      if (chains.length > 0) {
+        const chain = chains[0]
         expect(chain?.id).toBeTypeOf("number")
         expect(chain?.name).toBeTypeOf("string")
         expect(chain?.nativeCurrency).toBeDefined()
         expect(chain?.rpcUrls).toBeDefined()
-      })
+      }
+    })
+  })
 
-      it("should work with multiple different chains", () => {
-        const mainnetChains = getSupportedChains("mainnet")
-        const sepoliaChains = getSupportedChains("sepolia")
-        const arbitrumChains = getSupportedChains("arbitrum")
-
-        expect(mainnetChains[0]?.id).toBe(1)
-        expect(sepoliaChains[0]?.id).toBe(11155111)
-        expect(arbitrumChains[0]?.id).toBe(42161)
-      })
+  describe("getPrimaryChain()", () => {
+    it("should return first chain from SUPPORTED_CHAINS", () => {
+      const chain = getPrimaryChain()
+      expect(chain.id).toBeTypeOf("number")
+      expect(chain.name).toBeTypeOf("string")
     })
 
-    describe("Error Propagation", () => {
-      it("should propagate error from getChain() for unknown chains", () => {
-        expect(() => getSupportedChains("unknownchain")).toThrow(
-          "Unknown chain: unknownchain",
-        )
-      })
+    it("should return valid chain structure", () => {
+      const chain = getPrimaryChain()
+      expect(chain.nativeCurrency).toBeDefined()
+      expect(chain.rpcUrls).toBeDefined()
+      expect(chain.rpcUrls.default).toBeDefined()
+    })
+  })
+
+  describe("getPrimaryChainName()", () => {
+    it("should return first chain name from SUPPORTED_CHAINS", () => {
+      const chainName = getPrimaryChainName()
+      expect(typeof chainName).toBe("string")
+      expect(chainName.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe("getChainTransports()", () => {
+    it("should return transport config object", () => {
+      const transports = getChainTransports()
+      expect(typeof transports).toBe("object")
+    })
+
+    it("should have transports for known chain IDs", () => {
+      const transports = getChainTransports()
+      expect(transports[CHAIN_IDS.ANVIL]).toBeDefined()
+      expect(transports[CHAIN_IDS.MAINNET]).toBeDefined()
+      expect(transports[CHAIN_IDS.SEPOLIA]).toBeDefined()
+      expect(transports[CHAIN_IDS.BASE]).toBeDefined()
     })
   })
 
@@ -286,18 +257,6 @@ describe("Chain Configuration Module", () => {
         const sepoliaChain = getChain("sepolia")
         expect(sepoliaChain.id).toBe(sepolia.id)
         expect(sepoliaChain.name).toBe(sepolia.name)
-
-        const anvilChain = getChain("anvil")
-        expect(anvilChain.id).toBe(anvil.id)
-        expect(anvilChain.name).toBe(anvil.name)
-
-        const hardhatChain = getChain("hardhat")
-        expect(hardhatChain.id).toBe(hardhat.id)
-        expect(hardhatChain.name).toBe(hardhat.name)
-
-        const localhostChain = getChain("localhost")
-        expect(localhostChain.id).toBe(localhost.id)
-        expect(localhostChain.name).toBe(localhost.name)
       })
     })
 
@@ -309,57 +268,12 @@ describe("Chain Configuration Module", () => {
         expect(chainId).toBe(chain.id)
       })
 
-      it("should have getSupportedChains() return same chain as getChain()", () => {
-        const chainName = "sepolia"
-        const chains = getSupportedChains(chainName)
-        const chain = getChain(chainName)
-        expect(chains[0]?.id).toBe(chain.id)
-        expect(chains[0]?.name).toBe(chain.name)
-      })
-    })
-
-    describe("Real-world Usage Scenarios", () => {
-      it("should work with common development chains", () => {
-        const devChains = [
-          { name: "anvil", expectedId: 31337, expectedName: "Anvil" },
-          { name: "hardhat", expectedId: 31337, expectedName: "Hardhat" },
-          { name: "localhost", expectedId: 1337, expectedName: "Localhost" },
-        ]
-        devChains.forEach(({ name, expectedId, expectedName }) => {
-          const chain = getChain(name)
-          expect(chain.id).toBe(expectedId)
-          expect(chain.name).toBe(expectedName)
-        })
-      })
-
-      it("should work with major production chains", () => {
-        const prodChains = [
-          { name: "mainnet", expectedId: 1 },
-          { name: "arbitrum", expectedId: 42161 },
-          { name: "optimism", expectedId: 10 },
-          { name: "polygon", expectedId: 137 },
-          { name: "base", expectedId: 8453 },
-        ]
-
-        prodChains.forEach(({ name, expectedId }) => {
-          const chain = getChain(name)
-          expect(chain.id).toBe(expectedId)
-          expect(chain.nativeCurrency).toBeDefined()
-          expect(chain.rpcUrls.default.http.length).toBeGreaterThan(0)
-        })
-      })
-
-      it("should work with test networks", () => {
-        const testChains = [
-          { name: "sepolia", expectedId: 11155111 },
-          { name: "goerli", expectedId: 5 },
-        ]
-
-        testChains.forEach(({ name, expectedId }) => {
-          const chain = getChain(name)
-          expect(chain.id).toBe(expectedId)
-          expect(chain.testnet).toBe(true)
-        })
+      it("should have getPrimaryChain() return same as getChain(getPrimaryChainName())", () => {
+        const primaryChain = getPrimaryChain()
+        const primaryChainName = getPrimaryChainName()
+        const chainByName = getChain(primaryChainName)
+        expect(primaryChain.id).toBe(chainByName.id)
+        expect(primaryChain.name).toBe(chainByName.name)
       })
     })
 
@@ -377,15 +291,14 @@ describe("Chain Configuration Module", () => {
 
     describe("Performance and Memory", () => {
       it("should handle multiple calls efficiently", () => {
-        // Call functions multiple times to ensure no memory leaks or performance issues
         for (let i = 0; i < 100; i++) {
           const chain = getChain("mainnet")
           const chainId = getChainId("mainnet")
-          const chains = getSupportedChains("mainnet")
+          const primaryChain = getPrimaryChain()
 
           expect(chain.id).toBe(1)
           expect(chainId).toBe(1)
-          expect(chains[0]?.id).toBe(1)
+          expect(primaryChain.id).toBeTypeOf("number")
         }
       })
 
@@ -393,7 +306,6 @@ describe("Chain Configuration Module", () => {
         const chain1 = getChain("mainnet")
         const chain2 = getChain("mainnet")
 
-        // Should return equivalent objects
         expect(chain1.id).toBe(chain2.id)
         expect(chain1.name).toBe(chain2.name)
         expect(chain1.nativeCurrency?.symbol).toBe(

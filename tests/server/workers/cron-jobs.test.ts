@@ -9,6 +9,7 @@ import {
 } from "bun:test"
 import {
   getTotalPendingJobs,
+  rescheduleCronJob,
   scheduleCronJob,
 } from "../../../src/server/db/worker"
 import type { BlockchainTestContext } from "../../helpers/blockchain"
@@ -92,16 +93,14 @@ describe("Worker Cron Job Scheduling", () => {
   })
 
   test("should reschedule cron job after execution", async () => {
+    const cronSchedule = "*/5 * * * * *"
     const jobConfig = createTestJobConfig({
+      tag: `cron:removeOldWorkerJobs:${cronSchedule}`,
       type: "removeOldWorkerJobs",
       userId: 0,
     })
 
-    await scheduleCronJob(
-      serverContext.serverApp,
-      jobConfig,
-      "*/5 * * * * *", // every 5 seconds
-    )
+    await scheduleCronJob(serverContext.serverApp, jobConfig, cronSchedule)
 
     // Worker is already started in beforeEach
 
@@ -111,5 +110,29 @@ describe("Worker Cron Job Scheduling", () => {
     // Should have created a new job for the next cron execution
     const pendingCount = await getTotalPendingJobs(serverContext.serverApp)
     expect(pendingCount).toBeGreaterThanOrEqual(1)
+  })
+
+  test("rescheduled cron job should maintain proper removeAt", async () => {
+    const cronSchedule = "*/5 * * * * *"
+    const job = await scheduleCronJob(
+      serverContext.serverApp,
+      {
+        tag: `cron:removeOldWorkerJobs:${cronSchedule}`,
+        type: "removeOldWorkerJobs",
+        userId: 0,
+      },
+      cronSchedule,
+    )
+
+    // Simulate reschedule (as done after job completion)
+    const rescheduledJob = await rescheduleCronJob(serverContext.serverApp, job)
+
+    // Verify removeAt is approximately due + ONE_HOUR
+    const timeDiff =
+      rescheduledJob.removeAt.getTime() - rescheduledJob.due.getTime()
+    const ONE_HOUR = 60 * 60 * 1000
+
+    expect(timeDiff).toBeGreaterThanOrEqual(ONE_HOUR - 1000)
+    expect(timeDiff).toBeLessThanOrEqual(ONE_HOUR + 1000)
   })
 })

@@ -1,121 +1,152 @@
-import { serverConfig } from "../../../shared/config/server"
+import { encodeEventTopics } from "viem"
+import {
+  requireChainRpcEndpoint,
+  serverConfig,
+} from "../../../shared/config/server"
+import { getPrimaryChainName } from "../../../shared/contracts/chain"
+import { getLastProcessedBlock, setLastProcessedBlock } from "../../db/settings"
 import * as createTokenFilter from "../chainFilters/createToken"
 import * as sendTokenFilter from "../chainFilters/sendToken"
 import type {
-  ChainFilterModule,
-  ChainFilterRegistry,
+  ChainLogModule,
+  ChainLogRegistry,
   JobParams,
   JobRunner,
 } from "./types"
 
-interface FilterModule {
-  chainFilter: ChainFilterModule
-  filter: any
-  name: string
-}
+export const WATCH_CHAIN_POLL_INTERVAL_SECONDS = 3
 
-// Registry of all chain filters
-const chainFilters: ChainFilterRegistry = {
+const CHAIN_WATCHER = {
+  MAX_BLOCK_RANGE: 500,
+} as const
+
+// Registry of all chain log modules
+const chainLogModules: ChainLogRegistry = {
   sendToken: sendTokenFilter,
   createToken: createTokenFilter,
 }
 
-// Active filters for this worker instance
-const activeFilters: Record<string, FilterModule> = {}
-let filtersCreated = false
+function getChainName(): string {
+  return getPrimaryChainName()
+}
 
-const recreateFilters = async (params: JobParams) => {
+async function getFromBlock(
+  params: JobParams,
+  currentBlock: bigint,
+): Promise<bigint> {
   const { serverApp, log } = params
+  const chainName = getChainName()
+
+  const lastProcessed = await getLastProcessedBlock(serverApp.db, chainName)
+
+  if (lastProcessed !== null) {
+    return lastProcessed + 1n
+  }
+
+  // First run - in test mode start from block 1, otherwise from current block
+  if (serverConfig.NODE_ENV === "test") {
+    log.info(
+      `First run for chain ${chainName}, starting from block 1 (test mode)`,
+    )
+    return 1n
+  }
+
+  log.info(
+    `First run for chain ${chainName}, starting from current block ${currentBlock}`,
+  )
+  return currentBlock
+}
+
+async function processLogsForModule(
+  params: JobParams,
+  moduleName: string,
+  module: ChainLogModule,
+  fromBlock: bigint,
+  toBlock: bigint,
+): Promise<void> {
+  const { serverApp, log } = params
+  const moduleLog = log.child(moduleName)
   const client = serverApp.publicClient
 
   if (!client) {
-    log.error("Cannot create filters without chain client")
+    moduleLog.error("No chain client available")
     return
   }
 
-  if (Object.keys(activeFilters).length) {
-    log.info("Recreating chain filters")
-    // Clear existing filters
-    Object.keys(activeFilters).forEach((key) => delete activeFilters[key])
-  } else {
-    log.info("Creating chain filters")
-  }
+  const event = module.getEvent()
+  const address = module.getContractAddress()
 
-  for (const filterName in chainFilters) {
-    try {
-      const chainFilter = chainFilters[filterName]
+  // Get the event topic hash for debugging
+  const eventTopics = encodeEventTopics({ abi: [event] })
+  const eventTopicHash = eventTopics[0]
 
-      const fromBlock =
-        serverConfig.NODE_ENV === "test"
-          ? BigInt(1) // Start from block 1 in test mode to catch all events
-          : await client.getBlockNumber()
+  moduleLog.debug(
+    `Querying logs: event=${event.name}, topic=${eventTopicHash}, address=${address || "any"}, fromBlock=${fromBlock}, toBlock=${toBlock}`,
+  )
 
-      const filter = await chainFilter!.createFilter(client, fromBlock)
+  try {
+    const logs = await client.getLogs({
+      event,
+      address: address || undefined,
+      fromBlock,
+      toBlock,
+    })
 
-      if (filter) {
-        activeFilters[filterName] = {
-          chainFilter: chainFilter!,
-          filter,
-          name: filterName,
-        }
-        log.debug(`Created filter: ${filterName}`)
-      } else {
-        log.warn(`Failed to create filter: ${filterName}`)
-      }
-    } catch (err) {
-      log.error(`Failed to create filter ${filterName}:`, err)
+    if (logs.length > 0) {
+      moduleLog.info(
+        `Found ${logs.length} events in blocks ${fromBlock}-${toBlock}`,
+      )
+      await module.processLogs(serverApp, moduleLog, logs)
+    } else {
+      moduleLog.debug(`No events in blocks ${fromBlock}-${toBlock}`)
     }
+  } catch (err) {
+    moduleLog.error("Error fetching logs:", err)
+    throw err
   }
-
-  filtersCreated = true
-  log.info(`Created ${Object.keys(activeFilters).length} chain filters`)
 }
 
 export const run: JobRunner = async (params: JobParams) => {
   const { serverApp, log } = params
   const client = serverApp.publicClient
+  const chainName = getChainName()
 
   if (!client) {
     log.error("No chain client available, skipping chain watching")
     return
   }
 
-  // Create filters on first run
-  if (!filtersCreated) {
-    await recreateFilters(params)
+  // Force fresh block number by making a direct RPC call
+  const currentBlock = await client.getBlockNumber()
+  const lastProcessed = await getLastProcessedBlock(serverApp.db, chainName)
+  const rpcUrl = requireChainRpcEndpoint(chainName)
+  log.debug(
+    `watchChain: currentBlock=${currentBlock}, lastProcessedBlock=${lastProcessed}, rpc=${rpcUrl}`,
+  )
+
+  const fromBlock = await getFromBlock(params, currentBlock)
+
+  if (fromBlock > currentBlock) {
+    log.debug(`Chain ${chainName}: Already caught up at block ${currentBlock}`)
+    return
   }
 
-  // Process each active filter
-  for (const filterName of Object.keys(activeFilters)) {
-    const filterModule = activeFilters[filterName]!
-    const filterLog = log.child(filterName)
-
-    try {
-      // Get filter changes from the blockchain
-      const changes = await client.getFilterChanges({
-        filter: filterModule.filter,
-      })
-
-      if (changes && changes.length > 0) {
-        filterLog.debug(`Found ${changes.length} new events`)
-
-        await filterModule.chainFilter.processChanges(
-          serverApp,
-          filterLog,
-          changes,
-        )
-      } else {
-        filterLog.debug("No new events found")
-      }
-    } catch (err: any) {
-      filterLog.error(`Error processing filter:`, err)
-
-      // Sometimes filter fails because the node cluster has replaced the node
-      // Recreate filters to handle this
-      filterLog.info("Recreating filters due to error...")
-      filtersCreated = false // Force recreation on next run
-    }
+  let toBlock = currentBlock
+  if (toBlock - fromBlock > BigInt(CHAIN_WATCHER.MAX_BLOCK_RANGE)) {
+    toBlock = fromBlock + BigInt(CHAIN_WATCHER.MAX_BLOCK_RANGE) - 1n
+    log.debug(
+      `Chain ${chainName}: Limiting range to ${CHAIN_WATCHER.MAX_BLOCK_RANGE} blocks`,
+    )
   }
+
+  log.debug(`Chain ${chainName}: Processing blocks ${fromBlock} to ${toBlock}`)
+
+  for (const [moduleName, module] of Object.entries(chainLogModules)) {
+    await processLogsForModule(params, moduleName, module, fromBlock, toBlock)
+  }
+
+  await setLastProcessedBlock(serverApp.db, chainName, toBlock)
+  log.debug(`Chain ${chainName}: Updated last processed block to ${toBlock}`)
 }
 
 export const watchChainJob = {

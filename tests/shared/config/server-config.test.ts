@@ -34,49 +34,32 @@ describe("Server Configuration Validation", () => {
       process.env.SERVER_WALLET_PRIVATE_KEY =
         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       process.env.BASE_URL = "http://localhost:3000"
-      process.env.CHAIN_RPC_ENDPOINT = "http://localhost:8545"
-      process.env.SERVER_CHAIN_RPC_ENDPOINT = "http://localhost:8545"
       process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
+      process.env.SUPPORTED_CHAINS = "anvil"
+      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
 
       expect(() => validateConfig()).not.toThrow()
     })
 
-    it("should throw error when SERVER_CHAIN_RPC_ENDPOINT is missing", () => {
-      // Set all required environment variables except SERVER_CHAIN_RPC_ENDPOINT
+    it("should throw error when SUPPORTED_CHAINS is missing", () => {
+      // Set all required environment variables except SUPPORTED_CHAINS
       process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
       process.env.SESSION_ENCRYPTION_KEY =
         "test_key_32_chars_long_for_testing_only!!"
       process.env.SERVER_WALLET_PRIVATE_KEY =
         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       process.env.BASE_URL = "http://localhost:3000"
-      process.env.CHAIN_RPC_ENDPOINT = "http://localhost:8545"
       process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      delete process.env.SERVER_CHAIN_RPC_ENDPOINT
+      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
+      delete process.env.SUPPORTED_CHAINS
 
       expect(() => validateConfig()).toThrow(
-        "Missing required environment variables: SERVER_CHAIN_RPC_ENDPOINT",
+        "Missing required environment variables: SUPPORTED_CHAINS",
       )
     })
 
-    it("should throw error when SERVER_CHAIN_RPC_ENDPOINT is empty", () => {
-      // Set all required environment variables but make SERVER_CHAIN_RPC_ENDPOINT empty
-      process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
-      process.env.SESSION_ENCRYPTION_KEY =
-        "test_key_32_chars_long_for_testing_only!!"
-      process.env.SERVER_WALLET_PRIVATE_KEY =
-        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-      process.env.BASE_URL = "http://localhost:3000"
-      process.env.CHAIN_RPC_ENDPOINT = "http://localhost:8545"
-      process.env.SERVER_CHAIN_RPC_ENDPOINT = ""
-      process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-
-      expect(() => validateConfig()).toThrow(
-        "Missing required environment variables: SERVER_CHAIN_RPC_ENDPOINT",
-      )
-    })
-
-    it("should throw error when both CHAIN_RPC_ENDPOINT and SERVER_CHAIN_RPC_ENDPOINT are missing", () => {
-      // Set other required environment variables but omit both RPC endpoints
+    it("should throw error when SUPPORTED_CHAINS is empty", () => {
+      // Set all required environment variables but make SUPPORTED_CHAINS empty
       process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
       process.env.SESSION_ENCRYPTION_KEY =
         "test_key_32_chars_long_for_testing_only!!"
@@ -84,11 +67,11 @@ describe("Server Configuration Validation", () => {
         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       process.env.BASE_URL = "http://localhost:3000"
       process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      delete process.env.CHAIN_RPC_ENDPOINT
-      delete process.env.SERVER_CHAIN_RPC_ENDPOINT
+      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
+      process.env.SUPPORTED_CHAINS = ""
 
       expect(() => validateConfig()).toThrow(
-        "Missing required environment variables: CHAIN_RPC_ENDPOINT, SERVER_CHAIN_RPC_ENDPOINT",
+        "Missing required environment variables: SUPPORTED_CHAINS",
       )
     })
 

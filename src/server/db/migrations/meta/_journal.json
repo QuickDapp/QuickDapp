@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1756105004620,
-      "tag": "0000_gifted_robin_chapel",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1756454365792,
-      "tag": "0001_sleepy_chimera",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1756652985986,
-      "tag": "0002_new_mysterio",
+      "when": 1767508754490,
+      "tag": "0000_sudden_zaladane",
       "breakpoints": true
     }
   ]
