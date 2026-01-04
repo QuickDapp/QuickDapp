@@ -31,10 +31,6 @@ export interface ServerConfig extends ClientConfig {
   // WebSocket configuration
   SOCKET_MAX_CONNECTIONS_PER_USER: number
   SOCKET_MAX_TOTAL_CONNECTIONS: number
-  SOCKET_RATE_LIMIT_WINDOW_MS: number
-  SOCKET_RATE_LIMIT_MAX_ENTRIES: number
-  SOCKET_RATE_LIMIT_CLEANUP_THRESHOLD_MS: number
-  SOCKET_RATE_LIMIT_CLEANUP_INTERVAL_MS: number
 
   // External services (optional)
   MAILGUN_API_KEY?: string
@@ -108,22 +104,6 @@ export const serverConfig: ServerConfig = {
   SOCKET_MAX_TOTAL_CONNECTIONS: env
     .get("SOCKET_MAX_TOTAL_CONNECTIONS")
     .default(10000)
-    .asInt(),
-  SOCKET_RATE_LIMIT_WINDOW_MS: env
-    .get("SOCKET_RATE_LIMIT_WINDOW_MS")
-    .default(30000)
-    .asInt(),
-  SOCKET_RATE_LIMIT_MAX_ENTRIES: env
-    .get("SOCKET_RATE_LIMIT_MAX_ENTRIES")
-    .default(10000)
-    .asInt(),
-  SOCKET_RATE_LIMIT_CLEANUP_THRESHOLD_MS: env
-    .get("SOCKET_RATE_LIMIT_CLEANUP_THRESHOLD_MS")
-    .default(1800000)
-    .asInt(),
-  SOCKET_RATE_LIMIT_CLEANUP_INTERVAL_MS: env
-    .get("SOCKET_RATE_LIMIT_CLEANUP_INTERVAL_MS")
-    .default(300000)
     .asInt(),
 
   // External services (optional)

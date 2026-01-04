@@ -21,8 +21,8 @@ export interface ISocketManager {
   broadcast(message: WebSocketMessage): Promise<number>
 
   // Additional methods for server-side SocketManager only
-  registerClient?(socket: any, clientId: string): void
-  registerUser?(clientId: string, userId: number): void
+  registerClient?(socket: any, clientId: string): boolean
+  registerUser?(clientId: string, userId: number): boolean
   deregister?(clientId: string): void
   getConnectedUsersCount?(): number
   getConnectedClientsCount?(): number

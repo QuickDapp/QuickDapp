@@ -213,14 +213,17 @@ describe("Tag-Based Job Cancellation", () => {
 
   describe("Tag Independence from Type and UserId", () => {
     test("same type different tags - no cancellation", async () => {
+      const tag1 = "watchchain-100"
+      const tag2 = "watchchain-200"
+
       const _job1 = await scheduleJob(serverContext.serverApp, {
-        tag: "watchchain-100",
+        tag: tag1,
         type: "watchChain",
         userId: 1,
       })
 
       const _job2 = await scheduleJob(serverContext.serverApp, {
-        tag: "watchchain-200",
+        tag: tag2,
         type: "watchChain",
         userId: 1,
       })
@@ -228,7 +231,7 @@ describe("Tag-Based Job Cancellation", () => {
       const allJobs = await serverContext.serverApp.db
         .select()
         .from(workerJobs)
-        .where(eq(workerJobs.type, "watchChain"))
+        .where(inArray(workerJobs.tag, [tag1, tag2]))
 
       expect(allJobs).toHaveLength(2)
       expect(allJobs.every((j) => j.finished === null)).toBe(true)
