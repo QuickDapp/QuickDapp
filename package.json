@@ -67,6 +67,7 @@
     "@sentry/node": "^10.19.0",
     "@tanstack/react-query": "^5.62.2",
     "@walletconnect/ethereum-provider": "^2.21.8",
+    "arctic": "^3.7.0",
     "clsx": "^2.1.1",
     "commander": "^14.0.0",
     "cron-schedule": "^5.0.4",

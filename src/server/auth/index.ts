@@ -3,7 +3,7 @@ import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
 import { clientConfig } from "../../shared/config/client"
 import { serverConfig } from "../../shared/config/server"
-import { AUTH_METHOD } from "../../shared/constants"
+import { type OAuthMethod } from "../../shared/constants"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
 import {
   createEmailUserIfNotExists,
@@ -259,8 +259,8 @@ export class AuthService {
    * Authenticate with OAuth provider
    */
   async authenticateWithOAuth(
-    provider: typeof AUTH_METHOD.GOOGLE | typeof AUTH_METHOD.GITHUB,
-    email: string,
+    provider: OAuthMethod,
+    email: string | undefined,
     providerUserId: string,
   ): Promise<AuthenticationResult> {
     try {

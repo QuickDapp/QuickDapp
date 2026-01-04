@@ -5,6 +5,13 @@ import { serverConfig } from "../../shared/config/server"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
 import { AuthService } from "../auth"
 import {
+  createAuthorizationParams,
+  isProviderConfigured,
+  OAUTH_PROVIDER_CONFIG,
+  OAuthConfigError,
+  type OAuthProvider,
+} from "../auth/oauth"
+import {
   getNotificationsForUser,
   getUnreadNotificationsCountForUser,
   markAllNotificationsAsRead,
@@ -346,6 +353,90 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                   error instanceof Error
                     ? error.message
                     : "Authentication failed",
+              }
+            }
+          },
+        )
+      },
+
+      getOAuthLoginUrl: async (
+        _: any,
+        { provider }: { provider: OAuthProvider },
+        context: any,
+      ) => {
+        return withSpan(
+          "graphql.Mutation.getOAuthLoginUrl",
+          context,
+          async () => {
+            try {
+              const authLogger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+
+              // Check if provider is configured
+              if (!isProviderConfigured(provider)) {
+                return {
+                  success: false,
+                  url: null,
+                  provider: null,
+                  error: `OAuth provider ${provider} is not configured`,
+                }
+              }
+
+              authLogger.debug(`Generating OAuth login URL for ${provider}`)
+
+              const authParams = createAuthorizationParams(provider)
+              const providerConfig = OAUTH_PROVIDER_CONFIG[provider]
+
+              // Set state cookie via response headers
+              const cookieOptions =
+                "Path=/; HttpOnly; SameSite=Lax; Max-Age=600"
+              context.response?.headers?.append(
+                "Set-Cookie",
+                `oauth_state=${authParams.state}; ${cookieOptions}`,
+              )
+
+              // Set code verifier cookie for PKCE providers
+              if (providerConfig.requiresPkce && authParams.codeVerifier) {
+                context.response?.headers?.append(
+                  "Set-Cookie",
+                  `oauth_code_verifier=${authParams.codeVerifier}; ${cookieOptions}`,
+                )
+              }
+
+              // Set provider cookie to know which provider to use in callback
+              context.response?.headers?.append(
+                "Set-Cookie",
+                `oauth_provider=${provider}; ${cookieOptions}`,
+              )
+
+              return {
+                success: true,
+                url: authParams.url.toString(),
+                provider,
+                error: null,
+              }
+            } catch (error) {
+              logger.error(
+                `OAuth login URL generation failed for ${provider}:`,
+                error,
+              )
+
+              if (error instanceof OAuthConfigError) {
+                return {
+                  success: false,
+                  url: null,
+                  provider: null,
+                  error: error.message,
+                }
+              }
+
+              return {
+                success: false,
+                url: null,
+                provider: null,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to generate OAuth login URL",
               }
             }
           },

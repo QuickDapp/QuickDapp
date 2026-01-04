@@ -1,5 +1,9 @@
 import { eq } from "drizzle-orm"
-import { AUTH_METHOD, type AuthMethod } from "../../shared/constants"
+import {
+  AUTH_METHOD,
+  type AuthMethod,
+  type OAuthMethod,
+} from "../../shared/constants"
 import { type User, users } from "./schema"
 import { type DatabaseOrTransaction, withTransaction } from "./shared"
 import {
@@ -158,13 +162,13 @@ export async function createEmailUserIfNotExists(
  */
 export async function createOAuthUserIfNotExists(
   db: DatabaseOrTransaction,
-  provider: typeof AUTH_METHOD.GOOGLE | typeof AUTH_METHOD.GITHUB,
-  email: string,
+  provider: OAuthMethod,
+  email: string | undefined,
   providerUserId: string,
 ): Promise<User> {
   return db.startSpan("db.users.createOAuthUserIfNotExists", async () => {
     return withTransaction(db, async (tx) => {
-      const normalizedEmail = email.toLowerCase()
+      const normalizedEmail = email?.toLowerCase()
       const authIdentifier = `${providerUserId}`
 
       // Check if OAuth auth already exists
@@ -183,26 +187,28 @@ export async function createOAuthUserIfNotExists(
         return user
       }
 
-      // Check if email auth exists (link accounts)
-      const existingEmailAuth = await getUserAuthByIdentifier(
-        tx,
-        AUTH_METHOD.EMAIL,
-        normalizedEmail,
-      )
-
-      if (existingEmailAuth) {
-        // Link OAuth to existing email user
-        await createUserAuth(
+      // Check if email auth exists (link accounts) - only if email is provided
+      if (normalizedEmail) {
+        const existingEmailAuth = await getUserAuthByIdentifier(
           tx,
-          existingEmailAuth.userId,
-          provider,
-          authIdentifier,
+          AUTH_METHOD.EMAIL,
+          normalizedEmail,
         )
-        const user = await getUserById(tx, existingEmailAuth.userId)
-        if (!user) {
-          throw new Error("User not found for existing email auth")
+
+        if (existingEmailAuth) {
+          // Link OAuth to existing email user
+          await createUserAuth(
+            tx,
+            existingEmailAuth.userId,
+            provider,
+            authIdentifier,
+          )
+          const user = await getUserById(tx, existingEmailAuth.userId)
+          if (!user) {
+            throw new Error("User not found for existing email auth")
+          }
+          return user
         }
-        return user
       }
 
       // Create new user
@@ -217,8 +223,11 @@ export async function createOAuthUserIfNotExists(
 
       // Create OAuth auth entry
       await createUserAuth(tx, user.id, provider, authIdentifier)
-      // Also create email auth entry for future linking
-      await createUserAuth(tx, user.id, AUTH_METHOD.EMAIL, normalizedEmail)
+
+      // Also create email auth entry for future linking (only if email is provided)
+      if (normalizedEmail) {
+        await createUserAuth(tx, user.id, AUTH_METHOD.EMAIL, normalizedEmail)
+      }
 
       return user
     })

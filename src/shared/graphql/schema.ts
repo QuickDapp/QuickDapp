@@ -51,6 +51,23 @@ export const typeDefs = gql`
     error: String
   }
 
+  # OAuth types
+  enum OAuthProvider {
+    GOOGLE
+    FACEBOOK
+    GITHUB
+    X
+    TIKTOK
+    LINKEDIN
+  }
+
+  type OAuthLoginUrlResult {
+    success: Boolean!
+    url: String
+    provider: String
+    error: String
+  }
+
   input PageParam {
     startIndex: Int!
     perPage: Int!
@@ -71,6 +88,7 @@ export const typeDefs = gql`
     authenticateWithSiwe(message: String!, signature: String!): AuthResult!
     sendEmailVerificationCode(email: String!): EmailVerificationResult!
     authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!
+    getOAuthLoginUrl(provider: OAuthProvider!): OAuthLoginUrlResult!
 
     # User-specific mutations (auth required)
     markNotificationAsRead(id: PositiveInt!): Success! @auth

@@ -31,8 +31,16 @@ export interface ServerConfig extends ClientConfig {
   // OAuth configuration (optional)
   OAUTH_GOOGLE_CLIENT_ID?: string
   OAUTH_GOOGLE_CLIENT_SECRET?: string
+  OAUTH_FACEBOOK_CLIENT_ID?: string
+  OAUTH_FACEBOOK_CLIENT_SECRET?: string
   OAUTH_GITHUB_CLIENT_ID?: string
   OAUTH_GITHUB_CLIENT_SECRET?: string
+  OAUTH_X_CLIENT_ID?: string
+  OAUTH_X_CLIENT_SECRET?: string
+  OAUTH_TIKTOK_CLIENT_KEY?: string
+  OAUTH_TIKTOK_CLIENT_SECRET?: string
+  OAUTH_LINKEDIN_CLIENT_ID?: string
+  OAUTH_LINKEDIN_CLIENT_SECRET?: string
   OAUTH_CALLBACK_BASE_URL?: string
 
   // WebSocket configuration
@@ -124,8 +132,20 @@ export const serverConfig: ServerConfig = {
   // OAuth configuration
   OAUTH_GOOGLE_CLIENT_ID: env.get("OAUTH_GOOGLE_CLIENT_ID").asString(),
   OAUTH_GOOGLE_CLIENT_SECRET: env.get("OAUTH_GOOGLE_CLIENT_SECRET").asString(),
+  OAUTH_FACEBOOK_CLIENT_ID: env.get("OAUTH_FACEBOOK_CLIENT_ID").asString(),
+  OAUTH_FACEBOOK_CLIENT_SECRET: env
+    .get("OAUTH_FACEBOOK_CLIENT_SECRET")
+    .asString(),
   OAUTH_GITHUB_CLIENT_ID: env.get("OAUTH_GITHUB_CLIENT_ID").asString(),
   OAUTH_GITHUB_CLIENT_SECRET: env.get("OAUTH_GITHUB_CLIENT_SECRET").asString(),
+  OAUTH_X_CLIENT_ID: env.get("OAUTH_X_CLIENT_ID").asString(),
+  OAUTH_X_CLIENT_SECRET: env.get("OAUTH_X_CLIENT_SECRET").asString(),
+  OAUTH_TIKTOK_CLIENT_KEY: env.get("OAUTH_TIKTOK_CLIENT_KEY").asString(),
+  OAUTH_TIKTOK_CLIENT_SECRET: env.get("OAUTH_TIKTOK_CLIENT_SECRET").asString(),
+  OAUTH_LINKEDIN_CLIENT_ID: env.get("OAUTH_LINKEDIN_CLIENT_ID").asString(),
+  OAUTH_LINKEDIN_CLIENT_SECRET: env
+    .get("OAUTH_LINKEDIN_CLIENT_SECRET")
+    .asString(),
   OAUTH_CALLBACK_BASE_URL: env.get("OAUTH_CALLBACK_BASE_URL").asString(),
 
   // WebSocket configuration

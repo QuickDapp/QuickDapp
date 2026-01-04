@@ -7,13 +7,26 @@ export const THIRTY_MINUTES = 30 * ONE_MINUTE
 export const ONE_HOUR = 60 * ONE_MINUTE
 
 /**
- * Authentication method types
+ * OAuth authentication methods
+ */
+export const OAUTH_METHOD = {
+  GOOGLE: "GOOGLE",
+  FACEBOOK: "FACEBOOK",
+  GITHUB: "GITHUB",
+  X: "X",
+  TIKTOK: "TIKTOK",
+  LINKEDIN: "LINKEDIN",
+} as const
+
+export type OAuthMethod = (typeof OAUTH_METHOD)[keyof typeof OAUTH_METHOD]
+
+/**
+ * All authentication method types
  */
 export const AUTH_METHOD = {
   WEB3_WALLET: "WEB3_WALLET",
   EMAIL: "EMAIL",
-  GOOGLE: "GOOGLE",
-  GITHUB: "GITHUB",
+  ...OAUTH_METHOD,
 } as const
 
 export type AuthMethod = (typeof AUTH_METHOD)[keyof typeof AUTH_METHOD]

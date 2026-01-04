@@ -4,6 +4,7 @@ import { staticPlugin } from "@elysiajs/static"
 import * as Sentry from "@sentry/node"
 import { serverConfig } from "@shared/config/server"
 import { Elysia } from "elysia"
+import { createOAuthRoutes } from "./auth/oauth-routes"
 import { createServerApp } from "./bootstrap"
 import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
@@ -164,6 +165,9 @@ export const createApp = async (
 
   // Add GraphQL endpoint
   app.use(createGraphQLHandler(serverApp))
+
+  // Add OAuth callback routes
+  app.use(createOAuthRoutes(serverApp))
 
   // Add WebSocket endpoint
   app.use(createWebSocket(serverApp))

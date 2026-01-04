@@ -546,3 +546,117 @@ export async function createEmailAuthenticatedTestUser(
     userId: user.id,
   }
 }
+
+/**
+ * OAuth test helpers
+ */
+import { generateCodeVerifier, generateState } from "arctic"
+import type { OAuthProvider } from "../../src/server/auth/oauth"
+
+export interface MockOAuthState {
+  state: string
+  codeVerifier: string
+  provider: OAuthProvider
+}
+
+/**
+ * Create mock OAuth state for testing
+ */
+export function createMockOAuthState(provider: OAuthProvider): MockOAuthState {
+  return {
+    state: generateState(),
+    codeVerifier: generateCodeVerifier(),
+    provider,
+  }
+}
+
+/**
+ * Create OAuth cookie header string for test requests
+ */
+export function createOAuthCookieHeader(
+  state: string,
+  codeVerifier?: string,
+  provider?: string,
+): string {
+  const cookies: string[] = [`oauth_state=${state}`]
+  if (codeVerifier) {
+    cookies.push(`oauth_code_verifier=${codeVerifier}`)
+  }
+  if (provider) {
+    cookies.push(`oauth_provider=${provider}`)
+  }
+  return cookies.join("; ")
+}
+
+/**
+ * Parse Set-Cookie headers from response
+ */
+export function parseSetCookieHeaders(
+  headers: Headers,
+): Record<string, string> {
+  const cookies: Record<string, string> = {}
+  const setCookieHeader = headers.get("Set-Cookie")
+  if (!setCookieHeader) return cookies
+
+  // Handle multiple Set-Cookie headers (they may be comma-separated or in an array)
+  const cookieStrings = setCookieHeader.split(",").map((s) => s.trim())
+  for (const cookieStr of cookieStrings) {
+    const [nameValue] = cookieStr.split(";")
+    if (nameValue) {
+      const [name, ...valueParts] = nameValue.split("=")
+      if (name) {
+        cookies[name.trim()] = valueParts.join("=")
+      }
+    }
+  }
+  return cookies
+}
+
+/**
+ * Mock OAuth user info for different providers
+ */
+export interface MockOAuthUserInfo {
+  id: string
+  email?: string
+  name?: string
+}
+
+export function createMockOAuthUserInfo(
+  provider: OAuthProvider,
+  overrides: Partial<MockOAuthUserInfo> = {},
+): MockOAuthUserInfo {
+  const baseInfo: MockOAuthUserInfo = {
+    id: `mock-${provider.toLowerCase()}-user-${Math.random().toString(36).substring(2, 10)}`,
+    name: `Mock ${provider} User`,
+  }
+
+  // Providers that provide email
+  if (["GOOGLE", "FACEBOOK", "GITHUB", "LINKEDIN"].includes(provider)) {
+    baseInfo.email = `mock-${provider.toLowerCase()}-${Math.random().toString(36).substring(2, 10)}@example.com`
+  }
+
+  return { ...baseInfo, ...overrides }
+}
+
+/**
+ * Create a GraphQL request for OAuth login URL
+ */
+export function createOAuthLoginUrlRequest(
+  provider: OAuthProvider,
+  authToken?: string,
+) {
+  return createGraphQLRequest(
+    `
+    mutation GetOAuthLoginUrl($provider: OAuthProvider!) {
+      getOAuthLoginUrl(provider: $provider) {
+        success
+        url
+        provider
+        error
+      }
+    }
+  `,
+    { provider },
+    authToken,
+  )
+}
