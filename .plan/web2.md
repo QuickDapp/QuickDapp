@@ -249,16 +249,39 @@ export type ServerApp = {
 
 ## Phase 10: Update Tests ✅
 
-### Files Updated
+### Test Helpers Updated
 
 | File | Changes |
 |------|---------|
 | `tests/helpers/auth.ts` | Updated `createTestJWT` to use `web3_wallet`, fixed imports |
 | `tests/helpers/database.ts` | `createTestUser` uses `web3Wallet` parameter |
 | `tests/helpers/blockchain.ts` | Uses `WEB3_ANVIL_RPC` |
+
+### Test Files Updated
+
+| File | Changes |
+|------|---------|
+| `tests/shared/config/server-config.test.ts` | Updated env var names (`WEB3_SUPPORTED_CHAINS`, etc.), error message format |
+| `tests/server/graphql/auth.test.ts` | `wallet` → `web3Wallet` in queries, added `userId` to JWT |
+| `tests/server/graphql/auth-directive.test.ts` | `wallet` → `web3Wallet` in validateToken query |
+| `tests/server/graphql/email-auth.test.ts` | `wallet` → `web3Wallet`, email users return `web3Wallet: null`, disabled user lookup via `userAuth` table |
+| `tests/server/auth/jwt.test.ts` | `payload.wallet` → `payload.web3_wallet`, updated tests for optional wallet field |
 | `tests/server/auth/siwe.test.ts` | Uses `createWeb3WalletUserIfNotExists`, `web3Wallet` |
 | `tests/server/database/user-notification-integration.test.ts` | Uses `web3Wallet` |
 | `tests/server/workers/blockchain.test.ts` | Uses `createTestUser({ web3Wallet })` |
+
+### Test Results
+
+All 20 test files passing:
+- `tests/shared/contracts/chain.test.ts` ✅
+- `tests/shared/config/server-config.test.ts` ✅
+- `tests/server/server.test.ts` ✅
+- `tests/server/workers/*.test.ts` (6 files) ✅
+- `tests/server/db/transaction-retry.test.ts` ✅
+- `tests/server/graphql/*.test.ts` (5 files) ✅
+- `tests/server/auth/*.test.ts` (2 files) ✅
+- `tests/server/websocket/connection-limits.test.ts` ✅
+- `tests/server/database/user-notification-integration.test.ts` ✅
 
 ---
 
@@ -274,6 +297,10 @@ export type ServerApp = {
 
 ## Next Steps
 
-1. **Run tests** to verify all changes work correctly
+1. ~~**Run tests** to verify all changes work correctly~~ ✅ Done - all 20 test files passing
 2. **Implement Phase 5** (OAuth with Arctic library)
+   - Install `arctic` package
+   - Create `src/server/auth/oauth.ts`
+   - Create REST callback routes
+   - Add GraphQL mutation for OAuth login URL
 3. **Create database migration** for production environments
