@@ -13,6 +13,7 @@ import type {
   User,
 } from "@server/db/schema"
 import { serverConfig } from "@shared/config/server"
+import { AUTH_METHOD } from "@shared/constants"
 import { testLogger } from "@tests/helpers/logger"
 import { sql } from "drizzle-orm"
 
@@ -150,12 +151,12 @@ export async function seedTestDatabase(): Promise<void> {
   testLogger.info("🌱 Seeding test database...")
 
   try {
-    // Create some basic test users
+    // Create some basic test users with web3 wallets
     await createTestUser({
-      wallet: "0x742d35Cc6634C0532925a3b8D39A6Fa678e88CfD",
+      web3Wallet: "0x742d35Cc6634C0532925a3b8D39A6Fa678e88CfD",
     })
     await createTestUser({
-      wallet: "0x8ba1f109551bD432803012645Hac136c30C8A4E4",
+      web3Wallet: "0x8ba1f109551bD432803012645Hac136c30C8A4E4",
     })
 
     testLogger.info("✅ Test database seeded")
@@ -166,16 +167,16 @@ export async function seedTestDatabase(): Promise<void> {
 }
 
 /**
- * Create test user
+ * Create test user (optionally with web3 wallet auth)
  */
 export async function createTestUser(
-  userData: { wallet?: string; settings?: any; disabled?: boolean } = {},
+  userData: { web3Wallet?: string; settings?: any; disabled?: boolean } = {},
 ): Promise<User> {
+  const { web3Wallet, ...userFields } = userData
   const defaultUser: NewUser = {
-    wallet: "0x742d35Cc6634C0532925a3b8D39A6Fa678e88CfD",
     settings: { theme: "dark" },
     disabled: false,
-    ...userData,
+    ...userFields,
   }
 
   const db = getTestDb()
@@ -185,7 +186,21 @@ export async function createTestUser(
     throw new Error("Failed to create test user")
   }
 
-  testLogger.info("📝 Test user created:", { id: user.id, wallet: user.wallet })
+  // If web3Wallet provided, create a userAuth entry
+  if (web3Wallet) {
+    await db.insert(schema.userAuth).values({
+      userId: user.id,
+      authType: AUTH_METHOD.WEB3_WALLET,
+      authIdentifier: web3Wallet.toLowerCase(),
+    })
+    testLogger.info("📝 Test user created with web3 wallet:", {
+      id: user.id,
+      web3Wallet,
+    })
+  } else {
+    testLogger.info("📝 Test user created:", { id: user.id })
+  }
+
   return user
 }
 

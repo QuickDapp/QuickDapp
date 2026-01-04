@@ -125,8 +125,8 @@ const DEFAULT_PRIVATE_KEYS = [
  */
 const getTestBlockchainPort = (): number => {
   try {
-    // Extract port from SERVER_ANVIL_CHAIN_RPC (e.g., "http://127.0.0.1:58545")
-    const rpcUrl = serverConfig.SERVER_ANVIL_CHAIN_RPC
+    // Extract port from WEB3_ANVIL_RPC (e.g., "http://127.0.0.1:58545")
+    const rpcUrl = serverConfig.WEB3_ANVIL_RPC
     if (rpcUrl) {
       const url = new URL(rpcUrl)
       return parseInt(url.port, 10) || 58545

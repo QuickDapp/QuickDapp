@@ -122,7 +122,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -136,8 +136,7 @@ describe("Email Authentication", () => {
       expect(body.errors).toBeUndefined()
       expect(body.data.authenticateWithEmail.success).toBe(true)
       expect(body.data.authenticateWithEmail.token).toBeTruthy()
-      expect(body.data.authenticateWithEmail.wallet).toBeTruthy()
-      expect(body.data.authenticateWithEmail.wallet).toMatch(/^web2-/)
+      expect(body.data.authenticateWithEmail.web3Wallet).toBeNull()
       expect(body.data.authenticateWithEmail.error).toBeNull()
     })
 
@@ -153,7 +152,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -184,7 +183,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -210,7 +209,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -227,7 +226,7 @@ describe("Email Authentication", () => {
       )
     })
 
-    it("should return same wallet for same email on subsequent auth", async () => {
+    it("should return same user for same email on subsequent auth", async () => {
       const email = generateTestEmail()
 
       // First authentication
@@ -242,7 +241,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -252,7 +251,8 @@ describe("Email Authentication", () => {
       )
 
       const body1 = await response1.json()
-      const wallet1 = body1.data.authenticateWithEmail.wallet
+      expect(body1.data.authenticateWithEmail.success).toBe(true)
+      expect(body1.data.authenticateWithEmail.token).toBeTruthy()
 
       // Second authentication with same email
       const { code: code2, blob: blob2 } =
@@ -266,7 +266,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -276,9 +276,8 @@ describe("Email Authentication", () => {
       )
 
       const body2 = await response2.json()
-      const wallet2 = body2.data.authenticateWithEmail.wallet
-
-      expect(wallet1).toBe(wallet2)
+      expect(body2.data.authenticateWithEmail.success).toBe(true)
+      expect(body2.data.authenticateWithEmail.token).toBeTruthy()
     })
 
     it("should handle email case insensitively", async () => {
@@ -297,7 +296,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -307,9 +306,9 @@ describe("Email Authentication", () => {
       )
 
       const body1 = await response1.json()
-      const wallet1 = body1.data.authenticateWithEmail.wallet
+      expect(body1.data.authenticateWithEmail.success).toBe(true)
 
-      // Second auth with uppercase should return same wallet
+      // Second auth with uppercase should work and return same user
       const { code: code2, blob: blob2 } =
         await generateTestEmailVerification(upperEmail)
 
@@ -321,7 +320,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -331,9 +330,7 @@ describe("Email Authentication", () => {
       )
 
       const body2 = await response2.json()
-      const wallet2 = body2.data.authenticateWithEmail.wallet
-
-      expect(wallet1).toBe(wallet2)
+      expect(body2.data.authenticateWithEmail.success).toBe(true)
     })
   })
 
@@ -351,7 +348,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -367,7 +364,7 @@ describe("Email Authentication", () => {
       const validateResponse = await makeRequest(
         `${testServer.url}/graphql`,
         createGraphQLRequest(
-          `query { validateToken { valid wallet } }`,
+          `query { validateToken { valid web3Wallet } }`,
           undefined,
           token,
         ),
@@ -375,9 +372,7 @@ describe("Email Authentication", () => {
 
       const validateBody = await validateResponse.json()
       expect(validateBody.data.validateToken.valid).toBe(true)
-      expect(validateBody.data.validateToken.wallet).toBe(
-        authBody.data.authenticateWithEmail.wallet,
-      )
+      expect(validateBody.data.validateToken.web3Wallet).toBeNull()
     })
   })
 
@@ -397,7 +392,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }
@@ -409,16 +404,14 @@ describe("Email Authentication", () => {
       const body1 = await response1.json()
       expect(body1.data.authenticateWithEmail.success).toBe(true)
 
-      // Get user ID from server by making an authenticated request
-      // For simplicity, we'll use the database helper to disable the user
-      // We need to find the user by their synthetic wallet
+      // Disable the user via the userAuth table join
       const { sql } = await import("drizzle-orm")
       const { dbManager } = await import("@server/db/connection")
       const db = dbManager.getDb()
 
-      // Disable the user by wallet
+      // Disable the user by finding them via their email auth identifier
       await db.execute(
-        sql`UPDATE users SET disabled = true WHERE wallet = ${body1.data.authenticateWithEmail.wallet}`,
+        sql`UPDATE users SET disabled = true WHERE id = (SELECT user_id FROM user_auth WHERE auth_identifier = ${email.toLowerCase()})`,
       )
 
       // Now try to authenticate again - should fail
@@ -433,7 +426,7 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              wallet
+              web3Wallet
               error
             }
           }

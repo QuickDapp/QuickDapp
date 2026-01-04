@@ -49,7 +49,7 @@ describe("JWT Lifecycle Tests", () => {
 
       // Decode and verify token structure
       const payload = decodeJWT(token)
-      expect(payload.wallet).toBe(wallet.address.toLowerCase())
+      expect(payload.web3_wallet).toBe(wallet.address.toLowerCase())
       expect(payload.iat).toBeGreaterThan(0)
       expect(payload.exp).toBeGreaterThan(payload.iat)
     })
@@ -86,7 +86,7 @@ describe("JWT Lifecycle Tests", () => {
       const token = await createTestJWT(mixedCaseAddress)
 
       const payload = decodeJWT(token)
-      expect(payload.wallet).toBe(mixedCaseAddress.toLowerCase())
+      expect(payload.web3_wallet).toBe(mixedCaseAddress.toLowerCase())
     })
   })
 
@@ -169,8 +169,28 @@ describe("JWT Lifecycle Tests", () => {
   })
 
   describe("Token Payload Validation", () => {
-    it("should reject tokens missing wallet field", async () => {
-      const malformedToken = await createMalformedJWT("missing-wallet")
+    it("should accept tokens missing web3_wallet field (email users)", async () => {
+      // Missing web3_wallet is valid - email users don't have one
+      const token = await createMalformedJWT("missing-wallet")
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          token,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      // Token is valid (auth passes), but user lookup may fail
+      if (body.errors) {
+        expect(body.errors[0].extensions.code).not.toBe("UNAUTHORIZED")
+      }
+    })
+
+    it("should reject tokens missing userId field", async () => {
+      const malformedToken = await createMalformedJWT("missing-userId")
 
       const response = await makeRequest(`${testServer.url}/graphql`, {
         ...createGraphQLRequest(
@@ -203,8 +223,9 @@ describe("JWT Lifecycle Tests", () => {
       // The error will come from database operations if user doesn't exist
     })
 
-    it("should handle empty wallet field", async () => {
-      const token = await createTestJWT("")
+    it("should handle missing web3_wallet field (like email users)", async () => {
+      // Create token without web3Wallet (like email auth users)
+      const token = await createTestJWT(undefined)
 
       const response = await makeRequest(`${testServer.url}/graphql`, {
         ...createGraphQLRequest(
@@ -216,8 +237,11 @@ describe("JWT Lifecycle Tests", () => {
 
       const body = await response.json()
       expect(response.status).toBe(200)
-      // Should fail in auth validation or user lookup
-      expect(body.errors).toBeDefined()
+      // Token without web3_wallet is valid (email users don't have one)
+      // Query will fail due to user not found (not because of missing wallet)
+      if (body.errors) {
+        expect(body.errors[0].extensions.code).not.toBe("UNAUTHORIZED")
+      }
     })
   })
 
@@ -439,7 +463,7 @@ describe("JWT Lifecycle Tests", () => {
 
       // Verify using our helper
       const payload = await verifyTestJWT(token)
-      expect(payload.wallet).toBe(wallet.address.toLowerCase())
+      expect(payload.web3_wallet).toBe(wallet.address.toLowerCase())
       expect(payload.test).toBe("value")
 
       // Should fail with wrong secret

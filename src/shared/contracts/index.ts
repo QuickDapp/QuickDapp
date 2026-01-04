@@ -32,9 +32,12 @@ export type ContractInfo = ReturnType<typeof getContractInfo>
  * Get the Factory contract info using the configured address
  */
 export const getFactoryContractInfo = () => {
+  if (!clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS) {
+    throw new Error("WEB3_FACTORY_CONTRACT_ADDRESS is not configured")
+  }
   return getContractInfo(
     ContractName.FactoryContract,
-    clientConfig.FACTORY_CONTRACT_ADDRESS,
+    clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS,
   )
 }
 

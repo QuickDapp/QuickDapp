@@ -31,47 +31,47 @@ describe("Server Configuration Validation", () => {
       process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
       process.env.SESSION_ENCRYPTION_KEY =
         "test_key_32_chars_long_for_testing_only!!"
-      process.env.SERVER_WALLET_PRIVATE_KEY =
+      process.env.WEB3_SERVER_WALLET_PRIVATE_KEY =
         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       process.env.BASE_URL = "http://localhost:3000"
-      process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      process.env.SUPPORTED_CHAINS = "anvil"
-      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
+      process.env.WEB3_WALLETCONNECT_PROJECT_ID = "test_project_id"
+      process.env.WEB3_SUPPORTED_CHAINS = "anvil"
+      process.env.WEB3_ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
 
       expect(() => validateConfig()).not.toThrow()
     })
 
-    it("should throw error when SUPPORTED_CHAINS is missing", () => {
-      // Set all required environment variables except SUPPORTED_CHAINS
+    it("should throw error when WEB3_SUPPORTED_CHAINS is missing", () => {
+      // Set all required environment variables except WEB3_SUPPORTED_CHAINS
       process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
       process.env.SESSION_ENCRYPTION_KEY =
         "test_key_32_chars_long_for_testing_only!!"
-      process.env.SERVER_WALLET_PRIVATE_KEY =
+      process.env.WEB3_SERVER_WALLET_PRIVATE_KEY =
         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       process.env.BASE_URL = "http://localhost:3000"
-      process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
-      delete process.env.SUPPORTED_CHAINS
+      process.env.WEB3_WALLETCONNECT_PROJECT_ID = "test_project_id"
+      process.env.WEB3_ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
+      delete process.env.WEB3_SUPPORTED_CHAINS
 
       expect(() => validateConfig()).toThrow(
-        "Missing required environment variables: SUPPORTED_CHAINS",
+        "Missing required web3 environment variables (WEB3_ENABLED=true): WEB3_SUPPORTED_CHAINS",
       )
     })
 
-    it("should throw error when SUPPORTED_CHAINS is empty", () => {
-      // Set all required environment variables but make SUPPORTED_CHAINS empty
+    it("should throw error when WEB3_SUPPORTED_CHAINS is empty", () => {
+      // Set all required environment variables but make WEB3_SUPPORTED_CHAINS empty
       process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
       process.env.SESSION_ENCRYPTION_KEY =
         "test_key_32_chars_long_for_testing_only!!"
-      process.env.SERVER_WALLET_PRIVATE_KEY =
+      process.env.WEB3_SERVER_WALLET_PRIVATE_KEY =
         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       process.env.BASE_URL = "http://localhost:3000"
-      process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
-      process.env.SUPPORTED_CHAINS = ""
+      process.env.WEB3_WALLETCONNECT_PROJECT_ID = "test_project_id"
+      process.env.WEB3_ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
+      process.env.WEB3_SUPPORTED_CHAINS = ""
 
       expect(() => validateConfig()).toThrow(
-        "Missing required environment variables: SUPPORTED_CHAINS",
+        "Missing required web3 environment variables (WEB3_ENABLED=true): WEB3_SUPPORTED_CHAINS",
       )
     })
 

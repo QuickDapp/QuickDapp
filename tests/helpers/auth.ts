@@ -16,7 +16,7 @@ import {
 import { AuthService } from "../../src/server/auth"
 import {
   createEmailUserIfNotExists,
-  createUserIfNotExists,
+  createWeb3WalletUserIfNotExists,
 } from "../../src/server/db/users"
 import { generateVerificationCodeAndBlob } from "../../src/server/lib/emailVerification"
 import type { ServerApp } from "../../src/server/types"
@@ -148,7 +148,7 @@ function getJWTSecret(): string {
  * Create a test JWT token
  */
 export async function createTestJWT(
-  wallet: string,
+  web3Wallet: string | undefined,
   options: {
     expiresIn?: string
     secret?: string
@@ -161,14 +161,14 @@ export async function createTestJWT(
     extraClaims = {},
   } = options
 
-  testLogger.debug(`Creating JWT for wallet: ${wallet}`)
+  testLogger.debug(`Creating JWT for web3Wallet: ${web3Wallet || "none"}`)
   testLogger.debug(`Using expiresIn: ${expiresIn}`)
 
   const jwtSecret = new TextEncoder().encode(secret)
 
   return await new SignJWT({
     userId: 1, // Default test user ID
-    wallet: wallet.toLowerCase(),
+    ...(web3Wallet && { web3_wallet: web3Wallet.toLowerCase() }),
     iat: Math.floor(Date.now() / 1000),
     ...extraClaims,
   })
@@ -180,8 +180,8 @@ export async function createTestJWT(
 /**
  * Create an expired JWT token
  */
-export async function createExpiredJWT(wallet: string): Promise<string> {
-  return await createTestJWT(wallet, {
+export async function createExpiredJWT(web3Wallet?: string): Promise<string> {
+  return await createTestJWT(web3Wallet, {
     expiresIn: "-1h", // Already expired
   })
 }
@@ -357,7 +357,7 @@ export async function createAuthenticatedTestUser(
 
   // Create user in database if using real ServerApp
   if (options.serverApp) {
-    await createUserIfNotExists(options.serverApp.db, wallet.address)
+    await createWeb3WalletUserIfNotExists(options.serverApp.db, wallet.address)
   }
 
   // Authenticate through the real auth system to get JWT
@@ -529,20 +529,20 @@ export async function generateTestEmailVerification(
 export async function createEmailAuthenticatedTestUser(
   serverApp: ServerApp,
   email?: string,
-): Promise<{ email: string; token: string; wallet: string }> {
+): Promise<{ email: string; token: string; userId: number }> {
   const testEmail = email || generateTestEmail()
 
   // Create user in database first
   const user = await createEmailUserIfNotExists(serverApp.db, testEmail)
 
-  // Create JWT token
-  const token = await createTestJWT(user.wallet, {
+  // Create JWT token (no web3Wallet for email users)
+  const token = await createTestJWT(undefined, {
     extraClaims: { userId: user.id },
   })
 
   return {
     email: testEmail,
     token,
-    wallet: user.wallet,
+    userId: user.id,
   }
 }

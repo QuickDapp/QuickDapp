@@ -24,7 +24,6 @@ export const settings = pgTable("settings", {
 // Users table for authentication and user management
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  wallet: text("wallet").unique().notNull(),
   disabled: boolean("disabled").default(false).notNull(),
   settings: json("settings"),
   createdAt: timestamp("created_at", { withTimezone: true })

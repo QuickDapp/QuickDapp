@@ -33,14 +33,14 @@ describe("GraphQL Authentication", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: `query { validateToken { valid wallet } }`,
+          query: `query { validateToken { valid web3Wallet } }`,
         }),
       })
 
       const body = await response.json()
       expect(response.status).toBe(200)
       expect(body.data.validateToken.valid).toBe(false)
-      expect(body.data.validateToken.wallet).toBeNull()
+      expect(body.data.validateToken.web3Wallet).toBeNull()
       expect(body.errors).toBeUndefined()
     })
 
@@ -93,7 +93,8 @@ describe("GraphQL Authentication", () => {
         )
 
         authToken = await new SignJWT({
-          wallet: testWallet.toLowerCase(),
+          userId: 1,
+          web3_wallet: testWallet.toLowerCase(),
           iat: Math.floor(Date.now() / 1000),
         })
           .setProtectedHeader({ alg: "HS256" })

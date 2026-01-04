@@ -7,7 +7,7 @@ import {
   test,
 } from "bun:test"
 import { eq } from "drizzle-orm"
-import { notifications, users, workerJobs } from "../../../src/server/db/schema"
+import { notifications, workerJobs } from "../../../src/server/db/schema"
 import { setLastProcessedBlock } from "../../../src/server/db/settings"
 import { scheduleJob } from "../../../src/server/db/worker"
 import { getPrimaryChainName } from "../../../src/shared/contracts/chain"
@@ -21,7 +21,7 @@ import {
   mineBlocks,
   transferERC20,
 } from "../../helpers/blockchain"
-import { setupTestDatabase } from "../../helpers/database"
+import { createTestUser, setupTestDatabase } from "../../helpers/database"
 import { testLogger } from "../../helpers/logger"
 import type { TestServer } from "../../helpers/server"
 import { startTestServer, waitForServer } from "../../helpers/server"
@@ -126,17 +126,12 @@ describe("Worker Blockchain Integration Tests", () => {
       "should monitor ERC20 transfer events and create notifications",
       async () => {
         const sender = blockchainContext.testnet.accounts[0] as `0x${string}`
-        const [testUser] = await serverContext.serverApp.db
-          .insert(users)
-          .values({ wallet: sender.toLowerCase() })
-          .returning()
-
-        if (!testUser) {
-          throw new Error("Failed to create test user")
-        }
+        const testUser = await createTestUser({
+          web3Wallet: sender.toLowerCase(),
+        })
 
         testLogger.info(
-          `Created test user ${testUser.id} with wallet ${testUser.wallet}`,
+          `Created test user ${testUser.id} with wallet ${sender.toLowerCase()}`,
         )
 
         // Set lastProcessedBlock to current block to isolate from previous tests
@@ -162,7 +157,7 @@ describe("Worker Blockchain Integration Tests", () => {
         const transferAmount = 1000n * 10n ** 18n
 
         testLogger.info(
-          `Transferring tokens from ${testUser.wallet} to ${recipient}`,
+          `Transferring tokens from ${sender.toLowerCase()} to ${recipient}`,
         )
         await transferERC20(
           blockchainContext,
@@ -220,17 +215,12 @@ describe("Worker Blockchain Integration Tests", () => {
       "should monitor token creation events and create notifications",
       async () => {
         const creator = blockchainContext.testnet.accounts[0] as `0x${string}`
-        const [testUser] = await serverContext.serverApp.db
-          .insert(users)
-          .values({ wallet: creator.toLowerCase() })
-          .returning()
-
-        if (!testUser) {
-          throw new Error("Failed to create test user")
-        }
+        const testUser = await createTestUser({
+          web3Wallet: creator.toLowerCase(),
+        })
 
         testLogger.info(
-          `Created test user ${testUser.id} with wallet ${testUser.wallet}`,
+          `Created test user ${testUser.id} with wallet ${creator.toLowerCase()}`,
         )
 
         // Set lastProcessedBlock to current block to isolate from previous tests
@@ -323,19 +313,14 @@ describe("Worker Blockchain Integration Tests", () => {
     test(
       "should handle multiple token contracts being monitored",
       async () => {
-        const [testUser] = await serverContext.serverApp.db
-          .insert(users)
-          .values({
-            wallet: blockchainContext.testnet.accounts[0]!.toLowerCase(),
-          })
-          .returning()
-
-        if (!testUser) {
-          throw new Error("Failed to create test user")
-        }
+        const walletAddress =
+          blockchainContext.testnet.accounts[0]!.toLowerCase()
+        const testUser = await createTestUser({
+          web3Wallet: walletAddress,
+        })
 
         testLogger.info(
-          `Created test user ${testUser.id} with wallet ${testUser.wallet}`,
+          `Created test user ${testUser.id} with wallet ${walletAddress}`,
         )
 
         // Set lastProcessedBlock to current block to isolate from previous tests

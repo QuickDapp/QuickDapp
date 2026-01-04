@@ -25,10 +25,10 @@ export type ServerApp = {
   workerManager: WorkerManager
   /** WebSocket manager for real-time communication */
   socketManager: ISocketManager
-  /** Public blockchain client for reading */
-  publicClient: PublicClient
-  /** Wallet client for transactions (using server private key) */
-  walletClient: WalletClient
+  /** Public blockchain client for reading (only available when WEB3_ENABLED=true) */
+  publicClient?: PublicClient
+  /** Wallet client for transactions (only available when WEB3_ENABLED=true) */
+  walletClient?: WalletClient
   /** Create a notification for a user and send via WebSocket */
   createNotification: (
     userId: number,

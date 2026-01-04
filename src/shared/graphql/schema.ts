@@ -36,13 +36,13 @@ export const typeDefs = gql`
   type AuthResult {
     success: Boolean!
     token: String
-    wallet: String
+    web3Wallet: String
     error: String
   }
 
   type ValidateTokenResult {
     valid: Boolean!
-    wallet: String
+    web3Wallet: String
   }
 
   type EmailVerificationResult {

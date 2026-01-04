@@ -27,10 +27,13 @@ export const initializeSentry = (options: {
 /**
  * Set the current user in Sentry scope
  */
-export const setSentryUser = (user: { id: number; wallet: string }): void => {
+export const setSentryUser = (user: {
+  id: number
+  web3Wallet?: string
+}): void => {
   Sentry.setUser({
     id: String(user.id),
-    username: user.wallet,
+    ...(user.web3Wallet && { username: user.web3Wallet }),
   })
 }
 

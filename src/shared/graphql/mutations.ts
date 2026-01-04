@@ -15,7 +15,7 @@ export const AUTHENTICATE_WITH_SIWE = gql`
     authenticateWithSiwe(message: $message, signature: $signature) {
       success
       token
-      wallet
+      web3Wallet
       error
     }
   }
@@ -36,7 +36,7 @@ export const AUTHENTICATE_WITH_EMAIL = gql`
     authenticateWithEmail(email: $email, code: $code, blob: $blob) {
       success
       token
-      wallet
+      web3Wallet
       error
     }
   }

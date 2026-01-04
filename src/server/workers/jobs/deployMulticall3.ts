@@ -32,7 +32,7 @@ export const deployMulticall3Job: Job = {
       })
 
       const account = privateKeyToAccount(
-        serverConfig.SERVER_WALLET_PRIVATE_KEY as Hex,
+        serverConfig.WEB3_SERVER_WALLET_PRIVATE_KEY as Hex,
       )
       const walletClient = createWalletClient({
         account,

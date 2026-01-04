@@ -95,7 +95,7 @@ export const createWebSocket = (serverApp: ServerApp) => {
               })
 
               log.debug(
-                `Client ${ws.id} successfully registered as user ${authenticatedUser.id} (${authenticatedUser.wallet})`,
+                `Client ${ws.id} successfully registered as user ${authenticatedUser.id}${authenticatedUser.web3Wallet ? ` (${authenticatedUser.web3Wallet})` : ""}`,
               )
             } catch (err) {
               log.error(`Error verifying JWT token`, err)

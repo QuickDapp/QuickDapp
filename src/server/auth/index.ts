@@ -1,13 +1,16 @@
 import { GraphQLError } from "graphql"
 import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
+import { clientConfig } from "../../shared/config/client"
 import { serverConfig } from "../../shared/config/server"
+import { AUTH_METHOD } from "../../shared/constants"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
 import {
   createEmailUserIfNotExists,
-  createUserIfNotExists,
-  getUser,
+  createOAuthUserIfNotExists,
+  createWeb3WalletUserIfNotExists,
   getUserById,
+  getUserWeb3Wallet,
 } from "../db/users"
 import { verifyCodeWithBlob } from "../lib/emailVerification"
 import { AccountDisabledError } from "../lib/errors"
@@ -21,7 +24,7 @@ function getJwtSecret(): Uint8Array {
 
 export interface AuthenticatedUser {
   id: number
-  wallet: string
+  web3Wallet?: string
 }
 
 export interface AuthenticationResult {
@@ -30,7 +33,7 @@ export interface AuthenticationResult {
 }
 
 /**
- * Authentication service for handling SIWE, email, and JWT token operations
+ * Authentication service for handling SIWE, email, OAuth, and JWT token operations
  */
 export class AuthService {
   private logger: Logger
@@ -40,24 +43,25 @@ export class AuthService {
   }
 
   /**
-   * Get user by wallet address
-   */
-  async getUserByWallet(wallet: string) {
-    return await getUser(this.serverApp.db, wallet)
-  }
-
-  /**
    * Generate JWT token for a user
    */
-  private async generateToken(userId: number, wallet: string): Promise<string> {
+  private async generateToken(
+    userId: number,
+    web3Wallet?: string,
+  ): Promise<string> {
     const now = Date.now()
-    return new SignJWT({
+    const payload: Record<string, unknown> = {
       userId,
-      wallet,
       iat: Math.floor(now / 1000),
       iatMs: now,
       jti: `${now}-${Math.random().toString(36).substring(2, 11)}`,
-    })
+    }
+
+    if (web3Wallet) {
+      payload.web3_wallet = web3Wallet
+    }
+
+    return new SignJWT(payload)
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime("24h")
       .sign(getJwtSecret())
@@ -78,11 +82,18 @@ export class AuthService {
 
   /**
    * Verify SIWE message and signature, return JWT token
+   * Only available when WEB3_ENABLED=true
    */
   async authenticateWithSiwe(
     message: string,
     signature: string,
   ): Promise<AuthenticationResult> {
+    if (!clientConfig.WEB3_ENABLED) {
+      throw new GraphQLError("Web3 authentication is not enabled", {
+        extensions: { code: GraphQLErrorCode.AUTHENTICATION_FAILED },
+      })
+    }
+
     try {
       const siwe = new SiweMessage(message)
 
@@ -106,7 +117,7 @@ export class AuthService {
       }
 
       // Get or create user in database
-      const dbUser = await createUserIfNotExists(
+      const dbUser = await createWeb3WalletUserIfNotExists(
         this.serverApp.db,
         siwe.address,
       )
@@ -114,16 +125,19 @@ export class AuthService {
       // Check if user is disabled
       await this.checkUserNotDisabled(dbUser.id)
 
-      // Create JWT token
-      const token = await this.generateToken(dbUser.id, dbUser.wallet)
+      // Get wallet address for JWT
+      const walletAddress = siwe.address.toLowerCase()
+
+      // Create JWT token with wallet
+      const token = await this.generateToken(dbUser.id, walletAddress)
 
       const user: AuthenticatedUser = {
         id: dbUser.id,
-        wallet: dbUser.wallet,
+        web3Wallet: walletAddress,
       }
 
       this.logger.debug(
-        `SIWE authentication successful for wallet: ${user.wallet}`,
+        `SIWE authentication successful for wallet: ${walletAddress}`,
       )
 
       return { token, user }
@@ -206,12 +220,15 @@ export class AuthService {
       // Check if user is disabled
       await this.checkUserNotDisabled(dbUser.id)
 
+      // Check if user has a web3 wallet
+      const web3Wallet = await getUserWeb3Wallet(this.serverApp.db, dbUser.id)
+
       // Create JWT token
-      const token = await this.generateToken(dbUser.id, dbUser.wallet)
+      const token = await this.generateToken(dbUser.id, web3Wallet)
 
       const user: AuthenticatedUser = {
         id: dbUser.id,
-        wallet: dbUser.wallet,
+        web3Wallet,
       }
 
       this.logger.debug(`Email authentication successful for user: ${user.id}`)
@@ -239,6 +256,63 @@ export class AuthService {
   }
 
   /**
+   * Authenticate with OAuth provider
+   */
+  async authenticateWithOAuth(
+    provider: typeof AUTH_METHOD.GOOGLE | typeof AUTH_METHOD.GITHUB,
+    email: string,
+    providerUserId: string,
+  ): Promise<AuthenticationResult> {
+    try {
+      this.logger.debug(`Authenticating with OAuth provider: ${provider}`)
+
+      // Get or create user
+      const dbUser = await createOAuthUserIfNotExists(
+        this.serverApp.db,
+        provider,
+        email,
+        providerUserId,
+      )
+
+      // Check if user is disabled
+      await this.checkUserNotDisabled(dbUser.id)
+
+      // Check if user has a web3 wallet
+      const web3Wallet = await getUserWeb3Wallet(this.serverApp.db, dbUser.id)
+
+      // Create JWT token
+      const token = await this.generateToken(dbUser.id, web3Wallet)
+
+      const user: AuthenticatedUser = {
+        id: dbUser.id,
+        web3Wallet,
+      }
+
+      this.logger.debug(`OAuth authentication successful for user: ${user.id}`)
+
+      return { token, user }
+    } catch (error) {
+      if (
+        error instanceof GraphQLError ||
+        error instanceof AccountDisabledError
+      ) {
+        throw error
+      }
+
+      this.logger.error("OAuth authentication failed:", error)
+
+      throw new GraphQLError(
+        error instanceof Error ? error.message : "Authentication failed",
+        {
+          extensions: {
+            code: GraphQLErrorCode.AUTHENTICATION_FAILED,
+          },
+        },
+      )
+    }
+  }
+
+  /**
    * Verify JWT token and return user info
    */
   async verifyToken(token: string): Promise<AuthenticatedUser> {
@@ -247,24 +321,25 @@ export class AuthService {
 
       const { payload } = await jwtVerify(token, getJwtSecret())
 
-      if (
-        !payload.userId ||
-        typeof payload.userId !== "number" ||
-        !payload.wallet ||
-        typeof payload.wallet !== "string"
-      ) {
-        this.logger.debug(`Token payload missing userId or wallet:`, payload)
+      if (!payload.userId || typeof payload.userId !== "number") {
+        this.logger.debug(`Token payload missing userId:`, payload)
         throw new GraphQLError("Invalid token payload", {
           extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
         })
       }
 
+      const web3Wallet =
+        typeof payload.web3_wallet === "string"
+          ? payload.web3_wallet
+          : undefined
+
       this.logger.debug(
-        `Token verified for user ${payload.userId} (${payload.wallet})`,
+        `Token verified for user ${payload.userId}${web3Wallet ? ` (${web3Wallet})` : ""}`,
       )
+
       return {
         id: payload.userId,
-        wallet: payload.wallet,
+        web3Wallet,
       }
     } catch (error) {
       if (error instanceof GraphQLError) {

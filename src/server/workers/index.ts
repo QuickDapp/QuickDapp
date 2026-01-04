@@ -1,6 +1,7 @@
 import { type ChildProcess, fork } from "node:child_process"
 import os from "node:os"
 import path from "node:path"
+import { clientConfig } from "../../shared/config/client"
 import { serverConfig } from "../../shared/config/server"
 import { scheduleJob } from "../db/worker"
 import type { Logger } from "../lib/logger"
@@ -182,14 +183,18 @@ export const createWorkerManager = async (
     },
   }
 
-  // Schedule Multicall3 deployment immediately
-  logger.info("Scheduling Multicall3 deployment check...")
-  await workerManager.submitJob({
-    tag: "deploy-multicall3",
-    type: "deployMulticall3",
-    data: { forceRedeploy: false },
-    userId: 0,
-  })
+  // Schedule Multicall3 deployment if web3 is enabled
+  if (clientConfig.WEB3_ENABLED) {
+    logger.info("Scheduling Multicall3 deployment check...")
+    await workerManager.submitJob({
+      tag: "deploy-multicall3",
+      type: "deployMulticall3",
+      data: { forceRedeploy: false },
+      userId: 0,
+    })
+  } else {
+    logger.info("Web3 disabled - skipping Multicall3 deployment")
+  }
 
   return workerManager
 }

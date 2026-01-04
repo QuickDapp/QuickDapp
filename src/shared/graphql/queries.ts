@@ -26,7 +26,7 @@ export const VALIDATE_TOKEN = gql`
   query ValidateToken {
     validateToken {
       valid
-      wallet
+      web3Wallet
     }
   }
 `

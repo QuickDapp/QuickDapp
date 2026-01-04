@@ -92,7 +92,7 @@ describe("Database Integration Tests", () => {
       // Create user manually first
       const wallet = generateTestWallet()
       await createTestUser({
-        wallet: wallet.address.toLowerCase(),
+        web3Wallet: wallet.address.toLowerCase(),
       })
 
       // Create authenticated session for same wallet
@@ -153,7 +153,7 @@ describe("Database Integration Tests", () => {
 
       // Create user with lowercase address
       await createTestUser({
-        wallet: wallet.address.toLowerCase(),
+        web3Wallet: wallet.address.toLowerCase(),
       })
 
       // Create authenticated session (address should be normalized)
@@ -183,10 +183,9 @@ describe("Database Integration Tests", () => {
 
       // Create user with predefined wallet
       const testUser = await createTestUser({
-        wallet: hardhatWallet.address.toLowerCase(),
+        web3Wallet: hardhatWallet.address.toLowerCase(),
       })
 
-      expect(testUser.wallet).toBe(hardhatWallet.address.toLowerCase())
       expect(testUser.id).toBeDefined()
 
       const stats = await getTestDatabaseStats()

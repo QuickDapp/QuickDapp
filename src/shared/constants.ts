@@ -10,16 +10,13 @@ export const ONE_HOUR = 60 * ONE_MINUTE
  * Authentication method types
  */
 export const AUTH_METHOD = {
-  WALLET: "WALLET",
+  WEB3_WALLET: "WEB3_WALLET",
   EMAIL: "EMAIL",
+  GOOGLE: "GOOGLE",
+  GITHUB: "GITHUB",
 } as const
 
 export type AuthMethod = (typeof AUTH_METHOD)[keyof typeof AUTH_METHOD]
-
-/**
- * Prefix for synthetic wallet addresses assigned to email users
- */
-export const WEB2_WALLET_PREFIX = "web2-"
 
 /**
  * Email verification settings

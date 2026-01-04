@@ -1,8 +1,15 @@
+import { clientConfig } from "@shared/config/client"
 import { serverConfig } from "@shared/config/server"
 import type { NotificationData } from "@shared/notifications/types"
 import type { ISocketManager } from "@shared/websocket/socket-manager"
 import { WebSocketMessageType } from "@shared/websocket/types"
-import { createPublicClient, createWalletClient, http } from "viem"
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  type PublicClient,
+  type WalletClient,
+} from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { dbManager } from "./db/connection"
 import { notifications } from "./db/schema"
@@ -55,6 +62,42 @@ const createNotificationFunction = (
 }
 
 /**
+ * Create blockchain clients if web3 is enabled
+ */
+function createBlockchainClients(rootLogger: Logger): {
+  publicClient?: PublicClient
+  walletClient?: WalletClient
+} {
+  if (!clientConfig.WEB3_ENABLED) {
+    rootLogger.info("Web3 disabled - blockchain clients not created")
+    return {}
+  }
+
+  const chain = getChain()
+  const chainName = getChainName()
+  const rpcUrl = getChainRpcUrl()
+
+  const publicClient = createPublicClient({
+    chain,
+    transport: http(rpcUrl),
+    // Disable caching in test mode for accurate block numbers
+    ...(serverConfig.NODE_ENV === "test" ? { cacheTime: 0 } : {}),
+  })
+
+  const walletClient = createWalletClient({
+    chain,
+    transport: http(rpcUrl),
+    account: privateKeyToAccount(
+      serverConfig.WEB3_SERVER_WALLET_PRIVATE_KEY as `0x${string}`,
+    ),
+  })
+
+  rootLogger.info(`Blockchain clients connected to ${chainName} (${rpcUrl})`)
+
+  return { publicClient, walletClient }
+}
+
+/**
  * Creates a ServerApp instance with all necessary dependencies
  * This is shared between the main server process and worker processes
  */
@@ -88,27 +131,8 @@ export const createServerApp = async (options: {
 
   rootLogger.info("Database connected")
 
-  // Create blockchain clients
-  const chain = getChain()
-  const chainName = getChainName()
-  const rpcUrl = getChainRpcUrl()
-
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(rpcUrl),
-    // Disable caching in test mode for accurate block numbers
-    ...(serverConfig.NODE_ENV === "test" ? { cacheTime: 0 } : {}),
-  })
-
-  const walletClient = createWalletClient({
-    chain,
-    transport: http(rpcUrl),
-    account: privateKeyToAccount(
-      serverConfig.SERVER_WALLET_PRIVATE_KEY as `0x${string}`,
-    ),
-  })
-
-  rootLogger.info(`Blockchain clients connected to ${chainName} (${rpcUrl})`)
+  // Create blockchain clients (conditional based on WEB3_ENABLED)
+  const { publicClient, walletClient } = createBlockchainClients(rootLogger)
 
   const baseServerApp = {
     db,

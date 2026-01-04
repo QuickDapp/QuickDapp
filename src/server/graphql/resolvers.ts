@@ -1,5 +1,6 @@
 import { GraphQLError } from "graphql"
 import { SiweMessage } from "siwe"
+import { clientConfig } from "../../shared/config/client"
 import { serverConfig } from "../../shared/config/server"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
 import { AuthService } from "../auth"
@@ -9,7 +10,7 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "../db/notifications"
-import { getUser } from "../db/users"
+import { getUserById } from "../db/users"
 import { getChainId } from "../lib/chains"
 import {
   generateVerificationCodeAndBlob,
@@ -37,10 +38,15 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
   ): Promise<T> => {
     return serverApp.startSpan(spanName, async (span) => {
       if (context.user) {
-        setSentryUser({ id: context.user.id, wallet: context.user.wallet })
+        setSentryUser({
+          id: context.user.id,
+          web3Wallet: context.user.web3Wallet,
+        })
         span.setAttributes({
           "user.id": context.user.id,
-          "user.wallet": context.user.wallet,
+          ...(context.user.web3Wallet && {
+            "user.web3Wallet": context.user.web3Wallet,
+          }),
         })
       }
       return callback()
@@ -55,7 +61,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
       })
     }
 
-    const user = await getUser(serverApp.db, context.user.wallet)
+    const user = await getUserById(serverApp.db, context.user.id)
     if (!user) {
       throw new GraphQLError("User not found", {
         extensions: { code: GraphQLErrorCode.NOT_FOUND },
@@ -74,12 +80,12 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
             if (context.user) {
               return {
                 valid: true,
-                wallet: context.user.wallet,
+                web3Wallet: context.user.web3Wallet || null,
               }
             } else {
               return {
                 valid: false,
-                wallet: null,
+                web3Wallet: null,
               }
             }
           } catch (error) {
@@ -87,7 +93,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
             logger.error("Error validating token:", error)
             return {
               valid: false,
-              wallet: null,
+              web3Wallet: null,
             }
           }
         })
@@ -110,7 +116,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               )
 
               logger.debug(
-                `Retrieved ${notifications.length} notifications for user ${user.wallet}`,
+                `Retrieved ${notifications.length} notifications for user ${user.id}`,
               )
 
               return {
@@ -145,9 +151,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 user.id,
               )
 
-              logger.debug(
-                `User ${user.wallet} has ${count} unread notifications`,
-              )
+              logger.debug(`User ${user.id} has ${count} unread notifications`)
 
               return count
             } catch (error) {
@@ -167,6 +171,13 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
           "graphql.Mutation.generateSiweMessage",
           context,
           async () => {
+            // Check if web3 is enabled
+            if (!clientConfig.WEB3_ENABLED) {
+              throw new GraphQLError("Web3 authentication is not enabled", {
+                extensions: { code: GraphQLErrorCode.AUTHENTICATION_FAILED },
+              })
+            }
+
             try {
               const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
               logger.debug(`Generating SIWE message for address: ${address}`)
@@ -218,7 +229,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: true,
                 token: authResult.token,
-                wallet: authResult.user.wallet,
+                web3Wallet: authResult.user.web3Wallet || null,
                 error: null,
               }
             } catch (error) {
@@ -228,7 +239,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: false,
                 token: null,
-                wallet: null,
+                web3Wallet: null,
                 error:
                   error instanceof Error
                     ? error.message
@@ -321,7 +332,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: true,
                 token: authResult.token,
-                wallet: authResult.user.wallet,
+                web3Wallet: authResult.user.web3Wallet || null,
                 error: null,
               }
             } catch (error) {
@@ -330,7 +341,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: false,
                 token: null,
-                wallet: null,
+                web3Wallet: null,
                 error:
                   error instanceof Error
                     ? error.message
@@ -365,7 +376,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               }
 
               logger.debug(
-                `Marked notification ${id} as read for user ${user.wallet}`,
+                `Marked notification ${id} as read for user ${user.id}`,
               )
 
               return { success: true }
@@ -401,7 +412,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               )
 
               logger.debug(
-                `Marked ${updatedCount} notifications as read for user ${user.wallet}`,
+                `Marked ${updatedCount} notifications as read for user ${user.id}`,
               )
 
               return { success: true }

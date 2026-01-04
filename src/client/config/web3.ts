@@ -14,12 +14,12 @@ export const createWeb3Config = (clientConfig: ClientConfig) => {
   const supportedChains = getSupportedChains()
   const chains = supportedChains as any // Type assertion to work around RainbowKit type constraints
 
-  // Handle placeholder WALLETCONNECT_PROJECT_ID
-  let projectId = clientConfig.WALLETCONNECT_PROJECT_ID
-  if (projectId === "your_walletconnect_project_id") {
+  // Handle placeholder WEB3_WALLETCONNECT_PROJECT_ID
+  let projectId = clientConfig.WEB3_WALLETCONNECT_PROJECT_ID
+  if (!projectId || projectId === "your_walletconnect_project_id") {
     if (!hasShownPlaceholderWarning) {
       console.warn(
-        "⚠️  Using placeholder WALLETCONNECT_PROJECT_ID - wallet connection may not work properly",
+        "⚠️  Using placeholder WEB3_WALLETCONNECT_PROJECT_ID - wallet connection may not work properly",
       )
       hasShownPlaceholderWarning = true
     }

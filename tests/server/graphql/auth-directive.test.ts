@@ -294,7 +294,7 @@ describe("Auth Directive Tests", () => {
             query ValidateToken {
               validateToken {
                 valid
-                wallet
+                web3Wallet
               }
             }
           `),
@@ -304,7 +304,7 @@ describe("Auth Directive Tests", () => {
         expect(response.status).toBe(200)
         expect(body.errors).toBeUndefined()
         expect(body.data.validateToken.valid).toBe(false)
-        expect(body.data.validateToken.wallet).toBeNull()
+        expect(body.data.validateToken.web3Wallet).toBeNull()
       })
     })
 

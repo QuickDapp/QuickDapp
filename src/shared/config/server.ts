@@ -19,14 +19,21 @@ export interface ServerConfig extends ClientConfig {
 
   // Security
   SESSION_ENCRYPTION_KEY: string
-  SERVER_WALLET_PRIVATE_KEY: string
-  ALLOWED_SIWE_ORIGINS: string[]
 
-  // Per-chain RPC endpoints (server-only)
-  SERVER_ANVIL_CHAIN_RPC?: string
-  SERVER_MAINNET_CHAIN_RPC?: string
-  SERVER_SEPOLIA_CHAIN_RPC?: string
-  SERVER_BASE_CHAIN_RPC?: string
+  // Web3 configuration (optional when WEB3_ENABLED=false)
+  WEB3_SERVER_WALLET_PRIVATE_KEY?: string
+  WEB3_ALLOWED_SIWE_ORIGINS?: string[]
+  WEB3_ANVIL_RPC?: string
+  WEB3_MAINNET_RPC?: string
+  WEB3_SEPOLIA_RPC?: string
+  WEB3_BASE_RPC?: string
+
+  // OAuth configuration (optional)
+  OAUTH_GOOGLE_CLIENT_ID?: string
+  OAUTH_GOOGLE_CLIENT_SECRET?: string
+  OAUTH_GITHUB_CLIENT_ID?: string
+  OAUTH_GITHUB_CLIENT_SECRET?: string
+  OAUTH_CALLBACK_BASE_URL?: string
 
   // WebSocket configuration
   SOCKET_MAX_CONNECTIONS_PER_USER: number
@@ -44,6 +51,38 @@ export interface ServerConfig extends ClientConfig {
   SENTRY_PROFILE_SESSION_SAMPLE_RATE: number
 
   DIGITALOCEAN_ACCESS_TOKEN?: string
+}
+
+// Helper to load web3-specific server config
+function loadWeb3ServerConfig(web3Enabled: boolean) {
+  if (!web3Enabled) {
+    return {
+      WEB3_SERVER_WALLET_PRIVATE_KEY: undefined,
+      WEB3_ALLOWED_SIWE_ORIGINS: undefined,
+      WEB3_ANVIL_RPC: undefined,
+      WEB3_MAINNET_RPC: undefined,
+      WEB3_SEPOLIA_RPC: undefined,
+      WEB3_BASE_RPC: undefined,
+    }
+  }
+
+  return {
+    WEB3_SERVER_WALLET_PRIVATE_KEY: env
+      .get("WEB3_SERVER_WALLET_PRIVATE_KEY")
+      .required()
+      .asString(),
+    WEB3_ALLOWED_SIWE_ORIGINS: env
+      .get("WEB3_ALLOWED_SIWE_ORIGINS")
+      .required()
+      .asString()
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0),
+    WEB3_ANVIL_RPC: env.get("WEB3_ANVIL_RPC").asString(),
+    WEB3_MAINNET_RPC: env.get("WEB3_MAINNET_RPC").asString(),
+    WEB3_SEPOLIA_RPC: env.get("WEB3_SEPOLIA_RPC").asString(),
+    WEB3_BASE_RPC: env.get("WEB3_BASE_RPC").asString(),
+  }
 }
 
 // Load and validate server configuration
@@ -78,23 +117,16 @@ export const serverConfig: ServerConfig = {
     .get("SESSION_ENCRYPTION_KEY")
     .required()
     .asString(),
-  SERVER_WALLET_PRIVATE_KEY: env
-    .get("SERVER_WALLET_PRIVATE_KEY")
-    .required()
-    .asString(),
-  ALLOWED_SIWE_ORIGINS: env
-    .get("ALLOWED_SIWE_ORIGINS")
-    .required()
-    .asString()
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0),
 
-  // Per-chain RPC endpoints (server-only)
-  SERVER_ANVIL_CHAIN_RPC: env.get("SERVER_ANVIL_CHAIN_RPC").asString(),
-  SERVER_MAINNET_CHAIN_RPC: env.get("SERVER_MAINNET_CHAIN_RPC").asString(),
-  SERVER_SEPOLIA_CHAIN_RPC: env.get("SERVER_SEPOLIA_CHAIN_RPC").asString(),
-  SERVER_BASE_CHAIN_RPC: env.get("SERVER_BASE_CHAIN_RPC").asString(),
+  // Web3 configuration (conditional)
+  ...loadWeb3ServerConfig(clientConfig.WEB3_ENABLED),
+
+  // OAuth configuration
+  OAUTH_GOOGLE_CLIENT_ID: env.get("OAUTH_GOOGLE_CLIENT_ID").asString(),
+  OAUTH_GOOGLE_CLIENT_SECRET: env.get("OAUTH_GOOGLE_CLIENT_SECRET").asString(),
+  OAUTH_GITHUB_CLIENT_ID: env.get("OAUTH_GITHUB_CLIENT_ID").asString(),
+  OAUTH_GITHUB_CLIENT_SECRET: env.get("OAUTH_GITHUB_CLIENT_SECRET").asString(),
+  OAUTH_CALLBACK_BASE_URL: env.get("OAUTH_CALLBACK_BASE_URL").asString(),
 
   // WebSocket configuration
   SOCKET_MAX_CONNECTIONS_PER_USER: env
@@ -128,17 +160,9 @@ export const serverConfig: ServerConfig = {
 
 // Validate critical configuration on startup
 export function validateConfig() {
-  const requiredForDev = [
-    "DATABASE_URL",
-    "SESSION_ENCRYPTION_KEY",
-    "SERVER_WALLET_PRIVATE_KEY",
-    "ALLOWED_SIWE_ORIGINS",
-    "BASE_URL",
-    "WALLETCONNECT_PROJECT_ID",
-    "SUPPORTED_CHAINS",
-  ]
+  const requiredForAll = ["DATABASE_URL", "SESSION_ENCRYPTION_KEY", "BASE_URL"]
 
-  const missing = requiredForDev.filter((key) => {
+  const missing = requiredForAll.filter((key) => {
     const value = process.env[key]
     return !value || value.trim() === ""
   })
@@ -149,11 +173,32 @@ export function validateConfig() {
     )
   }
 
-  // Validate session key length (should be 32+ characters for security)
+  // Validate session key length
   if (serverConfig.SESSION_ENCRYPTION_KEY.length < 32) {
     throw new Error(
       "SESSION_ENCRYPTION_KEY must be at least 32 characters long",
     )
+  }
+
+  // Validate web3 config when enabled
+  if (serverConfig.WEB3_ENABLED) {
+    const requiredForWeb3 = [
+      "WEB3_SERVER_WALLET_PRIVATE_KEY",
+      "WEB3_ALLOWED_SIWE_ORIGINS",
+      "WEB3_WALLETCONNECT_PROJECT_ID",
+      "WEB3_SUPPORTED_CHAINS",
+    ]
+
+    const missingWeb3 = requiredForWeb3.filter((key) => {
+      const value = process.env[key]
+      return !value || value.trim() === ""
+    })
+
+    if (missingWeb3.length > 0) {
+      throw new Error(
+        `Missing required web3 environment variables (WEB3_ENABLED=true): ${missingWeb3.join(", ")}`,
+      )
+    }
   }
 }
 
@@ -162,14 +207,14 @@ export function getChainRpcEndpoint(chainName: string): string | undefined {
   const normalizedName = chainName.toLowerCase()
   switch (normalizedName) {
     case "anvil":
-      return serverConfig.SERVER_ANVIL_CHAIN_RPC
+      return serverConfig.WEB3_ANVIL_RPC
     case "mainnet":
     case "ethereum":
-      return serverConfig.SERVER_MAINNET_CHAIN_RPC
+      return serverConfig.WEB3_MAINNET_RPC
     case "sepolia":
-      return serverConfig.SERVER_SEPOLIA_CHAIN_RPC
+      return serverConfig.WEB3_SEPOLIA_RPC
     case "base":
-      return serverConfig.SERVER_BASE_CHAIN_RPC
+      return serverConfig.WEB3_BASE_RPC
     default:
       return undefined
   }
@@ -179,7 +224,7 @@ export function getChainRpcEndpoint(chainName: string): string | undefined {
 export function requireChainRpcEndpoint(chainName: string): string {
   const rpcUrl = getChainRpcEndpoint(chainName)
   if (!rpcUrl) {
-    const envVarName = `SERVER_${chainName.toUpperCase()}_CHAIN_RPC`
+    const envVarName = `WEB3_${chainName.toUpperCase()}_RPC`
     throw new Error(
       `RPC endpoint not configured for chain "${chainName}". ` +
         `Set the ${envVarName} environment variable.`,

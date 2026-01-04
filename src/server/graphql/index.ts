@@ -143,7 +143,9 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
         logger.debug(`Authorization header present, attempting authentication`)
         try {
           user = await authService.authenticateRequest(request)
-          logger.debug(`User authenticated: ${user.wallet}`)
+          logger.debug(
+            `User authenticated: ${user.id}${user.web3Wallet ? ` (${user.web3Wallet})` : ""}`,
+          )
         } catch (error) {
           // If auth is required and authentication failed, throw error
           if (requiresAuth) {
