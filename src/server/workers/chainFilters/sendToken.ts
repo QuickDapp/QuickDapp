@@ -1,59 +1,47 @@
 import { eq } from "drizzle-orm"
+import type { AbiEvent } from "viem"
 import { parseAbiItem } from "viem"
 import { NotificationType } from "../../../shared/notifications/types"
 import { users } from "../../db/schema"
-import type { ChainFilterModule } from "../jobs/types"
+import type { ChainLogModule } from "../jobs/types"
 
 // Custom TokenTransferred event from SimpleERC20 contracts
 const TOKEN_TRANSFERRED_EVENT = parseAbiItem(
   "event TokenTransferred(address indexed from, address indexed to, uint256 value, string name, string symbol, uint8 decimals)",
 )
 
-export const createFilter: ChainFilterModule["createFilter"] = (
-  chainClient,
-  fromBlock,
-) => {
-  if (!chainClient) {
-    console.warn("sendToken filter: No chain client provided")
-    return null
-  }
-
-  try {
-    return chainClient.createEventFilter({
-      event: TOKEN_TRANSFERRED_EVENT,
-      fromBlock,
-    })
-  } catch (error) {
-    console.error("sendToken filter: Failed to create filter:", error)
-    return null
-  }
+export const getEvent: ChainLogModule["getEvent"] = () => {
+  return TOKEN_TRANSFERRED_EVENT as AbiEvent
 }
 
-export const processChanges: ChainFilterModule["processChanges"] = async (
+export const getContractAddress: ChainLogModule["getContractAddress"] = () => {
+  // TokenTransferred events can come from any SimpleERC20 contract
+  // Return null to not filter by address
+  return null
+}
+
+export const processLogs: ChainLogModule["processLogs"] = async (
   serverApp,
   log,
-  changes,
+  logs,
 ) => {
-  if (!changes || changes.length === 0) {
+  if (!logs || logs.length === 0) {
     return
   }
 
-  log.info(`Processing ${changes.length} TokenTransferred events`)
+  log.info(`Processing ${logs.length} TokenTransferred events`)
 
-  for (const change of changes) {
+  for (const logEntry of logs) {
     try {
       const {
         args: { from, to, value, name, symbol, decimals },
         address: tokenAddress,
         transactionHash,
-      } = change
+      } = logEntry
 
       log.debug(
         `Processing TokenTransferred: ${from} -> ${to}, amount: ${value}, token: ${symbol} (${name}) at ${tokenAddress}`,
       )
-
-      // TokenTransferred events are only emitted for actual transfers (not mints/burns)
-      // so no need to check for null addresses
 
       // Look up user by wallet address (sender)
       const [user] = await serverApp.db
@@ -68,21 +56,12 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
       }
 
       // Token information is already available from the custom event
-      const tokenInfo = {
-        name,
-        symbol,
-        decimals,
-      }
-
-      log.debug(
-        `Using token metadata from event for ${tokenAddress}: ${symbol} (${name}) with ${decimals} decimals`,
-      )
+      const tokenInfo = { name, symbol, decimals }
 
       // Format amount (convert from wei)
       const amount = Number(value) / Math.pow(10, tokenInfo.decimals)
       const formattedAmount = amount.toFixed(2)
 
-      // Create notification for the user using the new serverApp method
       try {
         await serverApp.createNotification(user.id, {
           type: NotificationType.TOKEN_TRANSFER,
@@ -106,7 +85,7 @@ export const processChanges: ChainFilterModule["processChanges"] = async (
         )
       }
     } catch (error) {
-      log.error("Error processing Transfer event:", error)
+      log.error("Error processing TokenTransferred event:", error)
     }
   }
 }

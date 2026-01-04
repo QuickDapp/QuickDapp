@@ -99,12 +99,13 @@ describe("Transaction Retry Logic", () => {
         await withTransaction(dbManager.getDb(), async (tx) => {
           attemptCount++
           const error: any = new Error("Serialization failure")
+          error.name = "PostgresError"
           error.code = "40001"
           throw error
         })
-      }).toThrow("Serialization failure")
+      }).toThrow("Transaction failed after 7 retries")
 
-      expect(attemptCount).toBe(3)
+      expect(attemptCount).toBe(7)
     })
 
     it("should detect 40P01 error code", async () => {
@@ -114,12 +115,13 @@ describe("Transaction Retry Logic", () => {
         await withTransaction(dbManager.getDb(), async (tx) => {
           attemptCount++
           const error: any = new Error("Deadlock detected")
+          error.name = "PostgresError"
           error.code = "40P01"
           throw error
         })
-      }).toThrow("Deadlock detected")
+      }).toThrow("Transaction failed after 7 retries")
 
-      expect(attemptCount).toBe(3)
+      expect(attemptCount).toBe(7)
     })
 
     it("should detect 'could not serialize' in error message", async () => {
@@ -128,24 +130,30 @@ describe("Transaction Retry Logic", () => {
       await expect(async () => {
         await withTransaction(dbManager.getDb(), async (tx) => {
           attemptCount++
-          throw new Error("Operation failed: could not serialize access")
+          const error = new Error(
+            "Operation failed: could not serialize access",
+          )
+          ;(error as any).name = "PostgresError"
+          throw error
         })
-      }).toThrow("could not serialize")
+      }).toThrow("Transaction failed after 7 retries")
 
-      expect(attemptCount).toBe(3)
+      expect(attemptCount).toBe(7)
     })
 
-    it("should detect 'deadlock' in error message", async () => {
+    it("should detect 'transaction is aborted' in error message", async () => {
       let attemptCount = 0
 
       await expect(async () => {
         await withTransaction(dbManager.getDb(), async (tx) => {
           attemptCount++
-          throw new Error("Transaction aborted due to deadlock")
+          const error = new Error("transaction is aborted")
+          ;(error as any).name = "PostgresError"
+          throw error
         })
-      }).toThrow("deadlock")
+      }).toThrow("Transaction failed after 7 retries")
 
-      expect(attemptCount).toBe(3)
+      expect(attemptCount).toBe(7)
     })
 
     it("should not retry non-serialization errors", async () => {
@@ -161,19 +169,21 @@ describe("Transaction Retry Logic", () => {
       expect(attemptCount).toBe(1)
     })
 
-    it("should detect error code in originalError property", async () => {
+    it("should detect error code in cause property", async () => {
       let attemptCount = 0
 
       await expect(async () => {
         await withTransaction(dbManager.getDb(), async (tx) => {
           attemptCount++
-          const error: any = new Error("Wrapper error")
-          error.originalError = { code: "40001" }
+          const cause: any = new Error("Postgres error")
+          cause.name = "PostgresError"
+          cause.code = "40001"
+          const error = new Error("Wrapper error", { cause })
           throw error
         })
-      }).toThrow("Wrapper error")
+      }).toThrow("Transaction failed after 7 retries")
 
-      expect(attemptCount).toBe(3)
+      expect(attemptCount).toBe(7)
     })
   })
 
@@ -185,12 +195,13 @@ describe("Transaction Retry Logic", () => {
         await withTransaction(dbManager.getDb(), async (tx) => {
           attemptCount++
           const error: any = new Error("Serialization error")
+          error.name = "PostgresError"
           error.code = "40001"
           throw error
         })
-      }).toThrow("Serialization error")
+      }).toThrow("Transaction failed after 7 retries")
 
-      expect(attemptCount).toBe(3)
+      expect(attemptCount).toBe(7)
     })
 
     it("should succeed on second attempt", async () => {
@@ -200,6 +211,7 @@ describe("Transaction Retry Logic", () => {
         attemptCount++
         if (attemptCount === 1) {
           const error: any = new Error("Temporary serialization error")
+          error.name = "PostgresError"
           error.code = "40001"
           throw error
         }
@@ -217,6 +229,7 @@ describe("Transaction Retry Logic", () => {
         attemptCount++
         if (attemptCount < 3) {
           const error: any = new Error("Temporary serialization error")
+          error.name = "PostgresError"
           error.code = "40001"
           throw error
         }
@@ -227,7 +240,7 @@ describe("Transaction Retry Logic", () => {
       expect(attemptCount).toBe(3)
     })
 
-    it("should use exponential backoff delays", async () => {
+    it("should use exponential backoff delays with jitter", async () => {
       let attemptCount = 0
       const timestamps: number[] = []
 
@@ -237,21 +250,27 @@ describe("Transaction Retry Logic", () => {
           timestamps.push(Date.now())
 
           const error: any = new Error("Serialization error")
+          error.name = "PostgresError"
           error.code = "40001"
           throw error
         })
-      }).toThrow("Serialization error")
+      }).toThrow("Transaction failed after 7 retries")
 
-      expect(attemptCount).toBe(3)
-      expect(timestamps.length).toBe(3)
+      expect(attemptCount).toBe(7)
+      expect(timestamps.length).toBe(7)
 
+      // With jitter factor 0.5, delays can vary significantly
+      // Base delays: 50, 100, 200, 400, 800, 1600 ms
+      // With jitter: each delay is base + random(0, base * 0.5)
       const delay1 = timestamps[1]! - timestamps[0]!
       const delay2 = timestamps[2]! - timestamps[1]!
 
-      expect(delay1).toBeGreaterThanOrEqual(50)
-      expect(delay1).toBeLessThan(150)
+      // First delay: 50ms base + up to 25ms jitter (50-75ms)
+      expect(delay1).toBeGreaterThanOrEqual(40)
+      expect(delay1).toBeLessThan(100)
 
-      expect(delay2).toBeGreaterThanOrEqual(100)
+      // Second delay: 100ms base + up to 50ms jitter (100-150ms)
+      expect(delay2).toBeGreaterThanOrEqual(80)
       expect(delay2).toBeLessThan(200)
     })
   })
@@ -279,6 +298,7 @@ describe("Transaction Retry Logic", () => {
           attemptCounts[0]!++
           if (attemptCounts[0] === 1) {
             const error: any = new Error("Serialization error 1")
+            error.name = "PostgresError"
             error.code = "40001"
             throw error
           }
@@ -288,6 +308,7 @@ describe("Transaction Retry Logic", () => {
           attemptCounts[1]!++
           if (attemptCounts[1]! < 3) {
             const error: any = new Error("Serialization error 2")
+            error.name = "PostgresError"
             error.code = "40001"
             throw error
           }
@@ -309,21 +330,29 @@ describe("Transaction Retry Logic", () => {
   })
 
   describe("Error Propagation", () => {
-    it("should throw the last error after exhausting retries", async () => {
+    it("should throw TransactionSerializationError after exhausting retries", async () => {
       let attemptCount = 0
 
-      await expect(async () => {
+      try {
         await withTransaction(dbManager.getDb(), async (tx) => {
           attemptCount++
           const error: any = new Error(
             `Serialization error attempt ${attemptCount}`,
           )
+          error.name = "PostgresError"
           error.code = "40001"
           throw error
         })
-      }).toThrow("Serialization error attempt 3")
+      } catch (error: any) {
+        expect(error.name).toBe("TransactionSerializationError")
+        expect(error.message).toContain("Transaction failed after 7 retries")
+        expect(error.originalError).toBeDefined()
+        expect(error.originalError.message).toBe(
+          "Serialization error attempt 7",
+        )
+      }
 
-      expect(attemptCount).toBe(3)
+      expect(attemptCount).toBe(7)
     })
 
     it("should immediately throw non-retryable errors", async () => {

@@ -125,9 +125,13 @@ const DEFAULT_PRIVATE_KEYS = [
  */
 const getTestBlockchainPort = (): number => {
   try {
-    // Extract port from SERVER_CHAIN_RPC_ENDPOINT (e.g., "http://127.0.0.1:58545")
-    const rpcUrl = new URL(serverConfig.SERVER_CHAIN_RPC_ENDPOINT)
-    return parseInt(rpcUrl.port, 10) || 58545
+    // Extract port from SERVER_ANVIL_CHAIN_RPC (e.g., "http://127.0.0.1:58545")
+    const rpcUrl = serverConfig.SERVER_ANVIL_CHAIN_RPC
+    if (rpcUrl) {
+      const url = new URL(rpcUrl)
+      return parseInt(url.port, 10) || 58545
+    }
+    return 58545
   } catch {
     // Fallback to default port if parsing fails
     return 58545
@@ -136,7 +140,7 @@ const getTestBlockchainPort = (): number => {
 
 /**
  * Starts a testnet instance for testing
- * Uses the port from serverConfig.SERVER_CHAIN_RPC_ENDPOINT if no port is provided
+ * Uses the port from serverConfig.SERVER_ANVIL_CHAIN_RPC if no port is provided
  * @param port Optional port number
  * @param nodeType Type of node to use (defaults to 'hardhat')
  */
@@ -255,10 +259,11 @@ const deployMulticall3ToTestnet = async (
       `Deploying Multicall3 to testnet at ${multicall3Info.contract}`,
     )
 
-    // Create clients for this testnet instance
+    // Create clients for this testnet instance (disable caching for accurate block numbers)
     const publicClient = createPublicClient({
       chain: foundry,
       transport: http(testnet.url),
+      cacheTime: 0,
     })
 
     const testAccount = privateKeyToAccount(
@@ -337,9 +342,11 @@ export const createBlockchainTestContext = async (
 ): Promise<BlockchainTestContext> => {
   const testnet = await startTestnet(port)
 
+  // Disable caching for accurate block numbers in tests
   const publicClient = createPublicClient({
     chain: foundry,
     transport: http(testnet.url),
+    cacheTime: 0,
   })
 
   const testAccount = privateKeyToAccount(
@@ -671,12 +678,30 @@ export const deployTokenViaFactory = async (
       hash,
     })
 
+    testLogger.debug(
+      `Factory tx receipt: block=${receipt.blockNumber}, logs=${receipt.logs.length}`,
+    )
+    for (const log of receipt.logs) {
+      testLogger.debug(
+        `  Log from ${log.address}: topic0=${log.topics[0]}, topics=${log.topics.length}`,
+      )
+    }
+
     // Get the ERC20NewToken event to find the deployed token address
     const logs = await context.publicClient.getLogs({
       address: factoryAddress,
       fromBlock: receipt.blockNumber,
       toBlock: receipt.blockNumber,
     })
+
+    testLogger.debug(
+      `Logs from factory address ${factoryAddress}: ${logs.length}`,
+    )
+    for (const log of logs) {
+      testLogger.debug(
+        `  Factory log: topic0=${log.topics[0]}, topics=${log.topics.length}`,
+      )
+    }
 
     // Find the ERC20NewToken event log
     const tokenCreationLog = logs.find(

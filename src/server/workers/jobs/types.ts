@@ -1,4 +1,4 @@
-import type { PublicClient } from "viem"
+import type { AbiEvent } from "viem"
 import type { WorkerJob } from "../../db/schema"
 import type { Logger } from "../../lib/logger"
 import type { ServerApp } from "../../types"
@@ -15,14 +15,11 @@ export interface Job {
   run: JobRunner
 }
 
-// Chain filter types for blockchain monitoring
-export interface ChainFilterModule {
-  createFilter: (chainClient: PublicClient, fromBlock: bigint) => any
-  processChanges: (
-    serverApp: ServerApp,
-    log: Logger,
-    changes: any,
-  ) => Promise<void>
+// Chain log module types for blockchain monitoring (getLogs-based approach)
+export interface ChainLogModule {
+  getEvent: () => AbiEvent
+  getContractAddress: () => `0x${string}` | null
+  processLogs: (serverApp: ServerApp, log: Logger, logs: any[]) => Promise<void>
 }
 
 // Job data types for type safety
@@ -71,5 +68,5 @@ export const isValidJobType = (type: string): type is JobType => {
 // Job registry type
 export type JobRegistry = Record<JobType, Job>
 
-// Chain filter registry type
-export type ChainFilterRegistry = Record<string, ChainFilterModule>
+// Chain log module registry type
+export type ChainLogRegistry = Record<string, ChainLogModule>

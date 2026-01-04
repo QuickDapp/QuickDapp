@@ -12,10 +12,9 @@ export interface ClientConfig {
   APP_VERSION: string
   NODE_ENV: "development" | "production" | "test"
   BASE_URL: string
-  CHAIN: string
-  CHAIN_RPC_ENDPOINT: string
   WALLETCONNECT_PROJECT_ID: string
   FACTORY_CONTRACT_ADDRESS: string
+  SUPPORTED_CHAINS: string[]
   SENTRY_DSN?: string
 }
 
@@ -37,8 +36,6 @@ export const clientConfig: ClientConfig =
           .default("development")
           .asEnum(["development", "production", "test"]),
         BASE_URL: env.get("BASE_URL").required().asString(),
-        CHAIN: env.get("CHAIN").required().asString(),
-        CHAIN_RPC_ENDPOINT: env.get("CHAIN_RPC_ENDPOINT").required().asString(),
         WALLETCONNECT_PROJECT_ID: env
           .get("WALLETCONNECT_PROJECT_ID")
           .required()
@@ -47,15 +44,25 @@ export const clientConfig: ClientConfig =
           .get("FACTORY_CONTRACT_ADDRESS")
           .required()
           .asString(),
+        SUPPORTED_CHAINS: env
+          .get("SUPPORTED_CHAINS")
+          .required()
+          .asString()
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0),
         SENTRY_DSN: env.get("SENTRY_DSN").asString(),
       }
 
 // Validate critical client configuration on startup
 export function validateClientConfig() {
-  const requiredForClient = ["BASE_URL", "CHAIN_RPC_ENDPOINT"]
+  const requiredForClient = ["BASE_URL", "SUPPORTED_CHAINS"]
 
   const missing = requiredForClient.filter((key) => {
     const value = clientConfig[key as keyof ClientConfig]
+    if (Array.isArray(value)) {
+      return value.length === 0
+    }
     return !value || (typeof value === "string" && value.trim() === "")
   })
 

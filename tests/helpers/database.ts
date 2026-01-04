@@ -221,15 +221,23 @@ export async function createTestNotification(
  * Create test worker job
  */
 export async function createTestWorkerJob(
-  jobData: { type: string; userId: number; data: any; due?: Date } = {
+  jobData: {
+    tag?: string
+    type: string
+    userId: number
+    data: any
+    due?: Date
+  } = {
     type: "testJob",
     userId: 1,
     data: { action: "test" },
   },
 ): Promise<any> {
+  const tag = jobData.tag || `test:${Date.now()}-${Math.random()}`
   const defaultJob: NewWorkerJob = {
+    tag,
     due: new Date(),
-    removeAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+    removeAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     ...jobData,
   }
 

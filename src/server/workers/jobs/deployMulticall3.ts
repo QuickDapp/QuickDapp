@@ -1,8 +1,14 @@
 import { createPublicClient, createWalletClient, type Hex, http } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
-import { serverConfig } from "../../../shared/config/server"
+import {
+  requireChainRpcEndpoint,
+  serverConfig,
+} from "../../../shared/config/server"
 import { getMulticall3Info } from "../../../shared/contracts"
-import { getChain } from "../../../shared/contracts/chain"
+import {
+  getPrimaryChain,
+  getPrimaryChainName,
+} from "../../../shared/contracts/chain"
 import type { Job, JobParams } from "./types"
 
 export interface DeployMulticall3Data {
@@ -15,14 +21,13 @@ export const deployMulticall3Job: Job = {
 
     try {
       const multicall3Info = getMulticall3Info()
-      const rpcUrl = serverConfig.SERVER_CHAIN_RPC_ENDPOINT
-
-      if (!rpcUrl) {
-        throw new Error("No RPC endpoint configured")
-      }
+      const chainName = getPrimaryChainName()
+      const rpcUrl = requireChainRpcEndpoint(chainName)
+      const chain = getPrimaryChain()
 
       // Create clients
       const publicClient = createPublicClient({
+        chain,
         transport: http(rpcUrl),
       })
 
@@ -31,11 +36,12 @@ export const deployMulticall3Job: Job = {
       )
       const walletClient = createWalletClient({
         account,
+        chain,
         transport: http(rpcUrl),
       })
 
       log.info(
-        `Checking Multicall3 at ${multicall3Info.contract} on chain ${serverConfig.CHAIN}`,
+        `Checking Multicall3 at ${multicall3Info.contract} on chain ${chainName}`,
       )
 
       // Check if Multicall3 is already deployed
@@ -54,15 +60,12 @@ export const deployMulticall3Job: Job = {
 
       log.info("🚀 Deploying Multicall3 using deterministic deployment...")
 
-      // Get chain info
-      const chain = getChain(serverConfig.CHAIN)
-
       // First, fund the sender address with the required ETH
       const fundingTx = await walletClient.sendTransaction({
         account,
         chain,
         to: multicall3Info.sender,
-        value: BigInt(parseFloat(multicall3Info.eth) * 10 ** 18), // Convert ETH to wei
+        value: BigInt(parseFloat(multicall3Info.eth) * 10 ** 18),
       })
 
       await publicClient.waitForTransactionReceipt({ hash: fundingTx })
