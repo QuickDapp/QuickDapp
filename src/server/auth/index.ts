@@ -3,12 +3,18 @@ import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
 import { serverConfig } from "../../shared/config/server"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
-import { createUserIfNotExists, getUser } from "../db/users"
+import {
+  createEmailUserIfNotExists,
+  createUserIfNotExists,
+  getUser,
+  getUserById,
+} from "../db/users"
+import { verifyCodeWithBlob } from "../lib/emailVerification"
+import { AccountDisabledError } from "../lib/errors"
 import type { Logger } from "../lib/logger"
 import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
 
-// Get JWT secret dynamically to ensure it uses current environment
 function getJwtSecret(): Uint8Array {
   return new TextEncoder().encode(serverConfig.SESSION_ENCRYPTION_KEY)
 }
@@ -24,7 +30,7 @@ export interface AuthenticationResult {
 }
 
 /**
- * Authentication service for handling SIWE and JWT token operations
+ * Authentication service for handling SIWE, email, and JWT token operations
  */
 export class AuthService {
   private logger: Logger
@@ -38,6 +44,36 @@ export class AuthService {
    */
   async getUserByWallet(wallet: string) {
     return await getUser(this.serverApp.db, wallet)
+  }
+
+  /**
+   * Generate JWT token for a user
+   */
+  private async generateToken(userId: number, wallet: string): Promise<string> {
+    const now = Date.now()
+    return new SignJWT({
+      userId,
+      wallet,
+      iat: Math.floor(now / 1000),
+      iatMs: now,
+      jti: `${now}-${Math.random().toString(36).substring(2, 11)}`,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("24h")
+      .sign(getJwtSecret())
+  }
+
+  /**
+   * Check if user is disabled and throw if so
+   */
+  private async checkUserNotDisabled(userId: number): Promise<void> {
+    const user = await getUserById(this.serverApp.db, userId)
+    if (user?.disabled) {
+      this.logger.debug(`User ${userId} is disabled, blocking authentication`)
+      throw new GraphQLError("Account is disabled", {
+        extensions: { code: GraphQLErrorCode.ACCOUNT_DISABLED },
+      })
+    }
   }
 
   /**
@@ -56,7 +92,6 @@ export class AuthService {
 
       const result = await siwe.verify({
         signature,
-        // In test environment, don't verify domain to allow test domains
         ...(serverConfig.NODE_ENV === "test" ? {} : { domain: siwe.domain }),
         nonce: siwe.nonce,
       })
@@ -76,20 +111,11 @@ export class AuthService {
         siwe.address,
       )
 
-      // Create JWT token with user ID and wallet
-      const now = Date.now()
-      const token = await new SignJWT({
-        userId: dbUser.id,
-        wallet: dbUser.wallet,
-        iat: Math.floor(now / 1000),
-        // Add microsecond precision to ensure uniqueness in concurrent requests
-        iatMs: now,
-        // Add a random nonce for additional entropy
-        jti: `${now}-${Math.random().toString(36).substring(2, 11)}`,
-      })
-        .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime("24h")
-        .sign(getJwtSecret())
+      // Check if user is disabled
+      await this.checkUserNotDisabled(dbUser.id)
+
+      // Create JWT token
+      const token = await this.generateToken(dbUser.id, dbUser.wallet)
 
       const user: AuthenticatedUser = {
         id: dbUser.id,
@@ -100,22 +126,20 @@ export class AuthService {
         `SIWE authentication successful for wallet: ${user.wallet}`,
       )
 
-      return {
-        token,
-        user,
-      }
+      return { token, user }
     } catch (error) {
-      if (error instanceof GraphQLError) {
+      if (
+        error instanceof GraphQLError ||
+        error instanceof AccountDisabledError
+      ) {
         throw error
       }
 
       this.logger.error("SIWE authentication failed:", error)
 
-      // Map specific SIWE errors to appropriate error codes
       if (error instanceof Error) {
         const errorMessage = error.message.toLowerCase()
 
-        // SIWE message format/validation errors
         if (
           errorMessage.includes("invalid message") ||
           errorMessage.includes("invalid nonce") ||
@@ -129,7 +153,6 @@ export class AuthService {
           })
         }
 
-        // Signature validation errors
         if (
           errorMessage.includes("signature") ||
           errorMessage.includes("address") ||
@@ -144,7 +167,6 @@ export class AuthService {
         }
       }
 
-      // Generic authentication failure for other errors
       throw new GraphQLError("Authentication failed", {
         extensions: {
           code: GraphQLErrorCode.AUTHENTICATION_FAILED,
@@ -155,15 +177,73 @@ export class AuthService {
   }
 
   /**
+   * Authenticate with email verification code
+   */
+  async authenticateWithEmail(
+    email: string,
+    code: string,
+    blob: string,
+  ): Promise<AuthenticationResult> {
+    try {
+      this.logger.debug("Authenticating with email verification code")
+
+      // Verify the code against the blob
+      const verifiedEmail = await verifyCodeWithBlob(this.logger, blob, code)
+
+      // Ensure email matches
+      if (verifiedEmail.toLowerCase() !== email.toLowerCase()) {
+        throw new GraphQLError("Email mismatch", {
+          extensions: { code: GraphQLErrorCode.AUTHENTICATION_FAILED },
+        })
+      }
+
+      // Get or create user
+      const dbUser = await createEmailUserIfNotExists(
+        this.serverApp.db,
+        verifiedEmail,
+      )
+
+      // Check if user is disabled
+      await this.checkUserNotDisabled(dbUser.id)
+
+      // Create JWT token
+      const token = await this.generateToken(dbUser.id, dbUser.wallet)
+
+      const user: AuthenticatedUser = {
+        id: dbUser.id,
+        wallet: dbUser.wallet,
+      }
+
+      this.logger.debug(`Email authentication successful for user: ${user.id}`)
+
+      return { token, user }
+    } catch (error) {
+      if (
+        error instanceof GraphQLError ||
+        error instanceof AccountDisabledError
+      ) {
+        throw error
+      }
+
+      this.logger.error("Email authentication failed:", error)
+
+      throw new GraphQLError(
+        error instanceof Error ? error.message : "Authentication failed",
+        {
+          extensions: {
+            code: GraphQLErrorCode.AUTHENTICATION_FAILED,
+          },
+        },
+      )
+    }
+  }
+
+  /**
    * Verify JWT token and return user info
    */
   async verifyToken(token: string): Promise<AuthenticatedUser> {
     try {
       this.logger.debug(`Verifying token: ${token.substring(0, 20)}...`)
-      this.logger.debug(
-        `JWT secret key configured: ${!!serverConfig.SESSION_ENCRYPTION_KEY}`,
-      )
-      this.logger.debug(`NODE_ENV: ${serverConfig.NODE_ENV}`)
 
       const { payload } = await jwtVerify(token, getJwtSecret())
 
@@ -193,7 +273,6 @@ export class AuthService {
 
       this.logger.debug(`Token verification failed:`, error)
 
-      // Check if it's a JWT expiration error
       if (error instanceof Error && error.message.includes("exp")) {
         throw new GraphQLError("Token expired", {
           extensions: { code: GraphQLErrorCode.UNAUTHORIZED },

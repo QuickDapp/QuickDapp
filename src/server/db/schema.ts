@@ -25,7 +25,24 @@ export const settings = pgTable("settings", {
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   wallet: text("wallet").unique().notNull(),
+  disabled: boolean("disabled").default(false).notNull(),
   settings: json("settings"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+})
+
+// User authentication methods table
+export const userAuth = pgTable("user_auth", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  authType: text("auth_type").notNull(),
+  authIdentifier: text("auth_identifier").unique().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -87,6 +104,9 @@ export type NewSetting = typeof settings.$inferInsert
 
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
+
+export type UserAuth = typeof userAuth.$inferSelect
+export type NewUserAuth = typeof userAuth.$inferInsert
 
 export type Notification = typeof notifications.$inferSelect
 export type NewNotification = typeof notifications.$inferInsert

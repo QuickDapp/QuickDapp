@@ -45,6 +45,11 @@ export const typeDefs = gql`
     wallet: String
   }
 
+  type EmailVerificationResult {
+    success: Boolean!
+    blob: String
+    error: String
+  }
 
   input PageParam {
     startIndex: Int!
@@ -64,7 +69,9 @@ export const typeDefs = gql`
     # Authentication mutations (no auth required)
     generateSiweMessage(address: String!): SiweMessageResult!
     authenticateWithSiwe(message: String!, signature: String!): AuthResult!
-    
+    sendEmailVerificationCode(email: String!): EmailVerificationResult!
+    authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!
+
     # User-specific mutations (auth required)
     markNotificationAsRead(id: PositiveInt!): Success! @auth
     markAllNotificationsAsRead: Success! @auth

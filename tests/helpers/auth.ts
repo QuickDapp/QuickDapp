@@ -14,7 +14,11 @@ import {
   privateKeyToAccount,
 } from "viem/accounts"
 import { AuthService } from "../../src/server/auth"
-import { createUserIfNotExists } from "../../src/server/db/users"
+import {
+  createEmailUserIfNotExists,
+  createUserIfNotExists,
+} from "../../src/server/db/users"
+import { generateVerificationCodeAndBlob } from "../../src/server/lib/emailVerification"
 import type { ServerApp } from "../../src/server/types"
 import { serverConfig } from "../../src/shared/config/server"
 import type { NotificationData } from "../../src/shared/notifications/types"
@@ -487,4 +491,58 @@ export function withTimeout<T>(
       ),
     ),
   ])
+}
+
+/**
+ * Email authentication test helpers
+ */
+export interface EmailAuthTestData {
+  email: string
+  code: string
+  blob: string
+}
+
+/**
+ * Generate a random test email address
+ */
+export function generateTestEmail(): string {
+  const random = Math.random().toString(36).substring(2, 10)
+  return `test-${random}@example.com`
+}
+
+/**
+ * Generate email verification code and blob for testing
+ */
+export async function generateTestEmailVerification(
+  email: string,
+): Promise<EmailAuthTestData> {
+  const { code, blob } = await generateVerificationCodeAndBlob(
+    testLogger,
+    email,
+  )
+  return { email, code, blob }
+}
+
+/**
+ * Create an authenticated test user via email auth
+ */
+export async function createEmailAuthenticatedTestUser(
+  serverApp: ServerApp,
+  email?: string,
+): Promise<{ email: string; token: string; wallet: string }> {
+  const testEmail = email || generateTestEmail()
+
+  // Create user in database first
+  const user = await createEmailUserIfNotExists(serverApp.db, testEmail)
+
+  // Create JWT token
+  const token = await createTestJWT(user.wallet, {
+    extraClaims: { userId: user.id },
+  })
+
+  return {
+    email: testEmail,
+    token,
+    wallet: user.wallet,
+  }
 }

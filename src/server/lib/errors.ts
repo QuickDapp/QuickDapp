@@ -68,3 +68,12 @@ export class ExternalServiceError extends ApplicationError {
     super(message, GraphQLErrorCode.INTERNAL_ERROR, metadata)
   }
 }
+
+/**
+ * Error for disabled account access attempts
+ */
+export class AccountDisabledError extends ApplicationError {
+  constructor(message = "Account is disabled", metadata?: Record<string, any>) {
+    super(message, GraphQLErrorCode.ACCOUNT_DISABLED, metadata)
+  }
+}
