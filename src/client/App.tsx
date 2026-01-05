@@ -1,3 +1,4 @@
+import "@rainbow-me/rainbowkit/styles.css"
 import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit"
 import { clientConfig, validateClientConfig } from "@shared/config/client"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -12,11 +13,6 @@ import { createWeb3Config } from "./config/web3"
 import { AuthProvider } from "./contexts/AuthContext"
 import { SocketProvider } from "./contexts/SocketContext"
 import { HomePage } from "./pages/HomePage"
-
-// Import RainbowKit styles only if Web3 is enabled
-if (clientConfig.WEB3_ENABLED) {
-  import("@rainbow-me/rainbowkit/styles.css")
-}
 
 const queryClient = new QueryClient({
   defaultOptions: {
