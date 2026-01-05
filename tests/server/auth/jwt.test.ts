@@ -49,7 +49,7 @@ describe("JWT Lifecycle Tests", () => {
 
       // Decode and verify token structure
       const payload = decodeJWT(token)
-      expect(payload.wallet).toBe(wallet.address.toLowerCase())
+      expect(payload.web3_wallet).toBe(wallet.address.toLowerCase())
       expect(payload.iat).toBeGreaterThan(0)
       expect(payload.exp).toBeGreaterThan(payload.iat)
     })
@@ -86,7 +86,7 @@ describe("JWT Lifecycle Tests", () => {
       const token = await createTestJWT(mixedCaseAddress)
 
       const payload = decodeJWT(token)
-      expect(payload.wallet).toBe(mixedCaseAddress.toLowerCase())
+      expect(payload.web3_wallet).toBe(mixedCaseAddress.toLowerCase())
     })
   })
 
@@ -169,8 +169,28 @@ describe("JWT Lifecycle Tests", () => {
   })
 
   describe("Token Payload Validation", () => {
-    it("should reject tokens missing wallet field", async () => {
-      const malformedToken = await createMalformedJWT("missing-wallet")
+    it("should accept tokens missing web3_wallet field (email users)", async () => {
+      // Missing web3_wallet is valid - email users don't have one
+      const token = await createMalformedJWT("missing-wallet")
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          token,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      // Token is valid (auth passes), but user lookup may fail
+      if (body.errors) {
+        expect(body.errors[0].extensions.code).not.toBe("UNAUTHORIZED")
+      }
+    })
+
+    it("should reject tokens missing userId field", async () => {
+      const malformedToken = await createMalformedJWT("missing-userId")
 
       const response = await makeRequest(`${testServer.url}/graphql`, {
         ...createGraphQLRequest(
@@ -203,8 +223,9 @@ describe("JWT Lifecycle Tests", () => {
       // The error will come from database operations if user doesn't exist
     })
 
-    it("should handle empty wallet field", async () => {
-      const token = await createTestJWT("")
+    it("should handle missing web3_wallet field (like email users)", async () => {
+      // Create token without web3Wallet (like email auth users)
+      const token = await createTestJWT(undefined)
 
       const response = await makeRequest(`${testServer.url}/graphql`, {
         ...createGraphQLRequest(
@@ -216,8 +237,11 @@ describe("JWT Lifecycle Tests", () => {
 
       const body = await response.json()
       expect(response.status).toBe(200)
-      // Should fail in auth validation or user lookup
-      expect(body.errors).toBeDefined()
+      // Token without web3_wallet is valid (email users don't have one)
+      // Query will fail due to user not found (not because of missing wallet)
+      if (body.errors) {
+        expect(body.errors[0].extensions.code).not.toBe("UNAUTHORIZED")
+      }
     })
   })
 
@@ -439,11 +463,135 @@ describe("JWT Lifecycle Tests", () => {
 
       // Verify using our helper
       const payload = await verifyTestJWT(token)
-      expect(payload.wallet).toBe(wallet.address.toLowerCase())
+      expect(payload.web3_wallet).toBe(wallet.address.toLowerCase())
       expect(payload.test).toBe("value")
 
       // Should fail with wrong secret
       await expect(verifyTestJWT(token, "wrong-secret")).rejects.toThrow()
+    })
+  })
+
+  describe("JWT Type Claim", () => {
+    it("should include type claim in auth tokens", async () => {
+      const wallet = generateTestWallet()
+      const token = await createTestJWT(wallet.address)
+
+      const payload = decodeJWT(token)
+      expect(payload.type).toBe("auth")
+    })
+
+    it("should reject tokens with wrong type claim", async () => {
+      const wallet = generateTestWallet()
+      // Create a token with wrong type (simulating an OAuth state token being used as auth)
+      const wrongTypeToken = await createTestJWT(wallet.address, {
+        extraClaims: { type: "oauth_state" },
+      })
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          wrongTypeToken,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeDefined()
+      expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
+    })
+
+    it("should reject tokens with missing type claim", async () => {
+      // Create a malformed token without type claim
+      const { SignJWT } = await import("jose")
+      const { serverConfig } = await import("../../../src/shared/config/server")
+
+      const secret = new TextEncoder().encode(
+        serverConfig.SESSION_ENCRYPTION_KEY,
+      )
+      const wallet = generateTestWallet()
+
+      const token = await new SignJWT({
+        userId: 1,
+        web3_wallet: wallet.address.toLowerCase(),
+        // Missing type claim
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("24h")
+        .sign(secret)
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          token,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeDefined()
+      expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
+    })
+  })
+
+  describe("OAuth State Encryption", () => {
+    it("should encrypt and decrypt OAuth state correctly", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const encrypted = await encryptOAuthState("GOOGLE", "test-verifier")
+
+      expect(typeof encrypted).toBe("string")
+      expect(encrypted.length).toBeGreaterThan(0)
+
+      const decrypted = await decryptOAuthState(encrypted)
+      expect(decrypted).not.toBeNull()
+      expect(decrypted?.provider).toBe("GOOGLE")
+      expect(decrypted?.codeVerifier).toBe("test-verifier")
+    })
+
+    it("should reject invalid encrypted state", async () => {
+      const { decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const result = await decryptOAuthState("invalid-encrypted-state")
+      expect(result).toBeNull()
+    })
+
+    it("should reject tampered encrypted state", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const encrypted = await encryptOAuthState("GOOGLE", "test-verifier")
+      const tampered = encrypted.slice(0, -5) + "XXXXX"
+
+      const result = await decryptOAuthState(tampered)
+      expect(result).toBeNull()
+    })
+
+    it("should reject OAuth encrypted state used as auth tokens", async () => {
+      const { encryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const encryptedState = await encryptOAuthState("GOOGLE", "test-verifier")
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          encryptedState,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeDefined()
+      expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
     })
   })
 

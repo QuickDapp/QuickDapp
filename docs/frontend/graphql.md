@@ -16,7 +16,7 @@ query { validateToken { valid wallet } }
 
 - SIWE:
 ```graphql
-mutation($address: String!) { generateSiweMessage(address: $address) { message nonce } }
+mutation($address: String!, $chainId: Int!, $domain: String!) { generateSiweMessage(address: $address, chainId: $chainId, domain: $domain) { message nonce } }
 mutation($message: String!, $signature: String!) {
   authenticateWithSiwe(message: $message, signature: $signature) { success token wallet error }
 }

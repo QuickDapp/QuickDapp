@@ -5,7 +5,7 @@ let graphqlClient: GraphQLClient | null = null
 
 export function getGraphQLClient(): GraphQLClient {
   if (!graphqlClient) {
-    graphqlClient = new GraphQLClient(`${clientConfig.BASE_URL}/graphql`, {
+    graphqlClient = new GraphQLClient(`${clientConfig.API_URL}/graphql`, {
       headers: {
         "Content-Type": "application/json",
       },

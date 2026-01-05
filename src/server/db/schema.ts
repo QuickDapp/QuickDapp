@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   json,
   pgTable,
@@ -24,7 +25,6 @@ export const settings = pgTable("settings", {
 // Users table for authentication and user management
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  wallet: text("wallet").unique().notNull(),
   disabled: boolean("disabled").default(false).notNull(),
   settings: json("settings"),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -36,20 +36,29 @@ export const users = pgTable("users", {
 })
 
 // User authentication methods table
-export const userAuth = pgTable("user_auth", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
-  authType: text("auth_type").notNull(),
-  authIdentifier: text("auth_identifier").unique().notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-})
+export const userAuth = pgTable(
+  "user_auth",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    authType: text("auth_type").notNull(),
+    authIdentifier: text("auth_identifier").unique().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    authLookupIdx: index("user_auth_type_identifier_idx").on(
+      table.authType,
+      table.authIdentifier,
+    ),
+  }),
+)
 
 // Notifications table for user notifications
 export const notifications = pgTable("notifications", {

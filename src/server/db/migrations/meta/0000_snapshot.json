@@ -1,5 +1,5 @@
 {
-  "id": "eb8268d2-ee4e-470c-93d9-f126da0aec7b",
+  "id": "8332ab00-fc97-4a50-adb1-5a09e18afbf1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -160,7 +160,29 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_auth_type_identifier_idx": {
+          "name": "user_auth_type_identifier_idx",
+          "columns": [
+            {
+              "expression": "auth_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "auth_identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "user_auth_user_id_users_id_fk": {
           "name": "user_auth_user_id_users_id_fk",
@@ -194,12 +216,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "wallet": {
-          "name": "wallet",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "disabled": {
           "name": "disabled",
           "type": "boolean",
@@ -231,13 +247,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "users_wallet_unique": {
-          "name": "users_wallet_unique",
-          "nullsNotDistinct": false,
-          "columns": ["wallet"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

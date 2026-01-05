@@ -36,18 +36,35 @@ export const typeDefs = gql`
   type AuthResult {
     success: Boolean!
     token: String
-    wallet: String
+    web3Wallet: String
     error: String
   }
 
   type ValidateTokenResult {
     valid: Boolean!
-    wallet: String
+    web3Wallet: String
   }
 
   type EmailVerificationResult {
     success: Boolean!
     blob: String
+    error: String
+  }
+
+  # OAuth types
+  enum OAuthProvider {
+    GOOGLE
+    FACEBOOK
+    GITHUB
+    X
+    TIKTOK
+    LINKEDIN
+  }
+
+  type OAuthLoginUrlResult {
+    success: Boolean!
+    url: String
+    provider: String
     error: String
   }
 
@@ -67,10 +84,11 @@ export const typeDefs = gql`
 
   type Mutation {
     # Authentication mutations (no auth required)
-    generateSiweMessage(address: String!): SiweMessageResult!
+    generateSiweMessage(address: String!, chainId: Int!, domain: String!): SiweMessageResult!
     authenticateWithSiwe(message: String!, signature: String!): AuthResult!
     sendEmailVerificationCode(email: String!): EmailVerificationResult!
     authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!
+    getOAuthLoginUrl(provider: OAuthProvider!, redirectUrl: String): OAuthLoginUrlResult!
 
     # User-specific mutations (auth required)
     markNotificationAsRead(id: PositiveInt!): Success! @auth

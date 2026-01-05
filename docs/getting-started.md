@@ -198,8 +198,8 @@ Add these to your shell environment or `.env.production`:
 
 ```bash
 CHAIN=sepolia
-CHAIN_RPC_ENDPOINT="https://sepolia.infura.io/v3/your-api-key"
-SERVER_WALLET_PRIVATE_KEY="0x..." # Your deployment wallet private key
+WEB3_SEPOLIA_RPC="https://sepolia.infura.io/v3/your-api-key"
+WEB3_SERVER_WALLET_PRIVATE_KEY="0x..." # Your deployment wallet private key
 ```
 
 ### Deploy to Sepolia:

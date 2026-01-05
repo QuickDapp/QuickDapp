@@ -1,10 +1,10 @@
-import { eq } from "drizzle-orm"
 import type { AbiEvent } from "viem"
 import { parseAbiItem } from "viem"
 import { clientConfig } from "../../../shared/config/client"
 import { serverConfig } from "../../../shared/config/server"
+import { AUTH_METHOD } from "../../../shared/constants"
 import { NotificationType } from "../../../shared/notifications/types"
-import { users } from "../../db/schema"
+import { getUserByAuthIdentifier } from "../../db/users"
 import type { ChainLogModule } from "../jobs/types"
 
 // ERC20NewToken event from the factory contract
@@ -21,7 +21,7 @@ export const getContractAddress: ChainLogModule["getContractAddress"] = () => {
   if (serverConfig.NODE_ENV === "test") {
     return null
   }
-  return (clientConfig.FACTORY_CONTRACT_ADDRESS as `0x${string}`) || null
+  return (clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS as `0x${string}`) || null
 }
 
 export const processLogs: ChainLogModule["processLogs"] = async (
@@ -48,12 +48,12 @@ export const processLogs: ChainLogModule["processLogs"] = async (
 
       const creatorAddress = creator
 
-      // Look up user by wallet address
-      const [user] = await serverApp.db
-        .select()
-        .from(users)
-        .where(eq(users.wallet, creatorAddress.toLowerCase()))
-        .limit(1)
+      // Look up user by wallet address via userAuth table
+      const user = await getUserByAuthIdentifier(
+        serverApp.db,
+        AUTH_METHOD.WEB3_WALLET,
+        creatorAddress.toLowerCase(),
+      )
 
       if (!user) {
         log.warn(`No user found for wallet ${creatorAddress}`)

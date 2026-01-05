@@ -4,7 +4,7 @@ QuickDapp uses Sign-In With Ethereum (SIWE) and JWT for authentication. The flow
 
 ## Flow
 
-1) Client calls generateSiweMessage(address) to receive a SIWE message + nonce.
+1) Client calls generateSiweMessage(address, chainId, domain) to receive a SIWE message + nonce. The domain is validated against WEB3_ALLOWED_SIWE_ORIGINS.
 2) Wallet signs the message.
 3) Client calls authenticateWithSiwe(message, signature).
 4) Server verifies the signature, creates/ensures user record, issues a JWT.
@@ -15,8 +15,8 @@ QuickDapp uses Sign-In With Ethereum (SIWE) and JWT for authentication. The flow
 
 - Generate message:
 ```graphql
-mutation($address: String!) {
-  generateSiweMessage(address: $address) { message nonce }
+mutation($address: String!, $chainId: Int!, $domain: String!) {
+  generateSiweMessage(address: $address, chainId: $chainId, domain: $domain) { message nonce }
 }
 ```
 
@@ -50,5 +50,5 @@ Unauthorized requests result in extensions.code = "UNAUTHORIZED".
 ## Security notes
 
 - Store JWT securely (in-memory or secure storage). Avoid localStorage if possible; if used, handle logout and token refresh explicitly.
-- Server derives domain/uri from BASE_URL and uses current chain settings for SIWE message.
+- Client provides domain and chainId; server validates domain against WEB3_ALLOWED_SIWE_ORIGINS.
 - JWT expiry and validation are enforced server-side.

@@ -1,16 +1,23 @@
 import { GraphQLError } from "graphql"
 import { SiweMessage } from "siwe"
+import { clientConfig } from "../../shared/config/client"
 import { serverConfig } from "../../shared/config/server"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
 import { AuthService } from "../auth"
+import {
+  createAuthorizationParams,
+  isProviderConfigured,
+  OAuthConfigError,
+  type OAuthProvider,
+} from "../auth/oauth"
+import { encryptOAuthState } from "../auth/oauth-state"
 import {
   getNotificationsForUser,
   getUnreadNotificationsCountForUser,
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "../db/notifications"
-import { getUser } from "../db/users"
-import { getChainId } from "../lib/chains"
+import { getUserById } from "../db/users"
 import {
   generateVerificationCodeAndBlob,
   validateEmailFormat,
@@ -37,10 +44,15 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
   ): Promise<T> => {
     return serverApp.startSpan(spanName, async (span) => {
       if (context.user) {
-        setSentryUser({ id: context.user.id, wallet: context.user.wallet })
+        setSentryUser({
+          id: context.user.id,
+          web3Wallet: context.user.web3Wallet,
+        })
         span.setAttributes({
           "user.id": context.user.id,
-          "user.wallet": context.user.wallet,
+          ...(context.user.web3Wallet && {
+            "user.web3Wallet": context.user.web3Wallet,
+          }),
         })
       }
       return callback()
@@ -55,7 +67,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
       })
     }
 
-    const user = await getUser(serverApp.db, context.user.wallet)
+    const user = await getUserById(serverApp.db, context.user.id)
     if (!user) {
       throw new GraphQLError("User not found", {
         extensions: { code: GraphQLErrorCode.NOT_FOUND },
@@ -74,12 +86,12 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
             if (context.user) {
               return {
                 valid: true,
-                wallet: context.user.wallet,
+                web3Wallet: context.user.web3Wallet || null,
               }
             } else {
               return {
                 valid: false,
-                wallet: null,
+                web3Wallet: null,
               }
             }
           } catch (error) {
@@ -87,7 +99,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
             logger.error("Error validating token:", error)
             return {
               valid: false,
-              wallet: null,
+              web3Wallet: null,
             }
           }
         })
@@ -110,7 +122,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               )
 
               logger.debug(
-                `Retrieved ${notifications.length} notifications for user ${user.wallet}`,
+                `Retrieved ${notifications.length} notifications for user ${user.id}`,
               )
 
               return {
@@ -145,9 +157,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 user.id,
               )
 
-              logger.debug(
-                `User ${user.wallet} has ${count} unread notifications`,
-              )
+              logger.debug(`User ${user.id} has ${count} unread notifications`)
 
               return count
             } catch (error) {
@@ -162,22 +172,44 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
     Mutation: {
       // Authentication mutations (no auth required)
-      generateSiweMessage: async (_, { address }, context) => {
+      generateSiweMessage: async (_, { address, chainId, domain }, context) => {
         return withSpan(
           "graphql.Mutation.generateSiweMessage",
           context,
           async () => {
+            // Check if web3 is enabled
+            if (!clientConfig.WEB3_ENABLED) {
+              throw new GraphQLError("Web3 authentication is not enabled", {
+                extensions: { code: GraphQLErrorCode.AUTHENTICATION_FAILED },
+              })
+            }
+
             try {
-              const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
-              logger.debug(`Generating SIWE message for address: ${address}`)
+              const authLogger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+              authLogger.debug(
+                `Generating SIWE message for address: ${address}, domain: ${domain}`,
+              )
+
+              // Validate domain against allowed origins
+              const matchingOrigin =
+                serverConfig.WEB3_ALLOWED_SIWE_ORIGINS?.find((origin) => {
+                  const url = new URL(origin)
+                  return url.host === domain
+                })
+
+              if (!matchingOrigin) {
+                throw new GraphQLError("Invalid SIWE domain", {
+                  extensions: { code: GraphQLErrorCode.AUTHENTICATION_FAILED },
+                })
+              }
 
               const message = new SiweMessage({
-                domain: new URL(serverConfig.BASE_URL).hostname,
+                domain,
                 address,
                 statement: "Sign in to QuickDapp",
-                uri: serverConfig.BASE_URL,
+                uri: matchingOrigin,
                 version: "1",
-                chainId: getChainId(),
+                chainId,
                 nonce: Math.random().toString(36).substring(2, 15),
               })
 
@@ -188,6 +220,10 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 nonce: message.nonce || "",
               }
             } catch (error) {
+              // Re-throw GraphQL errors as-is
+              if (error instanceof GraphQLError) {
+                throw error
+              }
               logger.error("Failed to generate SIWE message:", error)
               throw new GraphQLError("Failed to generate SIWE message", {
                 extensions: {
@@ -218,7 +254,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: true,
                 token: authResult.token,
-                wallet: authResult.user.wallet,
+                web3Wallet: authResult.user.web3Wallet || null,
                 error: null,
               }
             } catch (error) {
@@ -228,7 +264,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: false,
                 token: null,
-                wallet: null,
+                web3Wallet: null,
                 error:
                   error instanceof Error
                     ? error.message
@@ -321,7 +357,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: true,
                 token: authResult.token,
-                wallet: authResult.user.wallet,
+                web3Wallet: authResult.user.web3Wallet || null,
                 error: null,
               }
             } catch (error) {
@@ -330,11 +366,113 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: false,
                 token: null,
-                wallet: null,
+                web3Wallet: null,
                 error:
                   error instanceof Error
                     ? error.message
                     : "Authentication failed",
+              }
+            }
+          },
+        )
+      },
+
+      getOAuthLoginUrl: async (
+        _: any,
+        {
+          provider,
+          redirectUrl,
+        }: { provider: OAuthProvider; redirectUrl?: string | null },
+        context: any,
+      ) => {
+        return withSpan(
+          "graphql.Mutation.getOAuthLoginUrl",
+          context,
+          async () => {
+            try {
+              const authLogger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+
+              // Check if provider is configured
+              if (!isProviderConfigured(provider)) {
+                return {
+                  success: false,
+                  url: null,
+                  provider: null,
+                  error: `OAuth provider ${provider} is not configured`,
+                }
+              }
+
+              // Validate redirectUrl is same-origin if provided
+              if (redirectUrl) {
+                try {
+                  const redirectUrlObj = new URL(redirectUrl)
+                  const apiUrlObj = new URL(serverConfig.API_URL)
+                  if (redirectUrlObj.origin !== apiUrlObj.origin) {
+                    return {
+                      success: false,
+                      url: null,
+                      provider: null,
+                      error: "Redirect URL must be same-origin",
+                    }
+                  }
+                } catch {
+                  return {
+                    success: false,
+                    url: null,
+                    provider: null,
+                    error: "Invalid redirect URL",
+                  }
+                }
+              }
+
+              authLogger.debug(`Generating OAuth login URL for ${provider}`)
+
+              // Generate auth params with placeholder state to get codeVerifier
+              const authParams = createAuthorizationParams(
+                provider,
+                "placeholder",
+              )
+
+              // Create encrypted state containing provider, codeVerifier, and redirectUrl
+              const encryptedState = await encryptOAuthState(
+                provider,
+                authParams.codeVerifier,
+                redirectUrl ?? undefined,
+              )
+
+              // Replace placeholder state in URL with encrypted state
+              const url = new URL(authParams.url.toString())
+              url.searchParams.set("state", encryptedState)
+
+              return {
+                success: true,
+                url: url.toString(),
+                provider,
+                error: null,
+              }
+            } catch (error) {
+              logger.error(
+                `OAuth login URL generation failed for ${provider}:`,
+                error,
+              )
+
+              if (error instanceof OAuthConfigError) {
+                return {
+                  success: false,
+                  url: null,
+                  provider: null,
+                  error: error.message,
+                }
+              }
+
+              return {
+                success: false,
+                url: null,
+                provider: null,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to generate OAuth login URL",
               }
             }
           },
@@ -365,7 +503,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               }
 
               logger.debug(
-                `Marked notification ${id} as read for user ${user.wallet}`,
+                `Marked notification ${id} as read for user ${user.id}`,
               )
 
               return { success: true }
@@ -401,7 +539,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               )
 
               logger.debug(
-                `Marked ${updatedCount} notifications as read for user ${user.wallet}`,
+                `Marked ${updatedCount} notifications as read for user ${user.id}`,
               )
 
               return { success: true }

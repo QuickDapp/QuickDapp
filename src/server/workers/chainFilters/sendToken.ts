@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm"
 import type { AbiEvent } from "viem"
 import { parseAbiItem } from "viem"
+import { AUTH_METHOD } from "../../../shared/constants"
 import { NotificationType } from "../../../shared/notifications/types"
-import { users } from "../../db/schema"
+import { getUserByAuthIdentifier } from "../../db/users"
 import type { ChainLogModule } from "../jobs/types"
 
 // Custom TokenTransferred event from SimpleERC20 contracts
@@ -43,12 +43,12 @@ export const processLogs: ChainLogModule["processLogs"] = async (
         `Processing TokenTransferred: ${from} -> ${to}, amount: ${value}, token: ${symbol} (${name}) at ${tokenAddress}`,
       )
 
-      // Look up user by wallet address (sender)
-      const [user] = await serverApp.db
-        .select()
-        .from(users)
-        .where(eq(users.wallet, from.toLowerCase()))
-        .limit(1)
+      // Look up user by wallet address via userAuth table (sender)
+      const user = await getUserByAuthIdentifier(
+        serverApp.db,
+        AUTH_METHOD.WEB3_WALLET,
+        from.toLowerCase(),
+      )
 
       if (!user) {
         log.debug(`No user found for wallet ${from}`)

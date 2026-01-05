@@ -137,11 +137,11 @@ WORKER_LOG_LEVEL=debug
 DATABASE_URL=postgresql://postgres:@localhost:5432/quickdapp_dev
 
 # Development wallet (Anvil default)
-SERVER_WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 # Local blockchain
 CHAIN=anvil
-CHAIN_RPC_ENDPOINT=http://localhost:8545
+WEB3_ANVIL_RPC=http://localhost:8545
 
 # Reduced worker count for development
 WORKER_COUNT=1
@@ -216,11 +216,11 @@ WORKER_COUNT=1 bun run dev
 Work with database changes during development:
 
 ```shell
+# Generate types and migrations after schema changes
+bun run gen
+
 # Apply schema changes to development database
 bun run db push
-
-# Generate migration for schema changes
-bun run db generate
 
 # Reset development database (destructive)
 bun run db push --force

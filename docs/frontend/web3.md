@@ -33,7 +33,7 @@ const connectors = connectorsForWallets(
   ],
   {
     appName: 'QuickDapp',
-    projectId: clientConfig.WALLETCONNECT_PROJECT_ID,
+    projectId: clientConfig.WEB3_WALLETCONNECT_PROJECT_ID,
   }
 )
 
@@ -44,8 +44,8 @@ export const wagmiConfig = createConfig({
     clientConfig.CHAIN === 'sepolia' ? sepolia : anvil,
   ],
   transports: {
-    [sepolia.id]: http(clientConfig.CHAIN_RPC_ENDPOINT),
-    [anvil.id]: http(clientConfig.CHAIN_RPC_ENDPOINT),
+    [sepolia.id]: http(), // Uses viem's default public RPC
+    [anvil.id]: http('http://localhost:8545'),
   },
 })
 ```
@@ -374,7 +374,7 @@ export function useDeployToken() {
   
   const deployToken = async (name: string, symbol: string, initialSupply: string) => {
     writeContract({
-      address: clientConfig.FACTORY_CONTRACT_ADDRESS as `0x${string}`,
+      address: clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS as `0x${string}`,
       abi: FACTORY_ABI,
       functionName: 'deployToken',
       args: [name, symbol, parseEther(initialSupply)],
@@ -394,7 +394,7 @@ export function useUserTokens() {
   const { address } = useAccount()
   
   const { data: tokenCount } = useReadContract({
-    address: clientConfig.FACTORY_CONTRACT_ADDRESS as `0x${string}`,
+    address: clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS as `0x${string}`,
     abi: FACTORY_ABI,
     functionName: 'getUserTokenCount',
     args: address ? [address] : undefined,
@@ -404,7 +404,7 @@ export function useUserTokens() {
   })
   
   const { data: tokens } = useReadContract({
-    address: clientConfig.FACTORY_CONTRACT_ADDRESS as `0x${string}`,
+    address: clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS as `0x${string}`,
     abi: FACTORY_ABI,
     functionName: 'getUserTokens',
     args: address ? [address, 0n, tokenCount || 0n] : undefined,

@@ -48,10 +48,10 @@ SESSION_ENCRYPTION_KEY=your_secure_32_character_key_here
 JWT_EXPIRATION=86400
 
 # Application domain for SIWE
-BASE_URL=http://localhost:3000
+API_URL=http://localhost:3000
 
 # Wallet configuration
-WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+WEB3_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
 
 ### Database Schema
@@ -280,7 +280,7 @@ Complete sign-in workflow:
 async function signIn() {
   try {
     // 1. Request nonce from server
-    // Use GraphQL generateSiweMessage instead (mutation: generateSiweMessage(address))
+    // Use GraphQL generateSiweMessage instead (mutation: generateSiweMessage(address, chainId, domain))
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address: userAddress })
@@ -445,10 +445,10 @@ SIWE messages include security features:
 // Secure message generation
 function generateSIWEMessage(address: string) {
   return {
-    domain: process.env.BASE_URL,
+    domain: process.env.API_URL,
     address,
     statement: 'Sign in to QuickDapp',
-    uri: process.env.BASE_URL,
+    uri: process.env.API_URL,
     version: '1',
     chainId: parseInt(process.env.CHAIN_ID || '1'),
     nonce: crypto.randomBytes(16).toString('hex'), // Unique nonce

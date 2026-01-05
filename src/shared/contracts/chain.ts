@@ -61,10 +61,10 @@ export function getChainById(chainId: number): Chain {
 }
 
 /**
- * Get supported chains as an array based on SUPPORTED_CHAINS config
+ * Get supported chains as an array based on WEB3_SUPPORTED_CHAINS config
  */
 export function getSupportedChains(): Chain[] {
-  const chainNames = clientConfig.SUPPORTED_CHAINS
+  const chainNames = clientConfig.WEB3_SUPPORTED_CHAINS
   if (!chainNames || chainNames.length === 0) {
     return []
   }
@@ -92,10 +92,10 @@ export function getPrimaryChain(): Chain {
 }
 
 /**
- * Get the primary chain name (first in SUPPORTED_CHAINS)
+ * Get the primary chain name (first in WEB3_SUPPORTED_CHAINS)
  */
 export function getPrimaryChainName(): string {
-  const chainNames = clientConfig.SUPPORTED_CHAINS
+  const chainNames = clientConfig.WEB3_SUPPORTED_CHAINS
   if (!chainNames || chainNames.length === 0) {
     throw new Error("No supported chains configured")
   }

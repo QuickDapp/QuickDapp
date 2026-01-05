@@ -2,87 +2,45 @@
  * Server configuration validation tests
  *
  * Tests the server configuration loading and validation functionality
+ *
+ * NOTE: serverConfig is evaluated at module load time. Tests that modify
+ * process.env after module load cannot test the validation behavior of
+ * missing/empty values. Those scenarios are tested implicitly by the fact
+ * that env-var's .required() throws during module load.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "bun:test"
-import { validateConfig } from "../../../src/shared/config/server"
+import { describe, expect, it } from "bun:test"
+import { serverConfig, validateConfig } from "../../../src/shared/config/server"
 
 describe("Server Configuration Validation", () => {
-  let originalEnv: Record<string, string | undefined>
-
-  beforeEach(() => {
-    // Save original environment
-    originalEnv = { ...process.env }
-  })
-
-  afterEach(() => {
-    // Restore original environment
-    Object.keys(process.env).forEach((key) => {
-      if (!(key in originalEnv)) {
-        delete process.env[key]
-      }
-    })
-    Object.assign(process.env, originalEnv)
-  })
-
   describe("validateConfig", () => {
-    it("should pass validation with all required environment variables", () => {
-      // Set all required environment variables
-      process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
-      process.env.SESSION_ENCRYPTION_KEY =
-        "test_key_32_chars_long_for_testing_only!!"
-      process.env.SERVER_WALLET_PRIVATE_KEY =
-        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-      process.env.BASE_URL = "http://localhost:3000"
-      process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      process.env.SUPPORTED_CHAINS = "anvil"
-      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
-
+    it("should pass validation with the test environment configuration", () => {
+      // The test environment should have all required variables set
+      // This validates that validateConfig() doesn't throw with valid config
       expect(() => validateConfig()).not.toThrow()
     })
 
-    it("should throw error when SUPPORTED_CHAINS is missing", () => {
-      // Set all required environment variables except SUPPORTED_CHAINS
-      process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
-      process.env.SESSION_ENCRYPTION_KEY =
-        "test_key_32_chars_long_for_testing_only!!"
-      process.env.SERVER_WALLET_PRIVATE_KEY =
-        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-      process.env.BASE_URL = "http://localhost:3000"
-      process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
-      delete process.env.SUPPORTED_CHAINS
-
-      expect(() => validateConfig()).toThrow(
-        "Missing required environment variables: SUPPORTED_CHAINS",
-      )
-    })
-
-    it("should throw error when SUPPORTED_CHAINS is empty", () => {
-      // Set all required environment variables but make SUPPORTED_CHAINS empty
-      process.env.DATABASE_URL = "postgresql://test@localhost:5432/test"
-      process.env.SESSION_ENCRYPTION_KEY =
-        "test_key_32_chars_long_for_testing_only!!"
-      process.env.SERVER_WALLET_PRIVATE_KEY =
-        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-      process.env.BASE_URL = "http://localhost:3000"
-      process.env.WALLETCONNECT_PROJECT_ID = "test_project_id"
-      process.env.ALLOWED_SIWE_ORIGINS = "http://localhost:3000"
-      process.env.SUPPORTED_CHAINS = ""
-
-      expect(() => validateConfig()).toThrow(
-        "Missing required environment variables: SUPPORTED_CHAINS",
-      )
+    it("should have all required config values loaded", () => {
+      // Verify that the loaded config has all required values
+      expect(serverConfig.DATABASE_URL).toBeTruthy()
+      expect(serverConfig.SESSION_ENCRYPTION_KEY).toBeTruthy()
+      expect(serverConfig.API_URL).toBeTruthy()
     })
 
     it("should validate SESSION_ENCRYPTION_KEY length requirement", () => {
-      // This test checks that the validation requirements exist
-      // Note: Since serverConfig is evaluated at module load time, we can't easily test runtime validation
-      // But we can verify that the test environment itself meets the requirements
-      expect(process.env.SESSION_ENCRYPTION_KEY).toBeDefined()
-      expect(process.env.SESSION_ENCRYPTION_KEY!.length).toBeGreaterThanOrEqual(
+      // Verify the key meets the minimum length requirement
+      expect(serverConfig.SESSION_ENCRYPTION_KEY.length).toBeGreaterThanOrEqual(
         32,
       )
+    })
+
+    it("should have Web3 config when WEB3_ENABLED is true", () => {
+      if (serverConfig.WEB3_ENABLED) {
+        expect(serverConfig.WEB3_SERVER_WALLET_PRIVATE_KEY).toBeTruthy()
+        expect(serverConfig.WEB3_ALLOWED_SIWE_ORIGINS).toBeDefined()
+        expect(serverConfig.WEB3_SUPPORTED_CHAINS).toBeDefined()
+        expect(serverConfig.WEB3_WALLETCONNECT_PROJECT_ID).toBeTruthy()
+      }
     })
   })
 })

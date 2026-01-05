@@ -16,7 +16,7 @@ import {
 import { AuthService } from "../../src/server/auth"
 import {
   createEmailUserIfNotExists,
-  createUserIfNotExists,
+  createWeb3WalletUserIfNotExists,
 } from "../../src/server/db/users"
 import { generateVerificationCodeAndBlob } from "../../src/server/lib/emailVerification"
 import type { ServerApp } from "../../src/server/types"
@@ -148,7 +148,7 @@ function getJWTSecret(): string {
  * Create a test JWT token
  */
 export async function createTestJWT(
-  wallet: string,
+  web3Wallet: string | undefined,
   options: {
     expiresIn?: string
     secret?: string
@@ -161,14 +161,15 @@ export async function createTestJWT(
     extraClaims = {},
   } = options
 
-  testLogger.debug(`Creating JWT for wallet: ${wallet}`)
+  testLogger.debug(`Creating JWT for web3Wallet: ${web3Wallet || "none"}`)
   testLogger.debug(`Using expiresIn: ${expiresIn}`)
 
   const jwtSecret = new TextEncoder().encode(secret)
 
   return await new SignJWT({
+    type: "auth", // Required type claim for auth tokens
     userId: 1, // Default test user ID
-    wallet: wallet.toLowerCase(),
+    ...(web3Wallet && { web3_wallet: web3Wallet.toLowerCase() }),
     iat: Math.floor(Date.now() / 1000),
     ...extraClaims,
   })
@@ -180,8 +181,8 @@ export async function createTestJWT(
 /**
  * Create an expired JWT token
  */
-export async function createExpiredJWT(wallet: string): Promise<string> {
-  return await createTestJWT(wallet, {
+export async function createExpiredJWT(web3Wallet?: string): Promise<string> {
+  return await createTestJWT(web3Wallet, {
     expiresIn: "-1h", // Already expired
   })
 }
@@ -229,9 +230,10 @@ export async function createMalformedJWT(
       })
 
     case "missing-wallet": {
-      // Create a token without the wallet field entirely
+      // Create a token without the wallet field entirely (valid for email users)
       const jwtSecret = new TextEncoder().encode(getJWTSecret())
       return await new SignJWT({
+        type: "auth",
         userId: 1,
         iat: Math.floor(Date.now() / 1000),
         // wallet field is missing entirely
@@ -245,6 +247,7 @@ export async function createMalformedJWT(
       // Create a token without the userId field entirely
       const jwtSecret = new TextEncoder().encode(getJWTSecret())
       return await new SignJWT({
+        type: "auth",
         wallet: "0x1234567890123456789012345678901234567890",
         iat: Math.floor(Date.now() / 1000),
         // userId field is missing entirely
@@ -357,7 +360,7 @@ export async function createAuthenticatedTestUser(
 
   // Create user in database if using real ServerApp
   if (options.serverApp) {
-    await createUserIfNotExists(options.serverApp.db, wallet.address)
+    await createWeb3WalletUserIfNotExists(options.serverApp.db, wallet.address)
   }
 
   // Authenticate through the real auth system to get JWT
@@ -529,20 +532,104 @@ export async function generateTestEmailVerification(
 export async function createEmailAuthenticatedTestUser(
   serverApp: ServerApp,
   email?: string,
-): Promise<{ email: string; token: string; wallet: string }> {
+): Promise<{ email: string; token: string; userId: number }> {
   const testEmail = email || generateTestEmail()
 
   // Create user in database first
   const user = await createEmailUserIfNotExists(serverApp.db, testEmail)
 
-  // Create JWT token
-  const token = await createTestJWT(user.wallet, {
+  // Create JWT token (no web3Wallet for email users)
+  const token = await createTestJWT(undefined, {
     extraClaims: { userId: user.id },
   })
 
   return {
     email: testEmail,
     token,
-    wallet: user.wallet,
+    userId: user.id,
   }
+}
+
+/**
+ * OAuth test helpers
+ */
+import { generateCodeVerifier } from "arctic"
+import type { OAuthProvider } from "../../src/server/auth/oauth"
+import { encryptOAuthState } from "../../src/server/auth/oauth-state"
+
+export interface MockOAuthState {
+  encryptedState: string
+  codeVerifier?: string
+  provider: OAuthProvider
+}
+
+/**
+ * Create mock OAuth state for testing (uses encrypted state)
+ */
+export async function createMockOAuthState(
+  provider: OAuthProvider,
+  includeCodeVerifier = true,
+  redirectUrl?: string,
+): Promise<MockOAuthState> {
+  const codeVerifier = includeCodeVerifier ? generateCodeVerifier() : undefined
+  const encryptedState = await encryptOAuthState(
+    provider,
+    codeVerifier,
+    redirectUrl,
+  )
+  return {
+    encryptedState,
+    codeVerifier,
+    provider,
+  }
+}
+
+/**
+ * Mock OAuth user info for different providers
+ */
+export interface MockOAuthUserInfo {
+  id: string
+  email?: string
+  name?: string
+}
+
+export function createMockOAuthUserInfo(
+  provider: OAuthProvider,
+  overrides: Partial<MockOAuthUserInfo> = {},
+): MockOAuthUserInfo {
+  const baseInfo: MockOAuthUserInfo = {
+    id: `mock-${provider.toLowerCase()}-user-${Math.random().toString(36).substring(2, 10)}`,
+    name: `Mock ${provider} User`,
+  }
+
+  // Providers that provide email
+  if (["GOOGLE", "FACEBOOK", "GITHUB", "LINKEDIN"].includes(provider)) {
+    baseInfo.email = `mock-${provider.toLowerCase()}-${Math.random().toString(36).substring(2, 10)}@example.com`
+  }
+
+  return { ...baseInfo, ...overrides }
+}
+
+/**
+ * Create a GraphQL request for OAuth login URL
+ */
+export function createOAuthLoginUrlRequest(
+  provider: OAuthProvider,
+  authToken?: string,
+  redirectUrl?: string,
+) {
+  return createGraphQLRequest(
+    `
+    mutation GetOAuthLoginUrl($provider: OAuthProvider!, $redirectUrl: String) {
+      getOAuthLoginUrl(provider: $provider, redirectUrl: $redirectUrl) {
+        success
+        url
+        provider
+        error
+      }
+    }
+  `,
+    { provider, redirectUrl },
+    authToken,
+  )
 }

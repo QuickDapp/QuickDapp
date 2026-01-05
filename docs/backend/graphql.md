@@ -59,7 +59,7 @@ type Query {
 }
 
 type Mutation {
-  generateSiweMessage(address: String!): SiweMessageResult!
+  generateSiweMessage(address: String!, chainId: Int!, domain: String!): SiweMessageResult!
   authenticateWithSiwe(message: String!, signature: String!): AuthResult!
   markNotificationAsRead(id: PositiveInt!): Success! @auth
   markAllNotificationsAsRead: Success! @auth
@@ -81,8 +81,8 @@ query {
 
 - Generate SIWE message:
 ```graphql
-mutation($address: String!) {
-  generateSiweMessage(address: $address) { message nonce }
+mutation($address: String!, $chainId: Int!, $domain: String!) {
+  generateSiweMessage(address: $address, chainId: $chainId, domain: $domain) { message nonce }
 }
 ```
 

@@ -43,7 +43,7 @@ Set environment variables before running:
 # Linux/macOS - inline environment variables
 DATABASE_URL="postgresql://user:pass@host:5432/db" \
 CHAIN=sepolia \
-FACTORY_CONTRACT_ADDRESS="0x..." \
+WEB3_FACTORY_CONTRACT_ADDRESS="0x..." \
 ./dist/binaries/quickdapp-linux-x64
 ```
 
@@ -53,10 +53,10 @@ Or use environment files:
 # .env.production
 DATABASE_URL=postgresql://user:password@host:5432/quickdapp
 SESSION_ENCRYPTION_KEY=your_secure_32_character_key
-SERVER_WALLET_PRIVATE_KEY=0xYourWalletKey
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xYourWalletKey
 CHAIN=sepolia
-CHAIN_RPC_ENDPOINT=https://sepolia.infura.io/v3/your-key
-FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
+WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/your-key
+WEB3_FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
 ```
 
 ```shell

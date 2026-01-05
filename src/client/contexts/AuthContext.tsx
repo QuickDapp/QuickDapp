@@ -1,3 +1,4 @@
+import { clientConfig } from "@shared/config/client"
 import { getGraphQLClient, setAuthToken } from "@shared/graphql/client"
 import {
   AUTHENTICATE_WITH_SIWE,
@@ -15,7 +16,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { useAccount, useSignMessage } from "wagmi"
+import { useAccount, useChainId, useSignMessage } from "wagmi"
 
 interface SiweMessageResult {
   message: string
@@ -25,34 +26,38 @@ interface SiweMessageResult {
 interface AuthResult {
   success: boolean
   token: string | null
-  wallet: string | null
+  web3Wallet: string | null
   error: string | null
 }
 
 // Constants
 const STORAGE_KEYS = {
   AUTH_TOKEN: "auth_token",
-  AUTH_WALLET: "auth_wallet",
+  AUTH_WEB3_WALLET: "auth_web3_wallet",
 } as const
 
 // Helper functions for localStorage operations
-const saveAuthToStorage = (token: string, wallet: string) => {
-  console.log("Saving auth to localStorage:", { token, wallet })
+const saveAuthToStorage = (token: string, web3Wallet: string | null) => {
+  console.log("Saving auth to localStorage:", { token, web3Wallet })
   localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token)
-  localStorage.setItem(STORAGE_KEYS.AUTH_WALLET, wallet)
+  if (web3Wallet) {
+    localStorage.setItem(STORAGE_KEYS.AUTH_WEB3_WALLET, web3Wallet)
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_WEB3_WALLET)
+  }
 }
 
 const getAuthFromStorage = () => {
   const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-  const wallet = localStorage.getItem(STORAGE_KEYS.AUTH_WALLET)
-  console.log("Getting auth from localStorage:", { token, wallet })
-  return { token, wallet }
+  const web3Wallet = localStorage.getItem(STORAGE_KEYS.AUTH_WEB3_WALLET)
+  console.log("Getting auth from localStorage:", { token, web3Wallet })
+  return { token, web3Wallet }
 }
 
 const clearAuthFromStorage = () => {
   console.log("Clearing auth from localStorage")
   localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
-  localStorage.removeItem(STORAGE_KEYS.AUTH_WALLET)
+  localStorage.removeItem(STORAGE_KEYS.AUTH_WEB3_WALLET)
 }
 
 // Auth status enum
@@ -87,13 +92,13 @@ type AuthState =
   | {
       status: AuthStatus.WAITING_FOR_WALLET
       token: string
-      wallet: string
+      web3Wallet: string
     }
   | { status: AuthStatus.AUTHENTICATING }
   | {
       status: AuthStatus.AUTHENTICATED
       token: string
-      wallet: string
+      web3Wallet: string
     }
   | { status: AuthStatus.REJECTED; error: string }
   | { status: AuthStatus.ERROR; error: string }
@@ -102,7 +107,7 @@ type AuthAction =
   | { type: AuthActionType.AUTH_START }
   | {
       type: AuthActionType.AUTH_SUCCESS
-      payload: { token: string; wallet: string }
+      payload: { token: string; web3Wallet: string }
     }
   | { type: AuthActionType.AUTH_REJECTED; payload: { error: string } }
   | { type: AuthActionType.AUTH_ERROR; payload: { error: string } }
@@ -110,7 +115,7 @@ type AuthAction =
   | { type: AuthActionType.RESTORE_START }
   | {
       type: AuthActionType.RESTORE_SUCCESS
-      payload: { token: string; wallet: string }
+      payload: { token: string; web3Wallet: string }
     }
   | { type: AuthActionType.RESTORE_COMPLETE }
   | { type: AuthActionType.WALLET_READY }
@@ -152,7 +157,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         status: AuthStatus.AUTHENTICATED,
         token: action.payload.token,
-        wallet: action.payload.wallet,
+        web3Wallet: action.payload.web3Wallet,
       }
 
     case AuthActionType.AUTH_REJECTED:
@@ -177,7 +182,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         status: AuthStatus.WAITING_FOR_WALLET,
         token: action.payload.token,
-        wallet: action.payload.wallet,
+        web3Wallet: action.payload.web3Wallet,
       }
 
     case AuthActionType.RESTORE_COMPLETE:
@@ -189,7 +194,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         return {
           status: AuthStatus.AUTHENTICATED,
           token: state.token,
-          wallet: state.wallet,
+          web3Wallet: state.web3Wallet,
         }
       }
       return state
@@ -227,7 +232,8 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+// Web3 Auth Provider - uses wagmi hooks for SIWE authentication
+function Web3AuthProvider({ children }: AuthProviderProps) {
   const [authState, dispatch] = useReducer(authReducer, initialState)
   const [lastRejectedAddress, setLastRejectedAddress] = useState<string | null>(
     null,
@@ -235,6 +241,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [wasConnected, setWasConnected] = useState(false)
   const restorationStarted = useRef(false)
   const { address, isConnected, connector, status } = useAccount()
+  const chainId = useChainId()
   const { signMessageAsync } = useSignMessage()
 
   // Simplified authentication flow using state machine
@@ -246,7 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return {
           success: false,
           token: null,
-          wallet: null,
+          web3Wallet: null,
           error: "Authentication already in progress",
         }
       }
@@ -259,10 +266,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Step 1: Generate SIWE message
         console.log("Generating SIWE message...")
         const graphqlClient = getGraphQLClient()
+        const domain = window.location.host
         const messageResponse = (await graphqlClient.request(
           GENERATE_SIWE_MESSAGE,
           {
             address,
+            chainId,
+            domain,
           },
         )) as { generateSiweMessage: SiweMessageResult }
         const { message } = messageResponse.generateSiweMessage
@@ -288,7 +298,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (result.success && result.token) {
           const payload = {
             token: result.token,
-            wallet: result.wallet || address,
+            web3Wallet: result.web3Wallet || address,
           }
           dispatch({ type: AuthActionType.AUTH_SUCCESS, payload })
 
@@ -296,7 +306,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLastRejectedAddress(null)
 
           // Persist to localStorage and set GraphQL client token
-          saveAuthToStorage(result.token, payload.wallet)
+          saveAuthToStorage(result.token, payload.web3Wallet)
           setAuthToken(result.token)
         } else {
           dispatch({
@@ -326,12 +336,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return {
           success: false,
           token: null,
-          wallet: null,
+          web3Wallet: null,
           error: errorMessage,
         }
       }
     },
-    [authState.status, signMessageAsync],
+    [authState.status, chainId, signMessageAsync],
   )
 
   // Logout function
@@ -346,10 +356,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const restoreAuth = useCallback(async () => {
     dispatch({ type: AuthActionType.RESTORE_START })
 
-    const { token, wallet } = getAuthFromStorage()
+    const { token, web3Wallet } = getAuthFromStorage()
 
-    if (token && wallet) {
-      console.log("Restoring auth from localStorage for wallet:", wallet)
+    if (token && web3Wallet) {
+      console.log("Restoring auth from localStorage for wallet:", web3Wallet)
 
       try {
         // Validate the token with the server
@@ -358,17 +368,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         const graphqlClient = getGraphQLClient()
         const response = (await graphqlClient.request(VALIDATE_TOKEN)) as {
-          validateToken: { valid: boolean; wallet: string | null }
+          validateToken: { valid: boolean; web3Wallet: string | null }
         }
 
-        if (response.validateToken.valid && response.validateToken.wallet) {
+        if (response.validateToken.valid && response.validateToken.web3Wallet) {
           console.log(
             "Token is valid, restoring auth for wallet:",
-            response.validateToken.wallet,
+            response.validateToken.web3Wallet,
           )
           dispatch({
             type: AuthActionType.RESTORE_SUCCESS,
-            payload: { token, wallet: response.validateToken.wallet },
+            payload: { token, web3Wallet: response.validateToken.web3Wallet },
           })
         } else {
           console.log("Token is invalid, clearing stored auth")
@@ -515,7 +525,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       authState.status === AuthStatus.AUTHENTICATED ||
       authState.status === AuthStatus.WAITING_FOR_WALLET
     ) {
-      return authState.wallet
+      return authState.web3Wallet
     }
     return null
   }, [authState])
@@ -551,6 +561,107 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return (
     <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   )
+}
+
+// Non-Web3 Auth Provider - used when WEB3_ENABLED=false
+// Provides a minimal auth context for email/OAuth authentication
+function NonWeb3AuthProvider({ children }: AuthProviderProps) {
+  const [authState, dispatch] = useReducer(authReducer, initialState)
+  const restorationStarted = useRef(false)
+
+  // Logout function
+  const logout = useCallback(() => {
+    setAuthToken(null)
+    dispatch({ type: AuthActionType.LOGOUT })
+    clearAuthFromStorage()
+  }, [])
+
+  // Restore authentication from localStorage (for OAuth/email tokens)
+  const restoreAuth = useCallback(async () => {
+    dispatch({ type: AuthActionType.RESTORE_START })
+
+    const { token, web3Wallet } = getAuthFromStorage()
+
+    if (token) {
+      try {
+        setAuthToken(token)
+        const graphqlClient = getGraphQLClient()
+        const response = (await graphqlClient.request(VALIDATE_TOKEN)) as {
+          validateToken: { valid: boolean; web3Wallet: string | null }
+        }
+
+        if (response.validateToken.valid) {
+          dispatch({
+            type: AuthActionType.AUTH_SUCCESS,
+            payload: { token, web3Wallet: web3Wallet || "" },
+          })
+        } else {
+          clearAuthFromStorage()
+          setAuthToken(null)
+          dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+        }
+      } catch {
+        clearAuthFromStorage()
+        setAuthToken(null)
+        dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+      }
+    } else {
+      dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+    }
+  }, [])
+
+  // Authenticate stub - Web3 auth is not available
+  const authenticate = useCallback(async (): Promise<AuthResult> => {
+    return {
+      success: false,
+      token: null,
+      web3Wallet: null,
+      error: "Web3 authentication is not enabled",
+    }
+  }, [])
+
+  // Effect: Token restoration on mount
+  useEffect(() => {
+    if (authState.status === AuthStatus.IDLE && !restorationStarted.current) {
+      restorationStarted.current = true
+      restoreAuth().catch(() => {
+        dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+      })
+    }
+  }, [authState.status, restoreAuth])
+
+  const isAuthenticated = authState.status === AuthStatus.AUTHENTICATED
+  const isLoading =
+    authState.status === AuthStatus.AUTHENTICATING ||
+    authState.status === AuthStatus.RESTORING
+
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      isLoading,
+      error: null,
+      authToken:
+        authState.status === AuthStatus.AUTHENTICATED ? authState.token : null,
+      walletAddress: null,
+      userRejectedAuth: false,
+      authenticate,
+      logout,
+      restoreAuth,
+    }),
+    [isAuthenticated, isLoading, authState, authenticate, logout, restoreAuth],
+  )
+
+  return (
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  )
+}
+
+// Exported AuthProvider - chooses the right provider based on WEB3_ENABLED
+export function AuthProvider({ children }: AuthProviderProps) {
+  if (clientConfig.WEB3_ENABLED) {
+    return <Web3AuthProvider>{children}</Web3AuthProvider>
+  }
+  return <NonWeb3AuthProvider>{children}</NonWeb3AuthProvider>
 }
 
 // Hook to use the auth context

@@ -1,7 +1,7 @@
 import { type Address, isAddress } from "viem"
 import erc20AbiJson from "../../shared/abi/data/erc20abi.json"
 import { FactoryContract_ABI } from "../../shared/abi/generated"
-import { serverConfig } from "../../shared/config/server"
+import { clientConfig } from "../../shared/config/client"
 import type { ServerApp } from "../types"
 
 // Use the ERC20 ABI from the JSON file directly
@@ -38,14 +38,28 @@ export class TokenService {
     return this.serverApp.createLogger("token-service")
   }
 
+  private requirePublicClient() {
+    if (!this.serverApp.publicClient) {
+      throw new Error(
+        "Blockchain client not available - WEB3_ENABLED may be false",
+      )
+    }
+    return this.serverApp.publicClient
+  }
+
   /**
    * Get all tokens created by the factory
    */
   async getAllTokenAddresses(): Promise<Address[]> {
     try {
-      const factoryAddress = serverConfig.FACTORY_CONTRACT_ADDRESS as Address
+      if (!clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS) {
+        throw new Error("WEB3_FACTORY_CONTRACT_ADDRESS is not configured")
+      }
+      const factoryAddress =
+        clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS as Address
+      const publicClient = this.requirePublicClient()
 
-      const addresses = (await this.serverApp.publicClient.readContract({
+      const addresses = (await publicClient.readContract({
         address: factoryAddress,
         abi: FactoryContract_ABI,
         functionName: "getAllErc20Addresses",
@@ -71,29 +85,31 @@ export class TokenService {
         throw new Error("Invalid token address")
       }
 
+      const publicClient = this.requirePublicClient()
+
       // Read token metadata
       const [name, symbol, decimals, totalSupply, balance] = await Promise.all([
-        this.serverApp.publicClient.readContract({
+        publicClient.readContract({
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: "name",
         }),
-        this.serverApp.publicClient.readContract({
+        publicClient.readContract({
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: "symbol",
         }),
-        this.serverApp.publicClient.readContract({
+        publicClient.readContract({
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: "decimals",
         }),
-        this.serverApp.publicClient.readContract({
+        publicClient.readContract({
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: "totalSupply",
         }),
-        this.serverApp.publicClient.readContract({
+        publicClient.readContract({
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: "balanceOf",
@@ -143,7 +159,10 @@ export class TokenService {
    * Get transaction data for token creation (to be signed by user's wallet)
    */
   async prepareCreateTokenTransaction(params: CreateTokenParams) {
-    const factoryAddress = serverConfig.FACTORY_CONTRACT_ADDRESS as Address
+    if (!clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS) {
+      throw new Error("WEB3_FACTORY_CONTRACT_ADDRESS is not configured")
+    }
+    const factoryAddress = clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS as Address
 
     return {
       address: factoryAddress,
@@ -183,17 +202,21 @@ export class TokenService {
     txHash: Address,
   ): Promise<{ tokenAddress: Address | null }> {
     try {
-      const receipt =
-        await this.serverApp.publicClient.waitForTransactionReceipt({
-          hash: txHash,
-        })
+      const publicClient = this.requirePublicClient()
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+      })
 
       if (receipt.status !== "success") {
         throw new Error("Token creation transaction failed")
       }
 
       // Extract token address from ERC20NewToken event logs
-      const factoryAddress = serverConfig.FACTORY_CONTRACT_ADDRESS as Address
+      if (!clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS) {
+        throw new Error("WEB3_FACTORY_CONTRACT_ADDRESS is not configured")
+      }
+      const factoryAddress =
+        clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS as Address
       const tokenCreationLog = receipt.logs.find(
         (log) => log.address.toLowerCase() === factoryAddress.toLowerCase(),
       )

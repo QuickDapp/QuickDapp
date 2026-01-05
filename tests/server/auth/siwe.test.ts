@@ -16,7 +16,11 @@ import {
 } from "bun:test"
 import { SiweMessage } from "siwe"
 import { AuthService } from "../../../src/server/auth"
-import { createUserIfNotExists } from "../../../src/server/db/users"
+import {
+  createWeb3WalletUserIfNotExists,
+  getUserByAuthIdentifier,
+} from "../../../src/server/db/users"
+import { AUTH_METHOD } from "../../../src/shared/constants"
 import {
   checksumAddress,
   createAuthenticatedTestUser,
@@ -87,7 +91,10 @@ describe("SIWE Authentication Tests", () => {
       expect(signature.length).toBe(132) // Standard Ethereum signature length
 
       // Step 3: Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       // Step 4: Authenticate and get JWT
       const authResult = await authService.authenticateWithSiwe(
@@ -97,7 +104,7 @@ describe("SIWE Authentication Tests", () => {
 
       expect(authResult.token).toBeDefined()
       expect(typeof authResult.token).toBe("string")
-      expect(authResult.user.wallet).toBe(wallet.address.toLowerCase())
+      expect(authResult.user.web3Wallet).toBe(wallet.address.toLowerCase())
       expect(authResult.user.id).toBeDefined()
       expect(typeof authResult.user.id).toBe("number")
 
@@ -206,7 +213,10 @@ describe("SIWE Authentication Tests", () => {
       const chainIds = [1, 5, 11155111, 31337] // mainnet, goerli, sepolia, hardhat
 
       // Create user in database first (once for all chain IDs)
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       for (const chainId of chainIds) {
         const siweMessage = createSIWEMessage(wallet.address, { chainId })
@@ -231,14 +241,17 @@ describe("SIWE Authentication Tests", () => {
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       const authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
         signature,
       )
 
-      expect(authResult.user.wallet).toBe(wallet.address.toLowerCase())
+      expect(authResult.user.web3Wallet).toBe(wallet.address.toLowerCase())
       expect(authResult.user.id).toBeDefined()
       expect(typeof authResult.user.id).toBe("number")
     })
@@ -255,7 +268,10 @@ describe("SIWE Authentication Tests", () => {
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
@@ -278,7 +294,10 @@ describe("SIWE Authentication Tests", () => {
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       const _authResult = await authService.authenticateWithSiwe(
         siweMessage.prepareMessage(),
@@ -377,7 +396,10 @@ describe("SIWE Authentication Tests", () => {
       const wallet = generateTestWallet()
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       // Test with different address cases
       const addresses = [
@@ -411,7 +433,10 @@ describe("SIWE Authentication Tests", () => {
       expect(checksummed).toBe(wallet.address) // Should already be checksummed from viem
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       const siweMessage = createSIWEMessage(checksummed)
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
@@ -433,7 +458,7 @@ describe("SIWE Authentication Tests", () => {
       )
 
       // Create user in database first
-      await createUserIfNotExists(
+      await createWeb3WalletUserIfNotExists(
         testServer.serverApp.db,
         hardhatWallet.address,
       )
@@ -456,7 +481,10 @@ describe("SIWE Authentication Tests", () => {
       const wallet = generateTestWallet()
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       // Test different domains
       const validDomains = ["localhost", "example.com", "app.quickdapp.com"]
@@ -476,7 +504,10 @@ describe("SIWE Authentication Tests", () => {
       const wallet = generateTestWallet()
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       const validURIs = [
         "http://localhost:3002",
@@ -518,7 +549,10 @@ describe("SIWE Authentication Tests", () => {
       expect(siweMessage.nonce).toBe(customNonce)
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
@@ -537,7 +571,10 @@ describe("SIWE Authentication Tests", () => {
       })
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
@@ -557,7 +594,10 @@ describe("SIWE Authentication Tests", () => {
       // Create all users in database first
       await Promise.all(
         wallets.map((wallet) =>
-          createUserIfNotExists(testServer.serverApp.db, wallet.address),
+          createWeb3WalletUserIfNotExists(
+            testServer.serverApp.db,
+            wallet.address,
+          ),
         ),
       )
 
@@ -581,7 +621,7 @@ describe("SIWE Authentication Tests", () => {
 
       // All should have correct wallet addresses
       for (let i = 0; i < wallets.length; i++) {
-        expect(authResults[i]!.user.wallet).toBe(
+        expect(authResults[i]!.user.web3Wallet).toBe(
           wallets[i]!.address.toLowerCase(),
         )
       }
@@ -591,7 +631,10 @@ describe("SIWE Authentication Tests", () => {
       const wallet = generateTestWallet()
 
       // Create user in database first
-      await createUserIfNotExists(testServer.serverApp.db, wallet.address)
+      await createWeb3WalletUserIfNotExists(
+        testServer.serverApp.db,
+        wallet.address,
+      )
 
       // Create multiple auth sessions for same wallet
       const authPromises = Array(3)
@@ -619,7 +662,7 @@ describe("SIWE Authentication Tests", () => {
 
       // All should be for same wallet
       for (const result of authResults) {
-        expect(result.user.wallet).toBe(wallet.address.toLowerCase())
+        expect(result.user.web3Wallet).toBe(wallet.address.toLowerCase())
       }
 
       // But should have different tokens
@@ -675,7 +718,11 @@ describe("SIWE Authentication Tests", () => {
       const signature = await signSIWEMessage(siweMessage, wallet.privateKey)
 
       // Step 3: Verify user doesn't exist in database initially
-      const userBefore = await authService.getUserByWallet(wallet.address)
+      const userBefore = await getUserByAuthIdentifier(
+        testServer.serverApp.db,
+        AUTH_METHOD.WEB3_WALLET,
+        wallet.address.toLowerCase(),
+      )
       expect(userBefore).toBeUndefined()
 
       // Step 4: Authenticate - this should create the user automatically
@@ -686,14 +733,17 @@ describe("SIWE Authentication Tests", () => {
 
       expect(authResult.token).toBeDefined()
       expect(typeof authResult.token).toBe("string")
-      expect(authResult.user.wallet).toBe(wallet.address.toLowerCase())
+      expect(authResult.user.web3Wallet).toBe(wallet.address.toLowerCase())
       expect(authResult.user.id).toBeDefined()
       expect(typeof authResult.user.id).toBe("number")
 
       // Step 5: Verify user now exists in database
-      const userAfter = await authService.getUserByWallet(wallet.address)
+      const userAfter = await getUserByAuthIdentifier(
+        testServer.serverApp.db,
+        AUTH_METHOD.WEB3_WALLET,
+        wallet.address.toLowerCase(),
+      )
       expect(userAfter).toBeDefined()
-      expect(userAfter!.wallet).toBe(wallet.address.toLowerCase())
       expect(userAfter!.id).toBe(authResult.user.id)
     })
   })

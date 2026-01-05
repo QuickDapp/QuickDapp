@@ -59,7 +59,7 @@ type Query {
 }
 
 type Mutation {
-  generateSiweMessage(address: String!): SiweMessageResult!
+  generateSiweMessage(address: String!, chainId: Int!, domain: String!): SiweMessageResult!
   authenticateWithSiwe(message: String!, signature: String!): AuthResult!
   markNotificationAsRead(id: PositiveInt!): Success! @auth
   markAllNotificationsAsRead: Success! @auth

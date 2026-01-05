@@ -26,7 +26,7 @@ docker run -d \
   -p 3000:3000 \
   -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
   -e SESSION_ENCRYPTION_KEY="your_32_character_encryption_key" \
-  -e SERVER_WALLET_PRIVATE_KEY="0xYourWalletKey" \
+  -e WEB3_SERVER_WALLET_PRIVATE_KEY="0xYourWalletKey" \
   quickdapp:latest
 ```
 
@@ -38,10 +38,10 @@ Create an environment file for easier management:
 # .env.docker
 DATABASE_URL=postgresql://user:password@host:5432/quickdapp
 SESSION_ENCRYPTION_KEY=your_secure_32_character_key
-SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
 CHAIN=sepolia
-CHAIN_RPC_ENDPOINT=https://sepolia.infura.io/v3/your-api-key
-FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
+WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/your-api-key
+WEB3_FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
 ```
 
 Run with environment file:

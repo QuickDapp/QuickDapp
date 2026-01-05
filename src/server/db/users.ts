@@ -1,13 +1,16 @@
 import { eq } from "drizzle-orm"
-import { nanoid } from "nanoid"
 import {
   AUTH_METHOD,
   type AuthMethod,
-  WEB2_WALLET_PREFIX,
+  type OAuthMethod,
 } from "../../shared/constants"
 import { type User, users } from "./schema"
 import { type DatabaseOrTransaction, withTransaction } from "./shared"
-import { createUserAuth, getUserAuthByIdentifier } from "./userAuth"
+import {
+  createUserAuth,
+  getUserAuthByIdentifier,
+  getUserAuthsByUserId,
+} from "./userAuth"
 
 export type { User }
 
@@ -23,24 +26,6 @@ export async function getUserById(
       .select()
       .from(users)
       .where(eq(users.id, id))
-      .limit(1)
-
-    return result[0]
-  })
-}
-
-/**
- * Get user by wallet address
- */
-export async function getUser(
-  db: DatabaseOrTransaction,
-  wallet: string,
-): Promise<User | undefined> {
-  return db.startSpan("db.users.getUser", async () => {
-    const result = await db
-      .select()
-      .from(users)
-      .where(eq(users.wallet, wallet.toLowerCase()))
       .limit(1)
 
     return result[0]
@@ -77,37 +62,49 @@ export async function setUserDisabled(
 }
 
 /**
- * Create user with wallet auth if they don't exist, otherwise return existing user
+ * Create user with web3 wallet auth if they don't exist, otherwise return existing user
  */
-export async function createUserIfNotExists(
+export async function createWeb3WalletUserIfNotExists(
   db: DatabaseOrTransaction,
-  wallet: string,
+  walletAddress: string,
 ): Promise<User> {
-  return db.startSpan("db.users.createUserIfNotExists", async () => {
+  return db.startSpan("db.users.createWeb3WalletUserIfNotExists", async () => {
     return withTransaction(db, async (tx) => {
-      // Check if user exists by wallet
-      let user = await getUser(tx, wallet)
+      const normalizedWallet = walletAddress.toLowerCase()
 
-      if (!user) {
-        // Create new user
-        const result = await tx
-          .insert(users)
-          .values({
-            wallet: wallet.toLowerCase(),
-            settings: {},
-          })
-          .returning()
+      // Check if wallet auth already exists
+      const existingAuth = await getUserAuthByIdentifier(
+        tx,
+        AUTH_METHOD.WEB3_WALLET,
+        normalizedWallet,
+      )
 
-        user = result[0]!
-
-        // Create wallet auth entry
-        await createUserAuth(
-          tx,
-          user.id,
-          AUTH_METHOD.WALLET,
-          wallet.toLowerCase(),
-        )
+      if (existingAuth) {
+        // Return existing user
+        const user = await getUserById(tx, existingAuth.userId)
+        if (!user) {
+          throw new Error("User not found for existing wallet auth")
+        }
+        return user
       }
+
+      // Create new user
+      const result = await tx
+        .insert(users)
+        .values({
+          settings: {},
+        })
+        .returning()
+
+      const user = result[0]!
+
+      // Create wallet auth entry
+      await createUserAuth(
+        tx,
+        user.id,
+        AUTH_METHOD.WEB3_WALLET,
+        normalizedWallet,
+      )
 
       return user
     })
@@ -115,7 +112,7 @@ export async function createUserIfNotExists(
 }
 
 /**
- * Create user with email auth, generating a synthetic wallet address
+ * Create user with email auth if they don't exist, otherwise return existing user
  */
 export async function createEmailUserIfNotExists(
   db: DatabaseOrTransaction,
@@ -123,11 +120,13 @@ export async function createEmailUserIfNotExists(
 ): Promise<User> {
   return db.startSpan("db.users.createEmailUserIfNotExists", async () => {
     return withTransaction(db, async (tx) => {
+      const normalizedEmail = email.toLowerCase()
+
       // Check if email auth already exists
       const existingAuth = await getUserAuthByIdentifier(
         tx,
         AUTH_METHOD.EMAIL,
-        email.toLowerCase(),
+        normalizedEmail,
       )
 
       if (existingAuth) {
@@ -139,14 +138,10 @@ export async function createEmailUserIfNotExists(
         return user
       }
 
-      // Generate synthetic wallet for email user
-      const syntheticWallet = `${WEB2_WALLET_PREFIX}${nanoid()}`
-
       // Create new user
       const result = await tx
         .insert(users)
         .values({
-          wallet: syntheticWallet,
           settings: {},
         })
         .returning()
@@ -154,7 +149,7 @@ export async function createEmailUserIfNotExists(
       const user = result[0]!
 
       // Create email auth entry
-      await createUserAuth(tx, user.id, AUTH_METHOD.EMAIL, email.toLowerCase())
+      await createUserAuth(tx, user.id, AUTH_METHOD.EMAIL, normalizedEmail)
 
       return user
     })
@@ -162,7 +157,85 @@ export async function createEmailUserIfNotExists(
 }
 
 /**
- * Get user by auth identifier (email or wallet)
+ * Create user with OAuth auth if they don't exist, otherwise return existing user
+ * Links to existing account if email matches an existing email auth
+ */
+export async function createOAuthUserIfNotExists(
+  db: DatabaseOrTransaction,
+  provider: OAuthMethod,
+  email: string | undefined,
+  providerUserId: string,
+): Promise<User> {
+  return db.startSpan("db.users.createOAuthUserIfNotExists", async () => {
+    return withTransaction(db, async (tx) => {
+      const normalizedEmail = email?.toLowerCase()
+      const authIdentifier = `${providerUserId}`
+
+      // Check if OAuth auth already exists
+      const existingOAuthAuth = await getUserAuthByIdentifier(
+        tx,
+        provider,
+        authIdentifier,
+      )
+
+      if (existingOAuthAuth) {
+        // Return existing user
+        const user = await getUserById(tx, existingOAuthAuth.userId)
+        if (!user) {
+          throw new Error("User not found for existing OAuth auth")
+        }
+        return user
+      }
+
+      // Check if email auth exists (link accounts) - only if email is provided
+      if (normalizedEmail) {
+        const existingEmailAuth = await getUserAuthByIdentifier(
+          tx,
+          AUTH_METHOD.EMAIL,
+          normalizedEmail,
+        )
+
+        if (existingEmailAuth) {
+          // Link OAuth to existing email user
+          await createUserAuth(
+            tx,
+            existingEmailAuth.userId,
+            provider,
+            authIdentifier,
+          )
+          const user = await getUserById(tx, existingEmailAuth.userId)
+          if (!user) {
+            throw new Error("User not found for existing email auth")
+          }
+          return user
+        }
+      }
+
+      // Create new user
+      const result = await tx
+        .insert(users)
+        .values({
+          settings: {},
+        })
+        .returning()
+
+      const user = result[0]!
+
+      // Create OAuth auth entry
+      await createUserAuth(tx, user.id, provider, authIdentifier)
+
+      // Also create email auth entry for future linking (only if email is provided)
+      if (normalizedEmail) {
+        await createUserAuth(tx, user.id, AUTH_METHOD.EMAIL, normalizedEmail)
+      }
+
+      return user
+    })
+  })
+}
+
+/**
+ * Get user by auth identifier (email, wallet, or OAuth provider ID)
  */
 export async function getUserByAuthIdentifier(
   db: DatabaseOrTransaction,
@@ -179,12 +252,66 @@ export async function getUserByAuthIdentifier(
 }
 
 /**
- * Update user settings
+ * Get user's web3 wallet address if they have one
+ */
+export async function getUserWeb3Wallet(
+  db: DatabaseOrTransaction,
+  userId: number,
+): Promise<string | undefined> {
+  return db.startSpan("db.users.getUserWeb3Wallet", async () => {
+    const auths = await getUserAuthsByUserId(db, userId)
+    const walletAuth = auths.find((a) => a.authType === AUTH_METHOD.WEB3_WALLET)
+    return walletAuth?.authIdentifier
+  })
+}
+
+/**
+ * Get user's primary auth identifier for display
+ */
+export async function getUserPrimaryAuthIdentifier(
+  db: DatabaseOrTransaction,
+  userId: number,
+): Promise<{ type: AuthMethod; identifier: string } | undefined> {
+  return db.startSpan("db.users.getUserPrimaryAuthIdentifier", async () => {
+    const auths = await getUserAuthsByUserId(db, userId)
+    if (auths.length === 0) {
+      return undefined
+    }
+
+    // Priority: WEB3_WALLET > EMAIL > GOOGLE > GITHUB
+    const priority: AuthMethod[] = [
+      AUTH_METHOD.WEB3_WALLET,
+      AUTH_METHOD.EMAIL,
+      AUTH_METHOD.GOOGLE,
+      AUTH_METHOD.GITHUB,
+    ]
+
+    for (const type of priority) {
+      const auth = auths.find((a) => a.authType === type)
+      if (auth) {
+        return {
+          type: auth.authType as AuthMethod,
+          identifier: auth.authIdentifier,
+        }
+      }
+    }
+
+    // Fallback to first auth
+    const first = auths[0]!
+    return {
+      type: first.authType as AuthMethod,
+      identifier: first.authIdentifier,
+    }
+  })
+}
+
+/**
+ * Update user settings by user ID
  */
 export async function updateUserSettings(
   db: DatabaseOrTransaction,
-  wallet: string,
-  settings: any,
+  userId: number,
+  settings: unknown,
 ): Promise<User | undefined> {
   return db.startSpan("db.users.updateUserSettings", async () => {
     const result = await db
@@ -193,7 +320,7 @@ export async function updateUserSettings(
         settings,
         updatedAt: new Date(),
       })
-      .where(eq(users.wallet, wallet.toLowerCase()))
+      .where(eq(users.id, userId))
       .returning()
 
     return result[0]
