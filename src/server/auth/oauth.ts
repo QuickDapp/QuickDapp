@@ -12,7 +12,6 @@ import {
   GitHub,
   Google,
   generateCodeVerifier,
-  generateState,
   LinkedIn,
   TikTok,
   Twitter,
@@ -241,52 +240,56 @@ export interface AuthorizationParams {
   codeVerifier?: string
 }
 
-export function createGoogleAuthorizationParams(): AuthorizationParams {
+export function createGoogleAuthorizationParams(
+  state: string,
+): AuthorizationParams {
   const client = getGoogleClient()
-  const state = generateState()
   const codeVerifier = generateCodeVerifier()
   const scopes = ["openid", "profile", "email"]
   const url = client.createAuthorizationURL(state, codeVerifier, scopes)
   return { url, state, codeVerifier }
 }
 
-export function createFacebookAuthorizationParams(): AuthorizationParams {
+export function createFacebookAuthorizationParams(
+  state: string,
+): AuthorizationParams {
   const client = getFacebookClient()
-  const state = generateState()
   const scopes = ["email", "public_profile"]
   const url = client.createAuthorizationURL(state, scopes)
   return { url, state }
 }
 
-export function createGitHubAuthorizationParams(): AuthorizationParams {
+export function createGitHubAuthorizationParams(
+  state: string,
+): AuthorizationParams {
   const client = getGitHubClient()
-  const state = generateState()
   const scopes = ["user:email"]
   const url = client.createAuthorizationURL(state, scopes)
   return { url, state }
 }
 
-export function createXAuthorizationParams(): AuthorizationParams {
+export function createXAuthorizationParams(state: string): AuthorizationParams {
   const client = getXClient()
-  const state = generateState()
   const codeVerifier = generateCodeVerifier()
   const scopes = ["users.read", "tweet.read"]
   const url = client.createAuthorizationURL(state, codeVerifier, scopes)
   return { url, state, codeVerifier }
 }
 
-export function createTikTokAuthorizationParams(): AuthorizationParams {
+export function createTikTokAuthorizationParams(
+  state: string,
+): AuthorizationParams {
   const client = getTikTokClient()
-  const state = generateState()
   const codeVerifier = generateCodeVerifier()
   const scopes = ["user.info.basic"]
   const url = client.createAuthorizationURL(state, codeVerifier, scopes)
   return { url, state, codeVerifier }
 }
 
-export function createLinkedInAuthorizationParams(): AuthorizationParams {
+export function createLinkedInAuthorizationParams(
+  state: string,
+): AuthorizationParams {
   const client = getLinkedInClient()
-  const state = generateState()
   const scopes = ["openid", "profile", "email"]
   const url = client.createAuthorizationURL(state, scopes)
   return { url, state }
@@ -294,20 +297,21 @@ export function createLinkedInAuthorizationParams(): AuthorizationParams {
 
 export function createAuthorizationParams(
   provider: OAuthProvider,
+  state: string,
 ): AuthorizationParams {
   switch (provider) {
     case "GOOGLE":
-      return createGoogleAuthorizationParams()
+      return createGoogleAuthorizationParams(state)
     case "FACEBOOK":
-      return createFacebookAuthorizationParams()
+      return createFacebookAuthorizationParams(state)
     case "GITHUB":
-      return createGitHubAuthorizationParams()
+      return createGitHubAuthorizationParams(state)
     case "X":
-      return createXAuthorizationParams()
+      return createXAuthorizationParams(state)
     case "TIKTOK":
-      return createTikTokAuthorizationParams()
+      return createTikTokAuthorizationParams(state)
     case "LINKEDIN":
-      return createLinkedInAuthorizationParams()
+      return createLinkedInAuthorizationParams(state)
     default:
       throw new OAuthConfigError(provider, "Unknown provider")
   }

@@ -471,6 +471,144 @@ describe("JWT Lifecycle Tests", () => {
     })
   })
 
+  describe("JWT Type Claim", () => {
+    it("should include type claim in auth tokens", async () => {
+      const wallet = generateTestWallet()
+      const token = await createTestJWT(wallet.address)
+
+      const payload = decodeJWT(token)
+      expect(payload.type).toBe("auth")
+    })
+
+    it("should reject tokens with wrong type claim", async () => {
+      const wallet = generateTestWallet()
+      // Create a token with wrong type (simulating an OAuth state token being used as auth)
+      const wrongTypeToken = await createTestJWT(wallet.address, {
+        extraClaims: { type: "oauth_state" },
+      })
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          wrongTypeToken,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeDefined()
+      expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
+    })
+
+    it("should reject tokens with missing type claim", async () => {
+      // Create a malformed token without type claim
+      const { SignJWT } = await import("jose")
+      const { serverConfig } = await import("../../../src/shared/config/server")
+
+      const secret = new TextEncoder().encode(
+        serverConfig.SESSION_ENCRYPTION_KEY,
+      )
+      const wallet = generateTestWallet()
+
+      const token = await new SignJWT({
+        userId: 1,
+        web3_wallet: wallet.address.toLowerCase(),
+        // Missing type claim
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("24h")
+        .sign(secret)
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          token,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeDefined()
+      expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
+    })
+  })
+
+  describe("OAuth State Token", () => {
+    it("should generate valid OAuth state tokens", async () => {
+      const { generateOAuthStateToken } = await import(
+        "../../../src/server/auth"
+      )
+
+      const stateToken = await generateOAuthStateToken("GOOGLE")
+
+      expect(typeof stateToken).toBe("string")
+      expect(stateToken.split(".")).toHaveLength(3) // JWT format
+
+      // Decode and verify structure
+      const payload = decodeJWT(stateToken)
+      expect(payload.type).toBe("oauth_state")
+      expect(payload.provider).toBe("GOOGLE")
+      expect(payload.jti).toBeDefined()
+      expect(payload.exp).toBeGreaterThan(Math.floor(Date.now() / 1000))
+    })
+
+    it("should verify valid OAuth state tokens", async () => {
+      const { generateOAuthStateToken, verifyOAuthStateToken } = await import(
+        "../../../src/server/auth"
+      )
+
+      const stateToken = await generateOAuthStateToken("GITHUB")
+      const isValid = await verifyOAuthStateToken(stateToken, "GITHUB")
+
+      expect(isValid).toBe(true)
+    })
+
+    it("should reject OAuth state tokens with wrong provider", async () => {
+      const { generateOAuthStateToken, verifyOAuthStateToken } = await import(
+        "../../../src/server/auth"
+      )
+
+      const stateToken = await generateOAuthStateToken("GOOGLE")
+      const isValid = await verifyOAuthStateToken(stateToken, "GITHUB")
+
+      expect(isValid).toBe(false)
+    })
+
+    it("should reject invalid OAuth state tokens", async () => {
+      const { verifyOAuthStateToken } = await import("../../../src/server/auth")
+
+      const isValid = await verifyOAuthStateToken(
+        "invalid.token.here",
+        "GOOGLE",
+      )
+
+      expect(isValid).toBe(false)
+    })
+
+    it("should reject OAuth state tokens used as auth tokens", async () => {
+      const { generateOAuthStateToken } = await import(
+        "../../../src/server/auth"
+      )
+
+      const stateToken = await generateOAuthStateToken("GOOGLE")
+
+      const response = await makeRequest(`${testServer.url}/graphql`, {
+        ...createGraphQLRequest(
+          `query { getMyUnreadNotificationsCount }`,
+          {},
+          stateToken,
+        ),
+      })
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeDefined()
+      expect(body.errors[0].extensions.code).toBe("UNAUTHORIZED")
+    })
+  })
+
   describe("Authorization Header Handling", () => {
     it("should handle various Authorization header formats", async () => {
       const wallet = generateTestWallet()

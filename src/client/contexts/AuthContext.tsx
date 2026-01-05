@@ -1,3 +1,4 @@
+import { clientConfig } from "@shared/config/client"
 import { getGraphQLClient, setAuthToken } from "@shared/graphql/client"
 import {
   AUTHENTICATE_WITH_SIWE,
@@ -231,7 +232,8 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+// Web3 Auth Provider - uses wagmi hooks for SIWE authentication
+function Web3AuthProvider({ children }: AuthProviderProps) {
   const [authState, dispatch] = useReducer(authReducer, initialState)
   const [lastRejectedAddress, setLastRejectedAddress] = useState<string | null>(
     null,
@@ -555,6 +557,107 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return (
     <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   )
+}
+
+// Non-Web3 Auth Provider - used when WEB3_ENABLED=false
+// Provides a minimal auth context for email/OAuth authentication
+function NonWeb3AuthProvider({ children }: AuthProviderProps) {
+  const [authState, dispatch] = useReducer(authReducer, initialState)
+  const restorationStarted = useRef(false)
+
+  // Logout function
+  const logout = useCallback(() => {
+    setAuthToken(null)
+    dispatch({ type: AuthActionType.LOGOUT })
+    clearAuthFromStorage()
+  }, [])
+
+  // Restore authentication from localStorage (for OAuth/email tokens)
+  const restoreAuth = useCallback(async () => {
+    dispatch({ type: AuthActionType.RESTORE_START })
+
+    const { token, web3Wallet } = getAuthFromStorage()
+
+    if (token) {
+      try {
+        setAuthToken(token)
+        const graphqlClient = getGraphQLClient()
+        const response = (await graphqlClient.request(VALIDATE_TOKEN)) as {
+          validateToken: { valid: boolean; web3Wallet: string | null }
+        }
+
+        if (response.validateToken.valid) {
+          dispatch({
+            type: AuthActionType.AUTH_SUCCESS,
+            payload: { token, web3Wallet: web3Wallet || "" },
+          })
+        } else {
+          clearAuthFromStorage()
+          setAuthToken(null)
+          dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+        }
+      } catch {
+        clearAuthFromStorage()
+        setAuthToken(null)
+        dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+      }
+    } else {
+      dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+    }
+  }, [])
+
+  // Authenticate stub - Web3 auth is not available
+  const authenticate = useCallback(async (): Promise<AuthResult> => {
+    return {
+      success: false,
+      token: null,
+      web3Wallet: null,
+      error: "Web3 authentication is not enabled",
+    }
+  }, [])
+
+  // Effect: Token restoration on mount
+  useEffect(() => {
+    if (authState.status === AuthStatus.IDLE && !restorationStarted.current) {
+      restorationStarted.current = true
+      restoreAuth().catch(() => {
+        dispatch({ type: AuthActionType.RESTORE_COMPLETE })
+      })
+    }
+  }, [authState.status, restoreAuth])
+
+  const isAuthenticated = authState.status === AuthStatus.AUTHENTICATED
+  const isLoading =
+    authState.status === AuthStatus.AUTHENTICATING ||
+    authState.status === AuthStatus.RESTORING
+
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      isLoading,
+      error: null,
+      authToken:
+        authState.status === AuthStatus.AUTHENTICATED ? authState.token : null,
+      walletAddress: null,
+      userRejectedAuth: false,
+      authenticate,
+      logout,
+      restoreAuth,
+    }),
+    [isAuthenticated, isLoading, authState, authenticate, logout, restoreAuth],
+  )
+
+  return (
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  )
+}
+
+// Exported AuthProvider - chooses the right provider based on WEB3_ENABLED
+export function AuthProvider({ children }: AuthProviderProps) {
+  if (clientConfig.WEB3_ENABLED) {
+    return <Web3AuthProvider>{children}</Web3AuthProvider>
+  }
+  return <NonWeb3AuthProvider>{children}</NonWeb3AuthProvider>
 }
 
 // Hook to use the auth context

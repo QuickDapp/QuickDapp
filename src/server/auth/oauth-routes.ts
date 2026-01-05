@@ -6,7 +6,7 @@ import { serverConfig } from "@shared/config/server"
 import { Elysia, t } from "elysia"
 import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
-import { AuthService } from "./index"
+import { AuthService, verifyOAuthStateToken } from "./index"
 import {
   exchangeCodeAndFetchUserInfo,
   OAUTH_PROVIDER,
@@ -20,7 +20,6 @@ import {
 const OAUTH_STATE_COOKIE = "oauth_state"
 const OAUTH_CODE_VERIFIER_COOKIE = "oauth_code_verifier"
 const OAUTH_PROVIDER_COOKIE = "oauth_provider"
-const AUTH_TOKEN_COOKIE = "auth_token"
 
 // Error page redirect URL
 function getErrorRedirectUrl(error: string): string {
@@ -75,12 +74,22 @@ export function createOAuthRoutes(serverApp: ServerApp) {
     cookies: Record<string, string>,
   ): Promise<Response> => {
     try {
-      // Validate state (CSRF protection)
+      // Validate state JWT token (CSRF protection)
       const storedState = cookies[OAUTH_STATE_COOKIE]
       if (!storedState || storedState !== stateFromQuery) {
         logger.warn(`OAuth state mismatch for ${provider}`)
         return createRedirectResponse(
           getErrorRedirectUrl("Invalid OAuth state"),
+          clearOAuthCookies(),
+        )
+      }
+
+      // Verify the JWT state token signature, expiration, and provider
+      const isValidState = await verifyOAuthStateToken(storedState, provider)
+      if (!isValidState) {
+        logger.warn(`OAuth state token verification failed for ${provider}`)
+        return createRedirectResponse(
+          getErrorRedirectUrl("Invalid or expired OAuth state"),
           clearOAuthCookies(),
         )
       }
@@ -133,16 +142,9 @@ export function createOAuthRoutes(serverApp: ServerApp) {
         `OAuth authentication successful for ${provider}, user ${authResult.user.id}`,
       )
 
-      // Set auth token cookie and clear OAuth cookies
-      const cookieList = clearOAuthCookies()
-      const tokenCookieOptions =
-        "Path=/; HttpOnly; SameSite=Lax; Max-Age=604800" // 7 days
-      cookieList.push(
-        `${AUTH_TOKEN_COOKIE}=${authResult.token}; ${tokenCookieOptions}`,
-      )
-
-      // Redirect to success page
-      return createRedirectResponse(getSuccessRedirectUrl(), cookieList)
+      // Clear OAuth cookies and redirect to success page with token in URL fragment
+      const successUrl = `${getSuccessRedirectUrl()}#token=${authResult.token}`
+      return createRedirectResponse(successUrl, clearOAuthCookies())
     } catch (error) {
       logger.error(`OAuth callback error for ${provider}:`, error)
 

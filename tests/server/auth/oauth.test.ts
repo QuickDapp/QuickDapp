@@ -221,7 +221,7 @@ describe("OAuth Authentication", () => {
       })
 
       it(`should reject ${name} callback with mismatched state`, async () => {
-        const mockState = createMockOAuthState(name)
+        const mockState = await createMockOAuthState(name)
 
         const response = await fetch(
           `${testServer.url}${path}?code=test_code&state=wrong_state`,
@@ -244,7 +244,7 @@ describe("OAuth Authentication", () => {
       })
 
       it(`should reject ${name} callback without authorization code`, async () => {
-        const mockState = createMockOAuthState(name)
+        const mockState = await createMockOAuthState(name)
 
         const response = await fetch(
           `${testServer.url}${path}?state=${mockState.state}`,
@@ -276,7 +276,7 @@ describe("OAuth Authentication", () => {
 
     for (const { name, path } of pkceProviders) {
       it(`should reject ${name} callback without code verifier (PKCE)`, async () => {
-        const mockState = createMockOAuthState(name)
+        const mockState = await createMockOAuthState(name)
 
         // Send request without code verifier cookie
         const response = await fetch(
@@ -356,14 +356,16 @@ describe("OAuth Authentication", () => {
   })
 
   describe("Authorization URL generation", () => {
+    const testState = "test-state-token-12345"
+
     it("should generate valid Google authorization params with PKCE", async () => {
       const { createGoogleAuthorizationParams } = await import(
         "../../../src/server/auth/oauth"
       )
-      const params = createGoogleAuthorizationParams()
+      const params = createGoogleAuthorizationParams(testState)
 
       expect(params.url).toBeDefined()
-      expect(params.state).toBeTruthy()
+      expect(params.state).toBe(testState)
       expect(params.codeVerifier).toBeTruthy()
       expect(params.url.toString()).toContain("code_challenge")
     })
@@ -372,10 +374,10 @@ describe("OAuth Authentication", () => {
       const { createFacebookAuthorizationParams } = await import(
         "../../../src/server/auth/oauth"
       )
-      const params = createFacebookAuthorizationParams()
+      const params = createFacebookAuthorizationParams(testState)
 
       expect(params.url).toBeDefined()
-      expect(params.state).toBeTruthy()
+      expect(params.state).toBe(testState)
       expect(params.codeVerifier).toBeUndefined()
     })
 
@@ -383,10 +385,10 @@ describe("OAuth Authentication", () => {
       const { createGitHubAuthorizationParams } = await import(
         "../../../src/server/auth/oauth"
       )
-      const params = createGitHubAuthorizationParams()
+      const params = createGitHubAuthorizationParams(testState)
 
       expect(params.url).toBeDefined()
-      expect(params.state).toBeTruthy()
+      expect(params.state).toBe(testState)
       expect(params.codeVerifier).toBeUndefined()
     })
 
@@ -394,10 +396,10 @@ describe("OAuth Authentication", () => {
       const { createXAuthorizationParams } = await import(
         "../../../src/server/auth/oauth"
       )
-      const params = createXAuthorizationParams()
+      const params = createXAuthorizationParams(testState)
 
       expect(params.url).toBeDefined()
-      expect(params.state).toBeTruthy()
+      expect(params.state).toBe(testState)
       expect(params.codeVerifier).toBeTruthy()
     })
 
@@ -405,10 +407,10 @@ describe("OAuth Authentication", () => {
       const { createTikTokAuthorizationParams } = await import(
         "../../../src/server/auth/oauth"
       )
-      const params = createTikTokAuthorizationParams()
+      const params = createTikTokAuthorizationParams(testState)
 
       expect(params.url).toBeDefined()
-      expect(params.state).toBeTruthy()
+      expect(params.state).toBe(testState)
       expect(params.codeVerifier).toBeTruthy()
     })
 
@@ -416,10 +418,10 @@ describe("OAuth Authentication", () => {
       const { createLinkedInAuthorizationParams } = await import(
         "../../../src/server/auth/oauth"
       )
-      const params = createLinkedInAuthorizationParams()
+      const params = createLinkedInAuthorizationParams(testState)
 
       expect(params.url).toBeDefined()
-      expect(params.state).toBeTruthy()
+      expect(params.state).toBe(testState)
       expect(params.codeVerifier).toBeUndefined()
     })
   })

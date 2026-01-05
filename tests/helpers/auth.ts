@@ -167,6 +167,7 @@ export async function createTestJWT(
   const jwtSecret = new TextEncoder().encode(secret)
 
   return await new SignJWT({
+    type: "auth", // Required type claim for auth tokens
     userId: 1, // Default test user ID
     ...(web3Wallet && { web3_wallet: web3Wallet.toLowerCase() }),
     iat: Math.floor(Date.now() / 1000),
@@ -229,9 +230,10 @@ export async function createMalformedJWT(
       })
 
     case "missing-wallet": {
-      // Create a token without the wallet field entirely
+      // Create a token without the wallet field entirely (valid for email users)
       const jwtSecret = new TextEncoder().encode(getJWTSecret())
       return await new SignJWT({
+        type: "auth",
         userId: 1,
         iat: Math.floor(Date.now() / 1000),
         // wallet field is missing entirely
@@ -245,6 +247,7 @@ export async function createMalformedJWT(
       // Create a token without the userId field entirely
       const jwtSecret = new TextEncoder().encode(getJWTSecret())
       return await new SignJWT({
+        type: "auth",
         wallet: "0x1234567890123456789012345678901234567890",
         iat: Math.floor(Date.now() / 1000),
         // userId field is missing entirely
@@ -550,7 +553,8 @@ export async function createEmailAuthenticatedTestUser(
 /**
  * OAuth test helpers
  */
-import { generateCodeVerifier, generateState } from "arctic"
+import { generateCodeVerifier } from "arctic"
+import { generateOAuthStateToken } from "../../src/server/auth"
 import type { OAuthProvider } from "../../src/server/auth/oauth"
 
 export interface MockOAuthState {
@@ -560,11 +564,14 @@ export interface MockOAuthState {
 }
 
 /**
- * Create mock OAuth state for testing
+ * Create mock OAuth state for testing (uses JWT state token)
  */
-export function createMockOAuthState(provider: OAuthProvider): MockOAuthState {
+export async function createMockOAuthState(
+  provider: OAuthProvider,
+): Promise<MockOAuthState> {
+  const state = await generateOAuthStateToken(provider)
   return {
-    state: generateState(),
+    state,
     codeVerifier: generateCodeVerifier(),
     provider,
   }

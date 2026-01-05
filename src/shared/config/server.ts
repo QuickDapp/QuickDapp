@@ -178,14 +178,25 @@ export const serverConfig: ServerConfig = {
   DIGITALOCEAN_ACCESS_TOKEN: env.get("DIGITALOCEAN_ACCESS_TOKEN").asString(),
 }
 
+// Helper to check if a config value is empty
+function isConfigValueEmpty(value: unknown): boolean {
+  if (value === undefined || value === null) return true
+  if (typeof value === "string") return value.trim() === ""
+  if (Array.isArray(value)) return value.length === 0
+  return false
+}
+
 // Validate critical configuration on startup
 export function validateConfig() {
-  const requiredForAll = ["DATABASE_URL", "SESSION_ENCRYPTION_KEY", "BASE_URL"]
+  const requiredForAll: (keyof ServerConfig)[] = [
+    "DATABASE_URL",
+    "SESSION_ENCRYPTION_KEY",
+    "BASE_URL",
+  ]
 
-  const missing = requiredForAll.filter((key) => {
-    const value = process.env[key]
-    return !value || value.trim() === ""
-  })
+  const missing = requiredForAll.filter((key) =>
+    isConfigValueEmpty(serverConfig[key]),
+  )
 
   if (missing.length > 0) {
     throw new Error(
@@ -202,17 +213,16 @@ export function validateConfig() {
 
   // Validate web3 config when enabled
   if (serverConfig.WEB3_ENABLED) {
-    const requiredForWeb3 = [
+    const requiredForWeb3: (keyof ServerConfig)[] = [
       "WEB3_SERVER_WALLET_PRIVATE_KEY",
       "WEB3_ALLOWED_SIWE_ORIGINS",
       "WEB3_WALLETCONNECT_PROJECT_ID",
       "WEB3_SUPPORTED_CHAINS",
     ]
 
-    const missingWeb3 = requiredForWeb3.filter((key) => {
-      const value = process.env[key]
-      return !value || value.trim() === ""
-    })
+    const missingWeb3 = requiredForWeb3.filter((key) =>
+      isConfigValueEmpty(serverConfig[key]),
+    )
 
     if (missingWeb3.length > 0) {
       throw new Error(

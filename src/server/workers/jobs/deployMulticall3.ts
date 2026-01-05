@@ -25,15 +25,21 @@ export const deployMulticall3Job: Job = {
       const rpcUrl = requireChainRpcEndpoint(chainName)
       const chain = getPrimaryChain()
 
+      // Verify private key is available
+      const privateKey = serverConfig.WEB3_SERVER_WALLET_PRIVATE_KEY
+      if (!privateKey || !privateKey.startsWith("0x")) {
+        throw new Error(
+          "WEB3_SERVER_WALLET_PRIVATE_KEY must be a valid hex string starting with 0x",
+        )
+      }
+
       // Create clients
       const publicClient = createPublicClient({
         chain,
         transport: http(rpcUrl),
       })
 
-      const account = privateKeyToAccount(
-        serverConfig.WEB3_SERVER_WALLET_PRIVATE_KEY as Hex,
-      )
+      const account = privateKeyToAccount(privateKey as Hex)
       const walletClient = createWalletClient({
         account,
         chain,

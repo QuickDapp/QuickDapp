@@ -77,6 +77,14 @@ function createBlockchainClients(rootLogger: Logger): {
   const chainName = getChainName()
   const rpcUrl = getChainRpcUrl()
 
+  // Verify private key is available when Web3 is enabled
+  const privateKey = serverConfig.WEB3_SERVER_WALLET_PRIVATE_KEY
+  if (!privateKey || !privateKey.startsWith("0x")) {
+    throw new Error(
+      "WEB3_SERVER_WALLET_PRIVATE_KEY must be a valid hex string starting with 0x",
+    )
+  }
+
   const publicClient = createPublicClient({
     chain,
     transport: http(rpcUrl),
@@ -87,9 +95,7 @@ function createBlockchainClients(rootLogger: Logger): {
   const walletClient = createWalletClient({
     chain,
     transport: http(rpcUrl),
-    account: privateKeyToAccount(
-      serverConfig.WEB3_SERVER_WALLET_PRIVATE_KEY as `0x${string}`,
-    ),
+    account: privateKeyToAccount(privateKey as `0x${string}`),
   })
 
   rootLogger.info(`Blockchain clients connected to ${chainName} (${rpcUrl})`)

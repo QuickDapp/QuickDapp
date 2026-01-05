@@ -14,7 +14,7 @@ if (!sentryInitialized && serverConfig.SENTRY_DSN) {
   sentryInitialized = true
   Sentry.init({
     dsn: serverConfig.SENTRY_DSN,
-    environment: process.env.NODE_ENV || "development",
+    environment: serverConfig.NODE_ENV,
     tracesSampleRate: serverConfig.SENTRY_TRACES_SAMPLE_RATE,
     profileSessionSampleRate: serverConfig.SENTRY_PROFILE_SESSION_SAMPLE_RATE,
     sendDefaultPii: true,

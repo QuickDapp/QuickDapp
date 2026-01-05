@@ -13,7 +13,7 @@ import { WorkerIPCMessageType } from "./workers/ipc-types"
 import { WorkerSocketManager } from "./workers/socket-manager"
 import { runWorker } from "./workers/worker"
 
-export const startWorker = async () => {
+export const startWorker = async (workerId: string) => {
   // Initialize Sentry for worker process if DSN is configured
   if (serverConfig.SENTRY_WORKER_DSN) {
     initializeSentry({
@@ -25,7 +25,7 @@ export const startWorker = async () => {
   }
   // Create worker root logger instance
   const logger = createRootLogger(
-    `worker-${process.env.WORKER_ID}`,
+    `worker-${workerId}`,
     getLogLevel(serverConfig.WORKER_LOG_LEVEL),
   )
 

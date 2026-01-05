@@ -3,7 +3,7 @@ import { SiweMessage } from "siwe"
 import { clientConfig } from "../../shared/config/client"
 import { serverConfig } from "../../shared/config/server"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
-import { AuthService } from "../auth"
+import { AuthService, generateOAuthStateToken } from "../auth"
 import {
   createAuthorizationParams,
   isProviderConfigured,
@@ -383,7 +383,9 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
               authLogger.debug(`Generating OAuth login URL for ${provider}`)
 
-              const authParams = createAuthorizationParams(provider)
+              // Generate JWT state token for CSRF protection
+              const stateToken = await generateOAuthStateToken(provider)
+              const authParams = createAuthorizationParams(provider, stateToken)
               const providerConfig = OAUTH_PROVIDER_CONFIG[provider]
 
               // Set state cookie via response headers

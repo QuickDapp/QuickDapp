@@ -1,6 +1,7 @@
 import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit"
 import { clientConfig, validateClientConfig } from "@shared/config/client"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import type { ReactNode } from "react"
 import { useMemo } from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { WagmiProvider } from "wagmi"
@@ -12,8 +13,10 @@ import { AuthProvider } from "./contexts/AuthContext"
 import { SocketProvider } from "./contexts/SocketContext"
 import { HomePage } from "./pages/HomePage"
 
-// Import RainbowKit styles
-import "@rainbow-me/rainbowkit/styles.css"
+// Import RainbowKit styles only if Web3 is enabled
+if (clientConfig.WEB3_ENABLED) {
+  import("@rainbow-me/rainbowkit/styles.css")
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,11 +28,10 @@ const queryClient = new QueryClient({
   },
 })
 
-export function App() {
-  // Create web3 config with validation inside component so errors are caught by ErrorBoundary
+// Wrapper component for Web3 providers (conditional)
+function Web3Providers({ children }: { children: ReactNode }) {
   const web3Config = useMemo(() => {
     try {
-      // Validate client config first
       validateClientConfig()
       return createWeb3Config(clientConfig)
     } catch (error) {
@@ -41,34 +43,52 @@ export function App() {
   }, [])
 
   return (
+    <WagmiProvider config={web3Config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider theme={darkTheme()}>{children}</RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  )
+}
+
+// Non-Web3 wrapper (just React Query)
+function BaseProviders({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+}
+
+export function App() {
+  const content = (
+    <AuthProvider>
+      <SocketProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Header className="fixed h-header" />
+            <main className="relative m-after-header">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+              </Routes>
+            </main>
+            <footer>
+              <p className="text-xs p-4">
+                Built with <a href="https://quickdapp.xyz">QuickDapp</a>
+              </p>
+            </footer>
+          </BrowserRouter>
+        </ToastProvider>
+      </SocketProvider>
+    </AuthProvider>
+  )
+
+  return (
     <div className="flex flex-col w-full min-h-screen relative font-body bg-background text-foreground">
       <ErrorBoundary>
-        <WagmiProvider config={web3Config}>
-          <QueryClientProvider client={queryClient}>
-            <RainbowKitProvider theme={darkTheme()}>
-              <AuthProvider>
-                <SocketProvider>
-                  <ToastProvider>
-                    <BrowserRouter>
-                      <Header className="fixed h-header" />
-                      <main className="relative m-after-header">
-                        <Routes>
-                          <Route path="/" element={<HomePage />} />
-                        </Routes>
-                      </main>
-                      <footer>
-                        <p className="text-xs p-4">
-                          Built with{" "}
-                          <a href="https://quickdapp.xyz">QuickDapp</a>
-                        </p>
-                      </footer>
-                    </BrowserRouter>
-                  </ToastProvider>
-                </SocketProvider>
-              </AuthProvider>
-            </RainbowKitProvider>
-          </QueryClientProvider>
-        </WagmiProvider>
+        {clientConfig.WEB3_ENABLED ? (
+          <Web3Providers>{content}</Web3Providers>
+        ) : (
+          <BaseProviders>{content}</BaseProviders>
+        )}
       </ErrorBoundary>
     </div>
   )
