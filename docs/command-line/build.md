@@ -112,14 +112,14 @@ DATABASE_URL=postgresql://user:password@prod-host:5432/quickdapp
 
 # Security
 SESSION_ENCRYPTION_KEY=your_secure_32_character_key_here
-SERVER_WALLET_PRIVATE_KEY=0xYourProductionWalletKey
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xYourProductionWalletKey
 
 # Blockchain network
 CHAIN=sepolia
-CHAIN_RPC_ENDPOINT=https://sepolia.infura.io/v3/your-api-key
+WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/your-api-key
 
 # Contract addresses
-FACTORY_CONTRACT_ADDRESS=0xYourProductionContractAddress
+WEB3_FACTORY_CONTRACT_ADDRESS=0xYourProductionContractAddress
 
 # External services
 SENTRY_DSN=https://your-sentry-dsn

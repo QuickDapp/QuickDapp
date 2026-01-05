@@ -59,10 +59,10 @@ Create production environment configuration:
 # .env.production
 DATABASE_URL=postgresql://user:password@host:5432/database
 SESSION_ENCRYPTION_KEY=your_32_character_encryption_key
-SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
 CHAIN=sepolia
-CHAIN_RPC_ENDPOINT=https://sepolia.infura.io/v3/your-api-key
-FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
+WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/your-api-key
+WEB3_FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
 ```
 
 ### 3. Deploy Database

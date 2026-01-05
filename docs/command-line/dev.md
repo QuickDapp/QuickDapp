@@ -137,11 +137,11 @@ WORKER_LOG_LEVEL=debug
 DATABASE_URL=postgresql://postgres:@localhost:5432/quickdapp_dev
 
 # Development wallet (Anvil default)
-SERVER_WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 # Local blockchain
 CHAIN=anvil
-CHAIN_RPC_ENDPOINT=http://localhost:8545
+WEB3_ANVIL_RPC=http://localhost:8545
 
 # Reduced worker count for development
 WORKER_COUNT=1

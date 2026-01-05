@@ -87,8 +87,8 @@ Deploy to Sepolia testnet:
 ```shell
 # Configure environment
 echo "CHAIN=sepolia" >> ../.env.local
-echo "CHAIN_RPC_ENDPOINT=https://sepolia.infura.io/v3/YOUR_KEY" >> ../.env.local
-echo "SERVER_WALLET_PRIVATE_KEY=0x..." >> ../.env.local
+echo "WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/YOUR_KEY" >> ../.env.local
+echo "WEB3_SERVER_WALLET_PRIVATE_KEY=0x..." >> ../.env.local
 
 # Deploy to Sepolia
 cd sample-contracts
@@ -100,10 +100,10 @@ bun deploy.ts
 Deploy to mainnet:
 
 ```shell
-# Configure production environment  
+# Configure production environment
 echo "CHAIN=mainnet" >> ../.env.production
-echo "CHAIN_RPC_ENDPOINT=https://mainnet.infura.io/v3/YOUR_KEY" >> ../.env.production
-echo "SERVER_WALLET_PRIVATE_KEY=0x..." >> ../.env.production
+echo "WEB3_MAINNET_RPC=https://mainnet.infura.io/v3/YOUR_KEY" >> ../.env.production
+echo "WEB3_SERVER_WALLET_PRIVATE_KEY=0x..." >> ../.env.production
 
 # Deploy to mainnet
 cd sample-contracts
@@ -118,7 +118,7 @@ The deployment script automatically updates environment variables:
 
 ```typescript
 // After deployment, .env.local is updated with:
-FACTORY_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+WEB3_FACTORY_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
 ```
 
 ### Frontend Usage
@@ -127,7 +127,7 @@ The main QuickDapp application automatically uses the deployed contract:
 
 ```typescript
 // Contract address is loaded from environment
-const factoryAddress = process.env.FACTORY_CONTRACT_ADDRESS
+const factoryAddress = process.env.WEB3_FACTORY_CONTRACT_ADDRESS
 
 // ABIs are generated from Foundry build artifacts
 import { ERC20Factory_ABI } from '../generated/abis'
@@ -259,11 +259,11 @@ Contract deployment uses these environment variables:
 ```bash
 # Network Configuration
 CHAIN=anvil                              # Network: anvil, sepolia, mainnet
-CHAIN_RPC_ENDPOINT=http://localhost:8545 # RPC endpoint URL
-SERVER_WALLET_PRIVATE_KEY=0x...          # Deployment wallet private key
+WEB3_ANVIL_RPC=http://localhost:8545     # RPC endpoint (use WEB3_{CHAIN}_RPC pattern)
+WEB3_SERVER_WALLET_PRIVATE_KEY=0x...     # Deployment wallet private key
 
 # Contract Addresses (auto-updated by deployment)
-FACTORY_CONTRACT_ADDRESS=0x...           # Deployed factory address
+WEB3_FACTORY_CONTRACT_ADDRESS=0x...      # Deployed factory address
 
 # Optional: Etherscan verification
 ETHERSCAN_API_KEY=...                    # For contract verification

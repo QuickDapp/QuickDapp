@@ -73,10 +73,10 @@ Production mode uses the `production` environment:
 NODE_ENV=production
 DATABASE_URL=postgresql://user:password@prod-host:5432/quickdapp
 SESSION_ENCRYPTION_KEY=your_32_character_production_key
-SERVER_WALLET_PRIVATE_KEY=0xYourProductionWalletKey
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xYourProductionWalletKey
 CHAIN=sepolia
-CHAIN_RPC_ENDPOINT=https://sepolia.infura.io/v3/your-api-key
-FACTORY_CONTRACT_ADDRESS=0xYourProductionContractAddress
+WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/your-api-key
+WEB3_FACTORY_CONTRACT_ADDRESS=0xYourProductionContractAddress
 ```
 
 ## Use Cases
