@@ -361,7 +361,10 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
       getOAuthLoginUrl: async (
         _: any,
-        { provider }: { provider: OAuthProvider },
+        {
+          provider,
+          redirectUrl,
+        }: { provider: OAuthProvider; redirectUrl?: string },
         context: any,
       ) => {
         return withSpan(
@@ -381,6 +384,29 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 }
               }
 
+              // Validate redirectUrl is same-origin if provided
+              if (redirectUrl) {
+                try {
+                  const redirectUrlObj = new URL(redirectUrl)
+                  const baseUrlObj = new URL(serverConfig.BASE_URL)
+                  if (redirectUrlObj.origin !== baseUrlObj.origin) {
+                    return {
+                      success: false,
+                      url: null,
+                      provider: null,
+                      error: "Redirect URL must be same-origin",
+                    }
+                  }
+                } catch {
+                  return {
+                    success: false,
+                    url: null,
+                    provider: null,
+                    error: "Invalid redirect URL",
+                  }
+                }
+              }
+
               authLogger.debug(`Generating OAuth login URL for ${provider}`)
 
               // Generate auth params with placeholder state to get codeVerifier
@@ -389,10 +415,11 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 "placeholder",
               )
 
-              // Create encrypted state containing provider and codeVerifier
+              // Create encrypted state containing provider, codeVerifier, and redirectUrl
               const encryptedState = await encryptOAuthState(
                 provider,
                 authParams.codeVerifier,
+                redirectUrl,
               )
 
               // Replace placeholder state in URL with encrypted state

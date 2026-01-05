@@ -569,9 +569,14 @@ export interface MockOAuthState {
 export async function createMockOAuthState(
   provider: OAuthProvider,
   includeCodeVerifier = true,
+  redirectUrl?: string,
 ): Promise<MockOAuthState> {
   const codeVerifier = includeCodeVerifier ? generateCodeVerifier() : undefined
-  const encryptedState = await encryptOAuthState(provider, codeVerifier)
+  const encryptedState = await encryptOAuthState(
+    provider,
+    codeVerifier,
+    redirectUrl,
+  )
   return {
     encryptedState,
     codeVerifier,
@@ -611,11 +616,12 @@ export function createMockOAuthUserInfo(
 export function createOAuthLoginUrlRequest(
   provider: OAuthProvider,
   authToken?: string,
+  redirectUrl?: string,
 ) {
   return createGraphQLRequest(
     `
-    mutation GetOAuthLoginUrl($provider: OAuthProvider!) {
-      getOAuthLoginUrl(provider: $provider) {
+    mutation GetOAuthLoginUrl($provider: OAuthProvider!, $redirectUrl: String) {
+      getOAuthLoginUrl(provider: $provider, redirectUrl: $redirectUrl) {
         success
         url
         provider
@@ -623,7 +629,7 @@ export function createOAuthLoginUrlRequest(
       }
     }
   `,
-    { provider },
+    { provider, redirectUrl },
     authToken,
   )
 }

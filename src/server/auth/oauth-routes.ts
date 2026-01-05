@@ -21,14 +21,32 @@ function getErrorRedirectUrl(error: string): string {
   return `${baseUrl}/auth/error?error=${encodeURIComponent(error)}`
 }
 
-function getSuccessRedirectUrl(): string {
-  return serverConfig.BASE_URL
-}
-
 function createRedirectResponse(url: string): Response {
   return new Response(null, {
     status: 302,
     headers: { Location: url },
+  })
+}
+
+function createSuccessHtmlResponse(
+  token: string,
+  redirectUrl: string,
+): Response {
+  const html = `<!DOCTYPE html>
+<html>
+<head><title>Authentication Successful</title></head>
+<body>
+<script>
+localStorage.setItem('auth_token', ${JSON.stringify(token)});
+window.location.href = ${JSON.stringify(redirectUrl)};
+</script>
+<noscript>Authentication successful. Please enable JavaScript to continue.</noscript>
+</body>
+</html>`
+
+  return new Response(html, {
+    status: 200,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
   })
 }
 
@@ -58,6 +76,7 @@ export function createOAuthRoutes(serverApp: ServerApp) {
 
       const provider = statePayload.provider as OAuthProvider
       const codeVerifier = statePayload.codeVerifier
+      const redirectUrl = statePayload.redirectUrl || serverConfig.BASE_URL
 
       // Validate code
       if (!code) {
@@ -101,9 +120,7 @@ export function createOAuthRoutes(serverApp: ServerApp) {
         `OAuth authentication successful for ${provider}, user ${authResult.user.id}`,
       )
 
-      // Redirect to success page with token in URL fragment
-      const successUrl = `${getSuccessRedirectUrl()}#token=${authResult.token}`
-      return createRedirectResponse(successUrl)
+      return createSuccessHtmlResponse(authResult.token, redirectUrl)
     } catch (error) {
       logger.error("OAuth callback error:", error)
 

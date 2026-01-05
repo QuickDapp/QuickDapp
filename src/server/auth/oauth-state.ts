@@ -12,6 +12,7 @@ const OAUTH_STATE_EXPIRATION_MS = 10 * 60 * 1000 // 10 minutes
 interface OAuthStatePayload {
   provider: string
   codeVerifier?: string
+  redirectUrl?: string
   exp: number
 }
 
@@ -48,10 +49,12 @@ async function deriveKey(): Promise<CryptoKey> {
 export async function encryptOAuthState(
   provider: string,
   codeVerifier?: string,
+  redirectUrl?: string,
 ): Promise<string> {
   const payload: OAuthStatePayload = {
     provider,
     codeVerifier,
+    redirectUrl,
     exp: Date.now() + OAUTH_STATE_EXPIRATION_MS,
   }
 

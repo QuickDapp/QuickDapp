@@ -88,7 +88,7 @@ export const typeDefs = gql`
     authenticateWithSiwe(message: String!, signature: String!): AuthResult!
     sendEmailVerificationCode(email: String!): EmailVerificationResult!
     authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!
-    getOAuthLoginUrl(provider: OAuthProvider!): OAuthLoginUrlResult!
+    getOAuthLoginUrl(provider: OAuthProvider!, redirectUrl: String): OAuthLoginUrlResult!
 
     # User-specific mutations (auth required)
     markNotificationAsRead(id: PositiveInt!): Success! @auth

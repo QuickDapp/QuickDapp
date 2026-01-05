@@ -193,6 +193,51 @@ describe("OAuth Authentication", () => {
       expect(response.status).toBe(400)
       expect(body.errors).toBeDefined()
     })
+
+    it("should accept valid same-origin redirectUrl", async () => {
+      const { serverConfig } = await import("../../../src/shared/config/server")
+      const redirectUrl = `${serverConfig.BASE_URL}/dashboard`
+      const response = await makeRequest(
+        `${testServer.url}/graphql`,
+        createOAuthLoginUrlRequest("GOOGLE", undefined, redirectUrl),
+      )
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeUndefined()
+      expect(body.data.getOAuthLoginUrl.success).toBe(true)
+      expect(body.data.getOAuthLoginUrl.url).toBeTruthy()
+    })
+
+    it("should reject cross-origin redirectUrl", async () => {
+      const redirectUrl = "https://evil.com/steal-token"
+      const response = await makeRequest(
+        `${testServer.url}/graphql`,
+        createOAuthLoginUrlRequest("GOOGLE", undefined, redirectUrl),
+      )
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeUndefined()
+      expect(body.data.getOAuthLoginUrl.success).toBe(false)
+      expect(body.data.getOAuthLoginUrl.error).toBe(
+        "Redirect URL must be same-origin",
+      )
+    })
+
+    it("should reject invalid redirectUrl", async () => {
+      const redirectUrl = "not-a-valid-url"
+      const response = await makeRequest(
+        `${testServer.url}/graphql`,
+        createOAuthLoginUrlRequest("GOOGLE", undefined, redirectUrl),
+      )
+
+      const body = await response.json()
+      expect(response.status).toBe(200)
+      expect(body.errors).toBeUndefined()
+      expect(body.data.getOAuthLoginUrl.success).toBe(false)
+      expect(body.data.getOAuthLoginUrl.error).toBe("Invalid redirect URL")
+    })
   })
 
   describe("OAuth callback routes - state validation", () => {
@@ -486,6 +531,42 @@ describe("OAuth Authentication", () => {
       expect(decrypted).not.toBeNull()
       expect(decrypted?.provider).toBe("FACEBOOK")
       expect(decrypted?.codeVerifier).toBeUndefined()
+    })
+
+    it("should encrypt and decrypt state with redirectUrl", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const provider = "GOOGLE"
+      const codeVerifier = "test-code-verifier-12345"
+      const redirectUrl = "http://localhost:3000/dashboard"
+
+      const encrypted = await encryptOAuthState(
+        provider,
+        codeVerifier,
+        redirectUrl,
+      )
+      expect(encrypted).toBeTruthy()
+
+      const decrypted = await decryptOAuthState(encrypted)
+      expect(decrypted).not.toBeNull()
+      expect(decrypted?.provider).toBe(provider)
+      expect(decrypted?.codeVerifier).toBe(codeVerifier)
+      expect(decrypted?.redirectUrl).toBe(redirectUrl)
+    })
+
+    it("should handle state without redirectUrl", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const encrypted = await encryptOAuthState("GOOGLE", "test-verifier")
+      const decrypted = await decryptOAuthState(encrypted)
+
+      expect(decrypted).not.toBeNull()
+      expect(decrypted?.provider).toBe("GOOGLE")
+      expect(decrypted?.redirectUrl).toBeUndefined()
     })
   })
 })
