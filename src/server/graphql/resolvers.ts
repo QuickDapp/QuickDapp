@@ -3,14 +3,14 @@ import { SiweMessage } from "siwe"
 import { clientConfig } from "../../shared/config/client"
 import { serverConfig } from "../../shared/config/server"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
-import { AuthService, generateOAuthStateToken } from "../auth"
+import { AuthService } from "../auth"
 import {
   createAuthorizationParams,
   isProviderConfigured,
-  OAUTH_PROVIDER_CONFIG,
   OAuthConfigError,
   type OAuthProvider,
 } from "../auth/oauth"
+import { encryptOAuthState } from "../auth/oauth-state"
 import {
   getNotificationsForUser,
   getUnreadNotificationsCountForUser,
@@ -383,36 +383,25 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
               authLogger.debug(`Generating OAuth login URL for ${provider}`)
 
-              // Generate JWT state token for CSRF protection
-              const stateToken = await generateOAuthStateToken(provider)
-              const authParams = createAuthorizationParams(provider, stateToken)
-              const providerConfig = OAUTH_PROVIDER_CONFIG[provider]
-
-              // Set state cookie via response headers
-              const cookieOptions =
-                "Path=/; HttpOnly; SameSite=Lax; Max-Age=600"
-              context.response?.headers?.append(
-                "Set-Cookie",
-                `oauth_state=${authParams.state}; ${cookieOptions}`,
+              // Generate auth params with placeholder state to get codeVerifier
+              const authParams = createAuthorizationParams(
+                provider,
+                "placeholder",
               )
 
-              // Set code verifier cookie for PKCE providers
-              if (providerConfig.requiresPkce && authParams.codeVerifier) {
-                context.response?.headers?.append(
-                  "Set-Cookie",
-                  `oauth_code_verifier=${authParams.codeVerifier}; ${cookieOptions}`,
-                )
-              }
-
-              // Set provider cookie to know which provider to use in callback
-              context.response?.headers?.append(
-                "Set-Cookie",
-                `oauth_provider=${provider}; ${cookieOptions}`,
+              // Create encrypted state containing provider and codeVerifier
+              const encryptedState = await encryptOAuthState(
+                provider,
+                authParams.codeVerifier,
               )
+
+              // Replace placeholder state in URL with encrypted state
+              const url = new URL(authParams.url.toString())
+              url.searchParams.set("state", encryptedState)
 
               return {
                 success: true,
-                url: authParams.url.toString(),
+                url: url.toString(),
                 provider,
                 error: null,
               }

@@ -6,115 +6,74 @@ import { serverConfig } from "@shared/config/server"
 import { Elysia, t } from "elysia"
 import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
-import { AuthService, verifyOAuthStateToken } from "./index"
+import { AuthService } from "./index"
 import {
   exchangeCodeAndFetchUserInfo,
-  OAUTH_PROVIDER,
   OAUTH_PROVIDER_CONFIG,
   OAuthConfigError,
   type OAuthProvider,
   OAuthProviderError,
 } from "./oauth"
+import { decryptOAuthState } from "./oauth-state"
 
-// Cookie names
-const OAUTH_STATE_COOKIE = "oauth_state"
-const OAUTH_CODE_VERIFIER_COOKIE = "oauth_code_verifier"
-const OAUTH_PROVIDER_COOKIE = "oauth_provider"
-
-// Error page redirect URL
 function getErrorRedirectUrl(error: string): string {
   const baseUrl = serverConfig.BASE_URL
   return `${baseUrl}/auth/error?error=${encodeURIComponent(error)}`
 }
 
-// Success redirect URL
 function getSuccessRedirectUrl(): string {
   return serverConfig.BASE_URL
 }
 
-// Parse cookies from cookie header
-function parseCookies(cookieHeader: string | null): Record<string, string> {
-  if (!cookieHeader) return {}
-  return Object.fromEntries(
-    cookieHeader.split(";").map((c) => {
-      const [key, ...valueParts] = c.trim().split("=")
-      return [key, valueParts.join("=")]
-    }),
-  )
-}
-
-// Clear OAuth cookies
-function clearOAuthCookies(): string[] {
-  const clearOptions = "Path=/; HttpOnly; Max-Age=0"
-  return [
-    `${OAUTH_STATE_COOKIE}=; ${clearOptions}`,
-    `${OAUTH_CODE_VERIFIER_COOKIE}=; ${clearOptions}`,
-    `${OAUTH_PROVIDER_COOKIE}=; ${clearOptions}`,
-  ]
+function createRedirectResponse(url: string): Response {
+  return new Response(null, {
+    status: 302,
+    headers: { Location: url },
+  })
 }
 
 export function createOAuthRoutes(serverApp: ServerApp) {
   const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
 
-  // Helper to create redirect response with cookies
-  const createRedirectResponse = (url: string, cookies: string[]): Response => {
-    const headers = new Headers()
-    headers.set("Location", url)
-    for (const cookie of cookies) {
-      headers.append("Set-Cookie", cookie)
-    }
-    return new Response(null, { status: 302, headers })
-  }
-
-  // Create a shared callback handler
   const handleCallback = async (
-    provider: OAuthProvider,
     code: string | undefined,
-    stateFromQuery: string | undefined,
-    cookies: Record<string, string>,
+    encryptedState: string | undefined,
   ): Promise<Response> => {
     try {
-      // Validate state JWT token (CSRF protection)
-      const storedState = cookies[OAUTH_STATE_COOKIE]
-      if (!storedState || storedState !== stateFromQuery) {
-        logger.warn(`OAuth state mismatch for ${provider}`)
+      // Decrypt and validate state
+      if (!encryptedState) {
+        logger.warn("No OAuth state received")
         return createRedirectResponse(
           getErrorRedirectUrl("Invalid OAuth state"),
-          clearOAuthCookies(),
         )
       }
 
-      // Verify the JWT state token signature, expiration, and provider
-      const isValidState = await verifyOAuthStateToken(storedState, provider)
-      if (!isValidState) {
-        logger.warn(`OAuth state token verification failed for ${provider}`)
+      const statePayload = await decryptOAuthState(encryptedState)
+      if (!statePayload) {
+        logger.warn("OAuth state decryption failed or expired")
         return createRedirectResponse(
           getErrorRedirectUrl("Invalid or expired OAuth state"),
-          clearOAuthCookies(),
         )
       }
+
+      const provider = statePayload.provider as OAuthProvider
+      const codeVerifier = statePayload.codeVerifier
 
       // Validate code
       if (!code) {
         logger.warn(`No authorization code received for ${provider}`)
         return createRedirectResponse(
           getErrorRedirectUrl("No authorization code received"),
-          clearOAuthCookies(),
         )
       }
 
-      // Get code verifier for PKCE providers
+      // Verify PKCE providers have code verifier
       const providerConfig = OAUTH_PROVIDER_CONFIG[provider]
-      let codeVerifier: string | undefined
-      if (providerConfig.requiresPkce) {
-        codeVerifier = cookies[OAUTH_CODE_VERIFIER_COOKIE]
-        if (!codeVerifier) {
-          logger.warn(`No code verifier found for PKCE provider ${provider}`)
-          return createRedirectResponse(
-            getErrorRedirectUrl("Missing code verifier"),
-            clearOAuthCookies(),
-          )
-        }
+      if (providerConfig.requiresPkce && !codeVerifier) {
+        logger.warn(`No code verifier found for PKCE provider ${provider}`)
+        return createRedirectResponse(
+          getErrorRedirectUrl("Missing code verifier"),
+        )
       }
 
       logger.debug(`Processing OAuth callback for ${provider}`)
@@ -142,11 +101,11 @@ export function createOAuthRoutes(serverApp: ServerApp) {
         `OAuth authentication successful for ${provider}, user ${authResult.user.id}`,
       )
 
-      // Clear OAuth cookies and redirect to success page with token in URL fragment
+      // Redirect to success page with token in URL fragment
       const successUrl = `${getSuccessRedirectUrl()}#token=${authResult.token}`
-      return createRedirectResponse(successUrl, clearOAuthCookies())
+      return createRedirectResponse(successUrl)
     } catch (error) {
-      logger.error(`OAuth callback error for ${provider}:`, error)
+      logger.error("OAuth callback error:", error)
 
       let errorMessage = "Authentication failed"
       if (error instanceof OAuthConfigError) {
@@ -160,126 +119,47 @@ export function createOAuthRoutes(serverApp: ServerApp) {
         errorMessage = "Account is disabled"
       }
 
-      return createRedirectResponse(
-        getErrorRedirectUrl(errorMessage),
-        clearOAuthCookies(),
-      )
+      return createRedirectResponse(getErrorRedirectUrl(errorMessage))
     }
+  }
+
+  const querySchema = {
+    query: t.Object({
+      code: t.Optional(t.String()),
+      state: t.Optional(t.String()),
+      error: t.Optional(t.String()),
+    }),
   }
 
   return new Elysia({ prefix: "/auth/callback" })
     .get(
       "/google",
-      async ({ query, headers }) => {
-        const cookies = parseCookies(headers.cookie || null)
-        return handleCallback(
-          OAUTH_PROVIDER.GOOGLE,
-          query.code,
-          query.state,
-          cookies,
-        )
-      },
-      {
-        query: t.Object({
-          code: t.Optional(t.String()),
-          state: t.Optional(t.String()),
-          error: t.Optional(t.String()),
-        }),
-      },
+      async ({ query }) => handleCallback(query.code, query.state),
+      querySchema,
     )
     .get(
       "/facebook",
-      async ({ query, headers }) => {
-        const cookies = parseCookies(headers.cookie || null)
-        return handleCallback(
-          OAUTH_PROVIDER.FACEBOOK,
-          query.code,
-          query.state,
-          cookies,
-        )
-      },
-      {
-        query: t.Object({
-          code: t.Optional(t.String()),
-          state: t.Optional(t.String()),
-          error: t.Optional(t.String()),
-        }),
-      },
+      async ({ query }) => handleCallback(query.code, query.state),
+      querySchema,
     )
     .get(
       "/github",
-      async ({ query, headers }) => {
-        const cookies = parseCookies(headers.cookie || null)
-        return handleCallback(
-          OAUTH_PROVIDER.GITHUB,
-          query.code,
-          query.state,
-          cookies,
-        )
-      },
-      {
-        query: t.Object({
-          code: t.Optional(t.String()),
-          state: t.Optional(t.String()),
-          error: t.Optional(t.String()),
-        }),
-      },
+      async ({ query }) => handleCallback(query.code, query.state),
+      querySchema,
     )
     .get(
       "/x",
-      async ({ query, headers }) => {
-        const cookies = parseCookies(headers.cookie || null)
-        return handleCallback(
-          OAUTH_PROVIDER.X,
-          query.code,
-          query.state,
-          cookies,
-        )
-      },
-      {
-        query: t.Object({
-          code: t.Optional(t.String()),
-          state: t.Optional(t.String()),
-          error: t.Optional(t.String()),
-        }),
-      },
+      async ({ query }) => handleCallback(query.code, query.state),
+      querySchema,
     )
     .get(
       "/tiktok",
-      async ({ query, headers }) => {
-        const cookies = parseCookies(headers.cookie || null)
-        return handleCallback(
-          OAUTH_PROVIDER.TIKTOK,
-          query.code,
-          query.state,
-          cookies,
-        )
-      },
-      {
-        query: t.Object({
-          code: t.Optional(t.String()),
-          state: t.Optional(t.String()),
-          error: t.Optional(t.String()),
-        }),
-      },
+      async ({ query }) => handleCallback(query.code, query.state),
+      querySchema,
     )
     .get(
       "/linkedin",
-      async ({ query, headers }) => {
-        const cookies = parseCookies(headers.cookie || null)
-        return handleCallback(
-          OAUTH_PROVIDER.LINKEDIN,
-          query.code,
-          query.state,
-          cookies,
-        )
-      },
-      {
-        query: t.Object({
-          code: t.Optional(t.String()),
-          state: t.Optional(t.String()),
-          error: t.Optional(t.String()),
-        }),
-      },
+      async ({ query }) => handleCallback(query.code, query.state),
+      querySchema,
     )
 }

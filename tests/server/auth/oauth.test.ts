@@ -4,7 +4,7 @@
  * Comprehensive tests for OAuth authentication flow including:
  * - getOAuthLoginUrl mutation
  * - OAuth callback routes for all providers
- * - State validation (CSRF protection)
+ * - State validation (CSRF protection via encrypted state)
  * - PKCE verification
  * - User creation and account linking
  */
@@ -12,7 +12,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import {
   createMockOAuthState,
-  createOAuthCookieHeader,
   createOAuthLoginUrlRequest,
 } from "../../helpers/auth"
 import { cleanTestDatabase, setupTestDatabase } from "../../helpers/database"
@@ -26,6 +25,7 @@ import {
   type OAuthProvider,
   resetOAuthClients,
 } from "../../../src/server/auth/oauth"
+import { encryptOAuthState } from "../../../src/server/auth/oauth-state"
 
 describe("OAuth Authentication", () => {
   let testServer: any
@@ -220,19 +220,10 @@ describe("OAuth Authentication", () => {
         expect(location).toContain("Invalid%20OAuth%20state")
       })
 
-      it(`should reject ${name} callback with mismatched state`, async () => {
-        const mockState = await createMockOAuthState(name)
-
+      it(`should reject ${name} callback with invalid state`, async () => {
         const response = await fetch(
-          `${testServer.url}${path}?code=test_code&state=wrong_state`,
+          `${testServer.url}${path}?code=test_code&state=invalid_state`,
           {
-            headers: {
-              Cookie: createOAuthCookieHeader(
-                mockState.state,
-                mockState.codeVerifier,
-                name,
-              ),
-            },
             redirect: "manual",
           },
         )
@@ -240,22 +231,15 @@ describe("OAuth Authentication", () => {
         expect(response.status).toBe(302)
         const location = response.headers.get("Location")
         expect(location).toContain("/auth/error")
-        expect(location).toContain("Invalid%20OAuth%20state")
+        expect(location).toContain("Invalid%20or%20expired%20OAuth%20state")
       })
 
       it(`should reject ${name} callback without authorization code`, async () => {
         const mockState = await createMockOAuthState(name)
 
         const response = await fetch(
-          `${testServer.url}${path}?state=${mockState.state}`,
+          `${testServer.url}${path}?state=${mockState.encryptedState}`,
           {
-            headers: {
-              Cookie: createOAuthCookieHeader(
-                mockState.state,
-                mockState.codeVerifier,
-                name,
-              ),
-            },
             redirect: "manual",
           },
         )
@@ -276,16 +260,12 @@ describe("OAuth Authentication", () => {
 
     for (const { name, path } of pkceProviders) {
       it(`should reject ${name} callback without code verifier (PKCE)`, async () => {
-        const mockState = await createMockOAuthState(name)
+        // Create state without code verifier
+        const stateWithoutVerifier = await encryptOAuthState(name, undefined)
 
-        // Send request without code verifier cookie
         const response = await fetch(
-          `${testServer.url}${path}?code=test_code&state=${mockState.state}`,
+          `${testServer.url}${path}?code=test_code&state=${stateWithoutVerifier}`,
           {
-            headers: {
-              // Only state cookie, no code verifier
-              Cookie: `oauth_state=${mockState.state}`,
-            },
             redirect: "manual",
           },
         )
@@ -451,6 +431,61 @@ describe("OAuth Authentication", () => {
       expect(OAUTH_PROVIDER_CONFIG.X.providesEmail).toBe(false)
       expect(OAUTH_PROVIDER_CONFIG.TIKTOK.providesEmail).toBe(false)
       expect(OAUTH_PROVIDER_CONFIG.LINKEDIN.providesEmail).toBe(true)
+    })
+  })
+
+  describe("OAuth state encryption", () => {
+    it("should encrypt and decrypt state correctly", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const provider = "GOOGLE"
+      const codeVerifier = "test-code-verifier-12345"
+
+      const encrypted = await encryptOAuthState(provider, codeVerifier)
+      expect(encrypted).toBeTruthy()
+      expect(typeof encrypted).toBe("string")
+
+      const decrypted = await decryptOAuthState(encrypted)
+      expect(decrypted).not.toBeNull()
+      expect(decrypted?.provider).toBe(provider)
+      expect(decrypted?.codeVerifier).toBe(codeVerifier)
+    })
+
+    it("should return null for invalid encrypted state", async () => {
+      const { decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const result = await decryptOAuthState("invalid-encrypted-state")
+      expect(result).toBeNull()
+    })
+
+    it("should return null for tampered encrypted state", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const encrypted = await encryptOAuthState("GOOGLE", "test-verifier")
+      // Tamper with the encrypted state
+      const tampered = encrypted.slice(0, -5) + "XXXXX"
+
+      const result = await decryptOAuthState(tampered)
+      expect(result).toBeNull()
+    })
+
+    it("should handle state without code verifier", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
+      )
+
+      const encrypted = await encryptOAuthState("FACEBOOK", undefined)
+      const decrypted = await decryptOAuthState(encrypted)
+
+      expect(decrypted).not.toBeNull()
+      expect(decrypted?.provider).toBe("FACEBOOK")
+      expect(decrypted?.codeVerifier).toBeUndefined()
     })
   })
 })

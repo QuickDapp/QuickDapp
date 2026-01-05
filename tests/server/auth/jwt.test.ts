@@ -535,70 +535,56 @@ describe("JWT Lifecycle Tests", () => {
     })
   })
 
-  describe("OAuth State Token", () => {
-    it("should generate valid OAuth state tokens", async () => {
-      const { generateOAuthStateToken } = await import(
-        "../../../src/server/auth"
+  describe("OAuth State Encryption", () => {
+    it("should encrypt and decrypt OAuth state correctly", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
       )
 
-      const stateToken = await generateOAuthStateToken("GOOGLE")
+      const encrypted = await encryptOAuthState("GOOGLE", "test-verifier")
 
-      expect(typeof stateToken).toBe("string")
-      expect(stateToken.split(".")).toHaveLength(3) // JWT format
+      expect(typeof encrypted).toBe("string")
+      expect(encrypted.length).toBeGreaterThan(0)
 
-      // Decode and verify structure
-      const payload = decodeJWT(stateToken)
-      expect(payload.type).toBe("oauth_state")
-      expect(payload.provider).toBe("GOOGLE")
-      expect(payload.jti).toBeDefined()
-      expect(payload.exp).toBeGreaterThan(Math.floor(Date.now() / 1000))
+      const decrypted = await decryptOAuthState(encrypted)
+      expect(decrypted).not.toBeNull()
+      expect(decrypted?.provider).toBe("GOOGLE")
+      expect(decrypted?.codeVerifier).toBe("test-verifier")
     })
 
-    it("should verify valid OAuth state tokens", async () => {
-      const { generateOAuthStateToken, verifyOAuthStateToken } = await import(
-        "../../../src/server/auth"
+    it("should reject invalid encrypted state", async () => {
+      const { decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
       )
 
-      const stateToken = await generateOAuthStateToken("GITHUB")
-      const isValid = await verifyOAuthStateToken(stateToken, "GITHUB")
-
-      expect(isValid).toBe(true)
+      const result = await decryptOAuthState("invalid-encrypted-state")
+      expect(result).toBeNull()
     })
 
-    it("should reject OAuth state tokens with wrong provider", async () => {
-      const { generateOAuthStateToken, verifyOAuthStateToken } = await import(
-        "../../../src/server/auth"
+    it("should reject tampered encrypted state", async () => {
+      const { encryptOAuthState, decryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
       )
 
-      const stateToken = await generateOAuthStateToken("GOOGLE")
-      const isValid = await verifyOAuthStateToken(stateToken, "GITHUB")
+      const encrypted = await encryptOAuthState("GOOGLE", "test-verifier")
+      const tampered = encrypted.slice(0, -5) + "XXXXX"
 
-      expect(isValid).toBe(false)
+      const result = await decryptOAuthState(tampered)
+      expect(result).toBeNull()
     })
 
-    it("should reject invalid OAuth state tokens", async () => {
-      const { verifyOAuthStateToken } = await import("../../../src/server/auth")
-
-      const isValid = await verifyOAuthStateToken(
-        "invalid.token.here",
-        "GOOGLE",
+    it("should reject OAuth encrypted state used as auth tokens", async () => {
+      const { encryptOAuthState } = await import(
+        "../../../src/server/auth/oauth-state"
       )
 
-      expect(isValid).toBe(false)
-    })
-
-    it("should reject OAuth state tokens used as auth tokens", async () => {
-      const { generateOAuthStateToken } = await import(
-        "../../../src/server/auth"
-      )
-
-      const stateToken = await generateOAuthStateToken("GOOGLE")
+      const encryptedState = await encryptOAuthState("GOOGLE", "test-verifier")
 
       const response = await makeRequest(`${testServer.url}/graphql`, {
         ...createGraphQLRequest(
           `query { getMyUnreadNotificationsCount }`,
           {},
-          stateToken,
+          encryptedState,
         ),
       })
 

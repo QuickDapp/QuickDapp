@@ -8,6 +8,7 @@ export interface ServerConfig extends ClientConfig {
   HOST: string
   PORT: number
   WORKER_COUNT: number | "cpus"
+  WORKER_ID?: string
   STATIC_ASSETS_FOLDER?: string
 
   // Logging
@@ -105,6 +106,7 @@ export const serverConfig: ServerConfig = {
     env.get("WORKER_COUNT").default("1").asString() === "cpus"
       ? "cpus"
       : env.get("WORKER_COUNT").default(1).asInt(),
+  WORKER_ID: env.get("WORKER_ID").asString(),
   STATIC_ASSETS_FOLDER: env.get("STATIC_ASSETS_FOLDER").asString(),
 
   // Logging

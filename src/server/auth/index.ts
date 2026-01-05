@@ -22,49 +22,6 @@ function getJwtSecret(): Uint8Array {
   return new TextEncoder().encode(serverConfig.SESSION_ENCRYPTION_KEY)
 }
 
-/**
- * Generate a JWT state token for OAuth CSRF protection
- */
-export async function generateOAuthStateToken(
-  provider: string,
-): Promise<string> {
-  const now = Date.now()
-  const payload = {
-    type: "oauth_state",
-    provider,
-    jti: `${now}-${Math.random().toString(36).substring(2, 11)}`,
-  }
-
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("10m")
-    .sign(getJwtSecret())
-}
-
-/**
- * Verify an OAuth state token and return the provider
- */
-export async function verifyOAuthStateToken(
-  token: string,
-  expectedProvider: string,
-): Promise<boolean> {
-  try {
-    const { payload } = await jwtVerify(token, getJwtSecret())
-
-    if (payload.type !== "oauth_state") {
-      return false
-    }
-
-    if (payload.provider !== expectedProvider) {
-      return false
-    }
-
-    return true
-  } catch {
-    return false
-  }
-}
-
 export interface AuthenticatedUser {
   id: number
   web3Wallet?: string

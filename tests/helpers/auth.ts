@@ -554,69 +554,29 @@ export async function createEmailAuthenticatedTestUser(
  * OAuth test helpers
  */
 import { generateCodeVerifier } from "arctic"
-import { generateOAuthStateToken } from "../../src/server/auth"
 import type { OAuthProvider } from "../../src/server/auth/oauth"
+import { encryptOAuthState } from "../../src/server/auth/oauth-state"
 
 export interface MockOAuthState {
-  state: string
-  codeVerifier: string
+  encryptedState: string
+  codeVerifier?: string
   provider: OAuthProvider
 }
 
 /**
- * Create mock OAuth state for testing (uses JWT state token)
+ * Create mock OAuth state for testing (uses encrypted state)
  */
 export async function createMockOAuthState(
   provider: OAuthProvider,
+  includeCodeVerifier = true,
 ): Promise<MockOAuthState> {
-  const state = await generateOAuthStateToken(provider)
+  const codeVerifier = includeCodeVerifier ? generateCodeVerifier() : undefined
+  const encryptedState = await encryptOAuthState(provider, codeVerifier)
   return {
-    state,
-    codeVerifier: generateCodeVerifier(),
+    encryptedState,
+    codeVerifier,
     provider,
   }
-}
-
-/**
- * Create OAuth cookie header string for test requests
- */
-export function createOAuthCookieHeader(
-  state: string,
-  codeVerifier?: string,
-  provider?: string,
-): string {
-  const cookies: string[] = [`oauth_state=${state}`]
-  if (codeVerifier) {
-    cookies.push(`oauth_code_verifier=${codeVerifier}`)
-  }
-  if (provider) {
-    cookies.push(`oauth_provider=${provider}`)
-  }
-  return cookies.join("; ")
-}
-
-/**
- * Parse Set-Cookie headers from response
- */
-export function parseSetCookieHeaders(
-  headers: Headers,
-): Record<string, string> {
-  const cookies: Record<string, string> = {}
-  const setCookieHeader = headers.get("Set-Cookie")
-  if (!setCookieHeader) return cookies
-
-  // Handle multiple Set-Cookie headers (they may be comma-separated or in an array)
-  const cookieStrings = setCookieHeader.split(",").map((s) => s.trim())
-  for (const cookieStr of cookieStrings) {
-    const [nameValue] = cookieStr.split(";")
-    if (nameValue) {
-      const [name, ...valueParts] = nameValue.split("=")
-      if (name) {
-        cookies[name.trim()] = valueParts.join("=")
-      }
-    }
-  }
-  return cookies
 }
 
 /**
