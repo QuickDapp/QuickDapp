@@ -216,11 +216,11 @@ WORKER_COUNT=1 bun run dev
 Work with database changes during development:
 
 ```shell
+# Generate types and migrations after schema changes
+bun run gen
+
 # Apply schema changes to development database
 bun run db push
-
-# Generate migration for schema changes
-bun run db generate
 
 # Reset development database (destructive)
 bun run db push --force

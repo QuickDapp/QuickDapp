@@ -121,6 +121,21 @@ Formats code using Biome:
 bun run format
 ```
 
+## Code Generation Command
+
+#### `bun run gen`
+
+Generates all code artifacts in one command:
+
+```shell
+bun run gen
+```
+
+This command:
+* Generates GraphQL TypeScript types from schema
+* Generates ABI types from contract artifacts (if configured)
+* Creates DrizzleORM migration files from schema changes
+
 ## Database Commands
 
 All database commands use the `bun run db` script with subcommands:
@@ -211,6 +226,7 @@ rm .env.test.local
 | `bun run build` | Production build | Any |
 | `bun run prod` | Production server | Production |
 | `bun run test` | Test runner | Test |
+| `bun run gen` | Generate types + migrations | Development |
 | `bun run lint` | Type check + lint | Any |
 | `bun run lint:fix` | Fix linting issues | Any |
 | `bun run format` | Format code | Any |

@@ -267,10 +267,16 @@ const result = await serverApp.db.transaction(async (tx) => {
 When you modify the schema, generate a migration:
 
 ```shell
-# Generate migration from schema changes
-bun run db generate
+# Generate types and migration from schema changes
+bun run gen
 
 # This creates a new migration file in src/server/db/migrations/
+```
+
+Alternatively, to generate only migrations without type generation:
+
+```shell
+bun run db generate
 ```
 
 ### Running Migrations

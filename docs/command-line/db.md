@@ -119,10 +119,13 @@ For rapid development iteration:
 
 ```shell
 # 1. Modify schema in src/server/db/schema.ts
-# 2. Push changes directly to development database
+# 2. Generate migrations and types
+bun run gen
+
+# 3. Push changes to development database
 bun run db push
 
-# 3. Test your changes
+# 4. Test your changes
 bun run dev
 ```
 
@@ -131,8 +134,8 @@ bun run dev
 Before deploying schema changes:
 
 ```shell
-# 1. Generate migration files
-bun run db generate
+# 1. Generate migration files and types
+bun run gen
 
 # 2. Review generated SQL files in drizzle/ directory
 # 3. Commit migration files to version control

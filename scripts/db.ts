@@ -11,7 +11,7 @@ interface DbOptions extends ScriptOptions {
   force?: boolean
 }
 
-async function runDrizzleCommand(args: string[]): Promise<void> {
+export async function runDrizzleCommand(args: string[]): Promise<void> {
   // Use tee to both display output and capture it
   const tempFile = `/tmp/drizzle-output-${Date.now()}.txt`
 
@@ -36,8 +36,20 @@ async function runDrizzleCommand(args: string[]): Promise<void> {
   }
 }
 
+export async function runDbGenerate(
+  options: { verbose?: boolean } = {},
+): Promise<void> {
+  if (options.verbose) {
+    console.log("🔧 Generating DrizzleORM migrations...")
+  }
+  await runDrizzleCommand(["generate"])
+  if (options.verbose) {
+    console.log("✅ Migrations generated successfully")
+  }
+}
+
 async function generateHandler(
-  _options: DbOptions,
+  options: DbOptions,
   _config: { rootFolder: string; env: string },
 ) {
   console.log("🔧 Generating DrizzleORM migrations...")
@@ -99,10 +111,12 @@ const subcommands: SubcommandConfig[] = [
   },
 ]
 
-// Create script runner with subcommands
-createScriptRunner({
-  name: "db",
-  description: "Database management utilities",
-  env: process.env.NODE_ENV || "development",
-  subcommands,
-})
+// Only run CLI when executed directly (not when imported)
+if (import.meta.main) {
+  createScriptRunner({
+    name: "db",
+    description: "Database management utilities",
+    env: process.env.NODE_ENV || "development",
+    subcommands,
+  })
+}

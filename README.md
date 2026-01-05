@@ -178,8 +178,10 @@ bun run test --test-file tests/integration/server.test.ts
 bun run dev            # Start development server with hot reload
 bun run build          # Build for production
 
+# Code Generation
+bun run gen            # Generate types and database migrations
+
 # Database
-bun run db generate    # Generate DrizzleORM migrations
 bun run db push        # Push schema changes to database
 bun run db migrate     # Run migrations (production)
 
