@@ -193,7 +193,7 @@ export function validateConfig() {
   const requiredForAll: (keyof ServerConfig)[] = [
     "DATABASE_URL",
     "SESSION_ENCRYPTION_KEY",
-    "BASE_URL",
+    "API_URL",
   ]
 
   const missing = requiredForAll.filter((key) =>

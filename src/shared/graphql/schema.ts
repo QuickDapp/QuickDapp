@@ -84,7 +84,7 @@ export const typeDefs = gql`
 
   type Mutation {
     # Authentication mutations (no auth required)
-    generateSiweMessage(address: String!): SiweMessageResult!
+    generateSiweMessage(address: String!, chainId: Int!, domain: String!): SiweMessageResult!
     authenticateWithSiwe(message: String!, signature: String!): AuthResult!
     sendEmailVerificationCode(email: String!): EmailVerificationResult!
     authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!

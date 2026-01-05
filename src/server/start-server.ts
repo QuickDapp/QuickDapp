@@ -124,14 +124,7 @@ export const createApp = async (
     })
     .use(
       cors({
-        origin:
-          serverConfig.NODE_ENV === "development"
-            ? [
-                "http://localhost:5173",
-                "http://localhost:3000",
-                serverConfig.BASE_URL,
-              ]
-            : [serverConfig.BASE_URL],
+        origin: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         credentials: true,
       }),

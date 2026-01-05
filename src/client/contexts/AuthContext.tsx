@@ -16,7 +16,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { useAccount, useSignMessage } from "wagmi"
+import { useAccount, useChainId, useSignMessage } from "wagmi"
 
 interface SiweMessageResult {
   message: string
@@ -241,6 +241,7 @@ function Web3AuthProvider({ children }: AuthProviderProps) {
   const [wasConnected, setWasConnected] = useState(false)
   const restorationStarted = useRef(false)
   const { address, isConnected, connector, status } = useAccount()
+  const chainId = useChainId()
   const { signMessageAsync } = useSignMessage()
 
   // Simplified authentication flow using state machine
@@ -265,10 +266,13 @@ function Web3AuthProvider({ children }: AuthProviderProps) {
         // Step 1: Generate SIWE message
         console.log("Generating SIWE message...")
         const graphqlClient = getGraphQLClient()
+        const domain = window.location.host
         const messageResponse = (await graphqlClient.request(
           GENERATE_SIWE_MESSAGE,
           {
             address,
+            chainId,
+            domain,
           },
         )) as { generateSiweMessage: SiweMessageResult }
         const { message } = messageResponse.generateSiweMessage
@@ -337,7 +341,7 @@ function Web3AuthProvider({ children }: AuthProviderProps) {
         }
       }
     },
-    [authState.status, signMessageAsync],
+    [authState.status, chainId, signMessageAsync],
   )
 
   // Logout function

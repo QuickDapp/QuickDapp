@@ -280,7 +280,7 @@ Complete sign-in workflow:
 async function signIn() {
   try {
     // 1. Request nonce from server
-    // Use GraphQL generateSiweMessage instead (mutation: generateSiweMessage(address))
+    // Use GraphQL generateSiweMessage instead (mutation: generateSiweMessage(address, chainId, domain))
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address: userAddress })

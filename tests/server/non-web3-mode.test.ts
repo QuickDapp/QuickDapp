@@ -173,14 +173,18 @@ describe("Non-Web3 Mode", () => {
       const result = await graphqlRequest(
         testServer.url,
         `
-          mutation GenerateSiweMessage($address: String!) {
-            generateSiweMessage(address: $address) {
+          mutation GenerateSiweMessage($address: String!, $chainId: Int!, $domain: String!) {
+            generateSiweMessage(address: $address, chainId: $chainId, domain: $domain) {
               message
               nonce
             }
           }
         `,
-        { address: "0x1234567890123456789012345678901234567890" },
+        {
+          address: "0x1234567890123456789012345678901234567890",
+          chainId: 1,
+          domain: "localhost:3002",
+        },
       )
 
       expect(result.errors).toBeDefined()

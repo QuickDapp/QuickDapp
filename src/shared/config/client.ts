@@ -11,7 +11,7 @@ export interface ClientConfig {
   APP_NAME: string
   APP_VERSION: string
   NODE_ENV: "development" | "production" | "test"
-  BASE_URL: string
+  API_URL: string
   SENTRY_DSN?: string
   // Web3 configuration (optional when WEB3_ENABLED=false)
   WEB3_ENABLED: boolean
@@ -70,7 +70,7 @@ export const clientConfig: ClientConfig =
           .get("NODE_ENV")
           .default("development")
           .asEnum(["development", "production", "test"]),
-        BASE_URL: env.get("BASE_URL").required().asString(),
+        API_URL: env.get("API_URL").required().asString(),
         SENTRY_DSN: env.get("SENTRY_DSN").asString(),
         WEB3_ENABLED: web3Enabled,
         ...loadWeb3Config(web3Enabled),
@@ -78,7 +78,7 @@ export const clientConfig: ClientConfig =
 
 // Validate critical client configuration on startup
 export function validateClientConfig() {
-  const requiredForClient = ["BASE_URL"]
+  const requiredForClient = ["API_URL"]
 
   const missing = requiredForClient.filter((key) => {
     const value = clientConfig[key as keyof ClientConfig]

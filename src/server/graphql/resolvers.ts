@@ -18,7 +18,6 @@ import {
   markNotificationAsRead,
 } from "../db/notifications"
 import { getUserById } from "../db/users"
-import { getChainId } from "../lib/chains"
 import {
   generateVerificationCodeAndBlob,
   validateEmailFormat,
@@ -173,7 +172,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
 
     Mutation: {
       // Authentication mutations (no auth required)
-      generateSiweMessage: async (_, { address }, context) => {
+      generateSiweMessage: async (_, { address, chainId, domain }, context) => {
         return withSpan(
           "graphql.Mutation.generateSiweMessage",
           context,
@@ -186,16 +185,31 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
             }
 
             try {
-              const logger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
-              logger.debug(`Generating SIWE message for address: ${address}`)
+              const authLogger = serverApp.createLogger(LOG_CATEGORIES.AUTH)
+              authLogger.debug(
+                `Generating SIWE message for address: ${address}, domain: ${domain}`,
+              )
+
+              // Validate domain against allowed origins
+              const matchingOrigin =
+                serverConfig.WEB3_ALLOWED_SIWE_ORIGINS?.find((origin) => {
+                  const url = new URL(origin)
+                  return url.host === domain
+                })
+
+              if (!matchingOrigin) {
+                throw new GraphQLError("Invalid SIWE domain", {
+                  extensions: { code: GraphQLErrorCode.AUTHENTICATION_FAILED },
+                })
+              }
 
               const message = new SiweMessage({
-                domain: new URL(serverConfig.BASE_URL).hostname,
+                domain,
                 address,
                 statement: "Sign in to QuickDapp",
-                uri: serverConfig.BASE_URL,
+                uri: matchingOrigin,
                 version: "1",
-                chainId: getChainId(),
+                chainId,
                 nonce: Math.random().toString(36).substring(2, 15),
               })
 
@@ -206,6 +220,10 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 nonce: message.nonce || "",
               }
             } catch (error) {
+              // Re-throw GraphQL errors as-is
+              if (error instanceof GraphQLError) {
+                throw error
+              }
               logger.error("Failed to generate SIWE message:", error)
               throw new GraphQLError("Failed to generate SIWE message", {
                 extensions: {
@@ -364,7 +382,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
         {
           provider,
           redirectUrl,
-        }: { provider: OAuthProvider; redirectUrl?: string },
+        }: { provider: OAuthProvider; redirectUrl?: string | null },
         context: any,
       ) => {
         return withSpan(
@@ -388,8 +406,8 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               if (redirectUrl) {
                 try {
                   const redirectUrlObj = new URL(redirectUrl)
-                  const baseUrlObj = new URL(serverConfig.BASE_URL)
-                  if (redirectUrlObj.origin !== baseUrlObj.origin) {
+                  const apiUrlObj = new URL(serverConfig.API_URL)
+                  if (redirectUrlObj.origin !== apiUrlObj.origin) {
                     return {
                       success: false,
                       url: null,
@@ -419,7 +437,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               const encryptedState = await encryptOAuthState(
                 provider,
                 authParams.codeVerifier,
-                redirectUrl,
+                redirectUrl ?? undefined,
               )
 
               // Replace placeholder state in URL with encrypted state

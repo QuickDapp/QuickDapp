@@ -17,8 +17,8 @@ import {
 import { decryptOAuthState } from "./oauth-state"
 
 function getErrorRedirectUrl(error: string): string {
-  const baseUrl = serverConfig.BASE_URL
-  return `${baseUrl}/auth/error?error=${encodeURIComponent(error)}`
+  const apiUrl = serverConfig.API_URL
+  return `${apiUrl}/auth/error?error=${encodeURIComponent(error)}`
 }
 
 function createRedirectResponse(url: string): Response {
@@ -76,7 +76,7 @@ export function createOAuthRoutes(serverApp: ServerApp) {
 
       const provider = statePayload.provider as OAuthProvider
       const codeVerifier = statePayload.codeVerifier
-      const redirectUrl = statePayload.redirectUrl || serverConfig.BASE_URL
+      const redirectUrl = statePayload.redirectUrl || serverConfig.API_URL
 
       // Validate code
       if (!code) {

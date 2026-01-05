@@ -2,8 +2,8 @@ import { gql } from "graphql-tag"
 
 // Authentication mutations
 export const GENERATE_SIWE_MESSAGE = gql`
-  mutation GenerateSiweMessage($address: String!) {
-    generateSiweMessage(address: $address) {
+  mutation GenerateSiweMessage($address: String!, $chainId: Int!, $domain: String!) {
+    generateSiweMessage(address: $address, chainId: $chainId, domain: $domain) {
       message
       nonce
     }
