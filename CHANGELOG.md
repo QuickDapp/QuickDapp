@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.3.0](https://github.com/QuickDapp/QuickDapp/compare/v3.2.0...v3.3.0) (2026-01-07)
+
+
+### Features
+
+* add minify and sourcemap options to binary compilation ([#3](https://github.com/QuickDapp/QuickDapp/issues/3)) ([dfefda8](https://github.com/QuickDapp/QuickDapp/commit/dfefda842f0c1b446d020a9e02e0c243f98af288))
+* add multi-chain support, worker tagging, and error handling ([#6](https://github.com/QuickDapp/QuickDapp/issues/6)) ([740b223](https://github.com/QuickDapp/QuickDapp/commit/740b22338f1ac12cff4f7f4fecaef369f84940e4))
+* **build:** enable sourcemap generation for client build ([692ce89](https://github.com/QuickDapp/QuickDapp/commit/692ce89673228684f872e80b6dfeed5e1f4cd7e5))
+* **client:** add form validation hook with async support ([60b7e4b](https://github.com/QuickDapp/QuickDapp/commit/60b7e4be22ed5db855cefce24b7ce869fa2a59b6))
+* integrate Sentry error tracking and performance monitoring ([2fb77f8](https://github.com/QuickDapp/QuickDapp/commit/2fb77f8a60861d89e89b3d76cb4c709605d55e0b))
+* refactor to make web3 optional ([#7](https://github.com/QuickDapp/QuickDapp/issues/7)) ([c44752b](https://github.com/QuickDapp/QuickDapp/commit/c44752bf1df33057ed5fb3df81a21442307fca97))
+* **tracing:** add Sentry spans to database and GraphQL operations ([cf7fde4](https://github.com/QuickDapp/QuickDapp/commit/cf7fde42b7c33bb9e6b4b98e373d01bfdb67c6e6))
+
+
+### Bug Fixes
+
+* **scripts:** respect NODE_ENV in db.ts instead of hardcoding to development ([cddb0cf](https://github.com/QuickDapp/QuickDapp/commit/cddb0cf7d2d0d2256fcf1866d163459d0eb2d8c5))
+* **sentry:** prevent multiple Sentry initializations ([fffd1c2](https://github.com/QuickDapp/QuickDapp/commit/fffd1c2c6d13674b4758abfc707293898ea7c054))
+
 ## [3.2.0](https://github.com/QuickDapp/QuickDapp/compare/v3.1.0...v3.2.0) (2025-10-01)
 
 
