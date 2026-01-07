@@ -1,106 +1,56 @@
 # Worker
 
-The QuickDapp worker system provides simple background job processing for maintenance tasks. It uses child processes and a database-backed queue for basic job scheduling and execution.
+QuickDapp's worker system handles background jobs through child processes and a database-backed queue. Jobs run independently of HTTP requests, making them suitable for long-running tasks, scheduled maintenance, and blockchain monitoring.
 
 ## Architecture
 
-The worker system is simple and focused:
+The [`WorkerManager`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/index.ts) spawns child processes that poll the `workerJobs` table for pending work. Each worker gets a full `ServerApp` instance with database access, blockchain clients (when Web3 enabled), and logging.
 
-* **WorkerManager** - Manages worker processes with basic start/stop functionality
-* **Job Queue** - Database storage using the `workerJobs` table
-* **Job Types** - Three built-in job types for system maintenance
-* **Scheduling** - Cron-based scheduling with automatic rescheduling
+Workers communicate with the main server through IPC messages. When a worker needs to send a WebSocket notification, it sends an IPC message that the main process routes through the `SocketManager`. This allows workers to trigger real-time updates without direct socket access.
 
-## Key Features
+The number of workers is configurable via `WORKER_COUNT`. Set it to `cpus` for auto-scaling based on CPU cores, or a specific number for fixed worker count.
 
-### Simple Process Model
-Workers run as child processes:
-* Basic process isolation for job execution
-* Configurable worker count (including auto-scaling with 'cpus')
-* Graceful shutdown support
+## Built-in Jobs
 
-### Database Storage
-Jobs are stored in the `workerJobs` table:
-* **Persistence** - Jobs survive server restarts
-* **Scheduling** - Time-based execution with `due` timestamps
-* **Status Tracking** - Simple success/failure tracking
-* **Cleanup** - Automatic removal of old jobs
+Three job types come pre-configured:
 
-## Built-in Job Types
+[`removeOldWorkerJobs`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/removeOldWorkerJobs.ts) cleans up completed jobs from the database. It runs on a cron schedule to prevent table bloat.
 
-QuickDapp includes three system maintenance jobs:
+[`watchChain`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/watchChain.ts) monitors blockchain events when Web3 is enabled. It polls for new logs from configured contracts and processes them through registered handlers.
 
-### removeOldWorkerJobs
-Cleans up old completed worker jobs:
+[`deployMulticall3`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/deployMulticall3.ts) ensures the Multicall3 contract exists on the current chain. It runs once at startup when Web3 is enabled and skips deployment if the contract already exists.
 
-```typescript
-// Scheduled maintenance job
-// Runs periodically to clean up old completed jobs
-```
+## Job Lifecycle
 
-### watchChain
-Monitors blockchain events and processes new transactions:
+Jobs flow through these states:
+
+1. **Scheduled** — Job inserted into `workerJobs` with a `due` timestamp
+2. **Started** — Worker picks up the job and sets `started` timestamp
+3. **Finished** — Job completes with `finished` timestamp and `success` flag
+4. **Removed** — Cleanup job deletes old completed entries
+
+Jobs can be configured for automatic rescheduling on failure with configurable delays. Cron-scheduled jobs automatically reschedule themselves after completion.
+
+## Submitting Jobs
+
+Submit jobs through the `WorkerManager`:
 
 ```typescript
-// Blockchain monitoring job
-// Watches for contract events and processes them
+await serverApp.workerManager.submitJob({
+  tag: "my-job",
+  type: "watchChain",
+  userId: user.id,
+  data: { customField: "value" }
+})
 ```
 
-### deployMulticall3
-Deploys the Multicall3 contract if not present:
+The `tag` field identifies the job for logging and debugging. The `type` must match a registered job in the [`jobRegistry`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/registry.ts).
 
-```typescript
-// Contract deployment job
-// Ensures Multicall3 is available on the current chain
-```
-
-## Worker Configuration
-
-Configure workers through environment variables:
+## Configuration
 
 ```bash
-WORKER_COUNT=cpus        # Number of worker processes ('cpus' for auto-scale)
-WORKER_LOG_LEVEL=info    # Worker-specific log level
+WORKER_COUNT=cpus       # Number of workers ('cpus' or integer)
+WORKER_LOG_LEVEL=info   # Log level for worker processes
 ```
 
-## Basic Usage
-
-The worker system is automatically started with the server and runs maintenance tasks in the background. Jobs are scheduled automatically based on cron expressions and system needs.
-
-### WorkerManager Interface
-
-The WorkerManager provides a simple interface:
-
-```typescript
-interface WorkerManager {
-  submitJob(job: WorkerJob): Promise<WorkerJob>
-  getWorkerCount(): number
-  shutdown(): Promise<void>
-}
-```
-
-### Job Structure
-
-Jobs in the database have this structure:
-
-```typescript
-interface WorkerJob {
-  id: number
-  type: 'removeOldWorkerJobs' | 'watchChain' | 'deployMulticall3'
-  userId: number
-  data: any
-  due: Date
-  started?: Date
-  finished?: Date
-  success?: boolean
-  result?: any
-  cronSchedule?: string
-  persistent: boolean
-}
-```
-
-## Monitoring
-
-The worker system provides basic status information through health endpoints and logs. Workers automatically handle failures and reschedule jobs when appropriate.
-
-For more details on adding custom jobs, see [Adding Jobs](./adding-jobs.md).
+See [Adding Jobs](./adding-jobs.md) for creating custom job types and [Background Jobs](./background-jobs.md) for implementation details.

@@ -1,5 +1,5 @@
 /**
- * Auth test helpers for QuickDapp v3
+ * Auth test helpers for QuickDapp
  *
  * Utilities for testing authentication using viem for wallet operations,
  * SIWE for sign-in with Ethereum, and jose for JWT token management.

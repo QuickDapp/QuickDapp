@@ -1,5 +1,5 @@
 /**
- * Database test helpers for QuickDapp v3
+ * Database test helpers for QuickDapp
  *
  * Utilities for managing test database lifecycle,
  * creating test data, and cleaning up between tests.

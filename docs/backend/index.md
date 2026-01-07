@@ -1,175 +1,65 @@
 # Backend
 
-The QuickDapp backend is built on modern, high-performance technologies designed for Web3 applications. At its core is the **ServerApp pattern** - a dependency injection system that provides clean access to all backend services.
+The QuickDapp backend runs on Bun with ElysiaJS as the web framework. Everything flows through the ServerApp pattern, which provides clean access to the database, logger, WebSocket manager, worker system, and optional blockchain clients.
 
-## Technology Stack
+## Core Technologies
 
-* **[Bun](https://bun.sh/)** - Primary runtime (Node.js compatible)
-* **[ElysiaJS](https://elysiajs.com/)** - High-performance web framework
-* **[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server)** - GraphQL server
-* **[DrizzleORM](https://orm.drizzle.team/)** - Type-safe database toolkit
-* **[PostgreSQL](https://www.postgresql.org/)** - Relational database
-* **[SIWE](https://login.xyz/)** - Sign-in with Ethereum authentication
-* **[Viem](https://viem.sh/)** - Type-safe Ethereum client
+The backend uses Bun as its runtime and package manager. ElysiaJS handles HTTP and WebSocket connections, GraphQL Yoga provides the API layer, and DrizzleORM manages PostgreSQL access with full TypeScript integration.
 
-## Key Features
+When Web3 is enabled, the server also has Viem clients for reading from and writing to the blockchain, plus SIWE support for wallet-based authentication.
 
-### ServerApp Dependency Injection
-The ServerApp pattern provides clean access to all backend services:
+## The ServerApp Pattern
+
+Every part of the backend receives a `ServerApp` object containing all the services it needs:
 
 ```typescript
-export type ServerApp = {
-  app: Elysia                    // ElysiaJS server instance
-  db: PostgresJsDatabase         // DrizzleORM database connection
-  rootLogger: Logger             // Root logger instance
-  createLogger: typeof createLogger  // Logger factory
-  workerManager: WorkerManager   // Background job processing
-  socketManager: ISocketManager  // WebSocket manager
-  publicClient: PublicClient     // Blockchain read client
-  walletClient: WalletClient     // Blockchain write client
-  createNotification: Function   // Notification system
+type ServerApp = {
+  app: Elysia                                    // HTTP/WebSocket server
+  db: Database                                   // DrizzleORM connection
+  rootLogger: Logger                             // Root logger
+  createLogger: (category: string) => Logger     // Logger factory
+  startSpan: typeof startSpan                    // Sentry performance tracing
+  workerManager: WorkerManager                   // Background job manager
+  socketManager: ISocketManager                  // WebSocket manager
+  createNotification: (userId, data) => Promise  // Send user notifications
+  publicClient?: PublicClient                    // Blockchain read client (Web3)
+  walletClient?: WalletClient                    // Blockchain write client (Web3)
 }
 ```
 
-### Type-Safe Database Access
-DrizzleORM provides compile-time type checking and excellent performance:
+GraphQL resolvers receive this through their context. Worker jobs get it as their first parameter. Any service you build can accept `ServerApp` to access shared resources.
 
-```typescript
-import { serverApp } from './bootstrap'
+## Directory Structure
 
-// Type-safe queries
-const users = await serverApp.db
-  .select()
-  .from(userTable)
-  .where(eq(userTable.address, walletAddress))
-
-// Transactions
-await serverApp.db.transaction(async (tx) => {
-  // All operations are rolled back if any fail
-})
+```
+src/server/
+├── auth/           # Authentication (SIWE, email, OAuth)
+├── bootstrap.ts    # ServerApp creation
+├── db/             # Schema, queries, connection management
+├── graphql/        # Resolvers and schema integration
+├── lib/            # Logger, errors, crypto, chains
+├── services/       # Business logic services
+├── start-server.ts # Server startup
+├── start-worker.ts # Worker process startup
+├── types.ts        # ServerApp type definition
+├── workers/        # Background job system
+└── ws/             # WebSocket implementation
 ```
 
-### GraphQL API
-Schema-first GraphQL API with authentication:
+## How Requests Flow
 
-```graphql
-type Query {
-  me: User @auth
-  tokens: [Token!]! @auth
-}
+A GraphQL request arrives at ElysiaJS, which passes it to GraphQL Yoga. Yoga parses the query, checks for the `@auth` directive, and builds a context containing the `ServerApp` and authenticated user (if any). The resolver runs, queries the database through DrizzleORM, and returns the result.
 
-type Mutation {
-  generateSiweMessage(address: String!, chainId: Int!, domain: String!): SiweMessageResult!
-  authenticateWithSiwe(message: String!, signature: String!): AuthResult!
-  markNotificationAsRead(id: PositiveInt!): Success! @auth
-  markAllNotificationsAsRead: Success! @auth
-}
-```
+WebSocket connections follow a similar pattern. Clients connect, optionally authenticate with a JWT, and receive real-time updates when notifications are created. The [`SocketManager`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/ws/index.ts) routes messages to specific users or broadcasts to everyone.
 
-### Real-time Communication
-WebSocket support for real-time updates:
+Background jobs get submitted to the database queue. Worker processes poll for pending jobs, execute them with full `ServerApp` access, and mark them complete. Workers can send WebSocket messages back through IPC to the main server process.
 
-```typescript
-// Send notification to specific user
-await serverApp.createNotification({
-  userId: user.id,
-  type: 'token_deployed',
-  data: { tokenAddress: '0x...' }
-})
-```
+## Documentation
 
-### Background Jobs
-Robust worker system for blockchain monitoring and async tasks:
+- [Bootstrap](./bootstrap.md) — How ServerApp gets created and configured
+- [Database](./database.md) — Schema design, queries, and transaction handling
+- [GraphQL](./graphql.md) — API schema, resolvers, and authentication
+- [Authentication](./authentication.md) — SIWE, email, and OAuth flows
+- [WebSockets](./websockets.md) — Real-time communication
 
-```typescript
-// Submit a background job
-await serverApp.workerManager.submitJob({
-  type: 'deployToken',
-  data: { name: 'MyToken', symbol: 'MTK' }
-})
-```
-
-## Documentation Sections
-
-* [Bootstrap](./bootstrap.md) - ServerApp pattern and dependency injection
-* [Database](./database.md) - DrizzleORM setup and usage patterns
-* [GraphQL](./graphql.md) - API schema and resolver implementation
-* [Authentication](./authentication.md) - SIWE and JWT authentication system
-* [WebSockets](./websockets.md) - Real-time communication implementation
-
-## Quick Examples
-
-### Creating a Simple Resolver
-```typescript
-// src/server/graphql/resolvers.ts
-export const resolvers = {
-  Query: {
-    me: async (parent, args, context) => {
-      const { serverApp, user } = context
-      if (!user) throw new Error('Authentication required')
-      
-      return await serverApp.db
-        .select()
-        .from(userTable)
-        .where(eq(userTable.id, user.id))
-        .then(rows => rows[0])
-    }
-  }
-}
-```
-
-### Database Operations
-```typescript
-// Insert with returning
-const [user] = await serverApp.db
-  .insert(userTable)
-  .values({ address: '0x...', nonce: generateNonce() })
-  .returning()
-
-// Complex queries with joins
-const tokensWithOwners = await serverApp.db
-  .select({
-    token: tokenTable,
-    owner: userTable
-  })
-  .from(tokenTable)
-  .leftJoin(userTable, eq(tokenTable.ownerId, userTable.id))
-```
-
-### Background Job Handler
-```typescript
-// src/server/workers/jobs/deployToken.ts
-export async function deployTokenJob(
-  serverApp: ServerApp,
-  job: Job<DeployTokenData>
-) {
-  const { name, symbol, ownerId } = job.data
-  
-  // Deploy contract using wallet client
-  const hash = await serverApp.walletClient.deployContract({
-    abi: ERC20_ABI,
-    bytecode: ERC20_BYTECODE,
-    args: [name, symbol]
-  })
-  
-  // Wait for deployment
-  const receipt = await serverApp.publicClient.waitForTransactionReceipt({ hash })
-  
-  // Save to database
-  await serverApp.db.insert(tokenTable).values({
-    address: receipt.contractAddress,
-    name,
-    symbol,
-    ownerId
-  })
-  
-  // Notify user
-  await serverApp.createNotification({
-    userId: ownerId,
-    type: 'token_deployed',
-    data: { address: receipt.contractAddress }
-  })
-}
-```
-
-The backend architecture prioritizes developer experience, type safety, and performance while maintaining clean separation of concerns through the ServerApp pattern.
+See [`src/server/types.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/types.ts) for the complete `ServerApp` type definition.

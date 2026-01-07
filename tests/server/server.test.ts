@@ -1,5 +1,5 @@
 /**
- * Server integration tests for QuickDapp v3
+ * Server integration tests for QuickDapp
  *
  * Tests the core server functionality including:
  * - Server startup and configuration

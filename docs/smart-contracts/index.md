@@ -1,74 +1,31 @@
-# Smart Contracts
+# Smart Contracts (Optional)
 
-QuickDapp includes sample smart contracts for local development and testing. These contracts use a simple factory pattern and are designed to be easy to understand and modify for your specific needs.
+QuickDapp includes sample smart contracts for Web3 developers. If you're building a non-Web3 application, skip this section entirely.
 
-## Contract Architecture
+## Overview
 
-### Simple Factory Pattern
+The sample contracts demonstrate a simple ERC20 token factory pattern using OpenZeppelin contracts and Foundry tooling. The factory deploys new ERC20 tokens with custom names, symbols, and initial supplies.
 
-The sample contracts use a straightforward factory pattern:
+Both contracts live in [`sample-contracts/src/ERC20Factory.sol`](https://github.com/QuickDapp/QuickDapp/blob/main/sample-contracts/src/ERC20Factory.sol):
 
-* **ERC20Factory** - Deploys new ERC20 tokens with custom parameters
-* **SimpleERC20** - Basic ERC20 implementation with mint/burn capabilities
-* **Foundry Integration** - Uses Foundry for compilation and testing
-* **Bun Scripts** - TypeScript deployment scripts using Bun
+- **`ERC20Factory`** - Deploys new ERC20 tokens and tracks them
+- **`SimpleERC20`** - Basic ERC20 with mint/burn capabilities and custom transfer events
 
-### Factory Contract
-
-The ERC20Factory contract handles token deployment:
-
-```solidity
-// Sample factory interface
-interface IERC20Factory {
-    function deployToken(
-        string memory name,
-        string memory symbol,
-        uint8 decimals,
-        uint256 initialSupply
-    ) external returns (address tokenAddress);
-    
-    function getTokenCount() external view returns (uint256);
-    
-    function getUserTokens(address user) 
-        external view returns (address[] memory);
-}
-```
-
-Note: This deployToken functionality is part of the sample contracts. The QuickDapp application does not expose GraphQL mutations for token deployment or token CRUD. Perform on-chain interactions from the client using viem/wagmi and use WebSockets for real-time updates.
-
-## Development Workflow
-
-### Local Development
-
-The sample contracts are located in `sample-contracts/` directory:
-
-```shell
-# Start local blockchain
-cd sample-contracts
-bun devnet.ts
-
-# Deploy contracts to local network
-bun deploy.ts
-```
-
-### Contract Structure
+## Directory Structure
 
 ```
 sample-contracts/
 ├── src/
-│   ├── ERC20Factory.sol       # Factory contract
-│   └── SimpleERC20.sol        # ERC20 implementation
-├── devnet.ts                  # Local blockchain script
-├── deploy.ts                  # Deployment script
+│   └── ERC20Factory.sol      # Factory and token contracts
+├── devnet.ts                 # Local Hardhat blockchain
+├── deploy.ts                 # Foundry deployment script
 ├── foundry.toml              # Foundry configuration
-└── README.md                 # Contract documentation
+└── hardhat.config.cjs        # Hardhat node configuration
 ```
 
-## Deployment Process
+## Local Development
 
-### Local Deployment
-
-For development with local Anvil:
+Start the local blockchain and deploy contracts in separate terminals:
 
 ```shell
 # Terminal 1: Start local blockchain
@@ -76,197 +33,86 @@ cd sample-contracts
 bun devnet.ts
 
 # Terminal 2: Deploy contracts
-cd sample-contracts  
-bun deploy.ts
-```
-
-### Testnet Deployment
-
-Deploy to Sepolia testnet:
-
-```shell
-# Configure environment
-echo "CHAIN=sepolia" >> ../.env.local
-echo "WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/YOUR_KEY" >> ../.env.local
-echo "WEB3_SERVER_WALLET_PRIVATE_KEY=0x..." >> ../.env.local
-
-# Deploy to Sepolia
 cd sample-contracts
 bun deploy.ts
 ```
 
-### Production Deployment
+The deployment script uses Foundry's `forge create` to deploy `ERC20Factory`, then automatically updates `.env.local` with the deployed contract address.
 
-Deploy to mainnet:
+## Factory Interface
+
+The factory tracks deployed tokens and emits events for indexing:
+
+```solidity
+contract ERC20Factory {
+    event ERC20NewToken(
+        address indexed token,
+        string name,
+        string symbol,
+        address indexed creator,
+        uint256 initialSupply
+    );
+
+    function erc20DeployToken(
+        ERC20TokenConfig memory config,
+        uint256 initialBalance
+    ) external returns (address);
+
+    function getNumErc20s() external view returns (uint256);
+    function getErc20Address(uint256 index) external view returns (address);
+    function getAllErc20Addresses() external view returns (address[] memory);
+}
+```
+
+Token configuration uses a struct:
+
+```solidity
+struct ERC20TokenConfig {
+    string name;
+    string symbol;
+    uint8 decimals;
+}
+```
+
+## Testnet Deployment
+
+Deploy to Sepolia or other testnets by configuring environment variables:
 
 ```shell
-# Configure production environment
-echo "CHAIN=mainnet" >> ../.env.production
-echo "WEB3_MAINNET_RPC=https://mainnet.infura.io/v3/YOUR_KEY" >> ../.env.production
-echo "WEB3_SERVER_WALLET_PRIVATE_KEY=0x..." >> ../.env.production
+# In your .env.local
+WEB3_SUPPORTED_CHAINS=sepolia
+WEB3_SEPOLIA_RPC=https://sepolia.infura.io/v3/YOUR_KEY
+WEB3_SERVER_WALLET_PRIVATE_KEY=0x...
 
-# Deploy to mainnet
+# Deploy
 cd sample-contracts
-NODE_ENV=production bun deploy.ts
+bun deploy.ts
 ```
 
-## Contract Interaction
-
-### TypeScript Integration
-
-The deployment script automatically updates environment variables:
-
-```typescript
-// After deployment, .env.local is updated with:
-WEB3_FACTORY_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
-```
-
-### Frontend Usage
-
-The main QuickDapp application automatically uses the deployed contract:
-
-```typescript
-// Contract address is loaded from environment
-const factoryAddress = process.env.WEB3_FACTORY_CONTRACT_ADDRESS
-
-// ABIs are generated from Foundry build artifacts
-import { ERC20Factory_ABI } from '../generated/abis'
-```
+The script reads from the first chain in `WEB3_SUPPORTED_CHAINS` and uses the corresponding RPC endpoint.
 
 ## Testing
 
-### Contract Tests
-
-Run Foundry tests:
+Run Foundry tests for contract verification:
 
 ```shell
 cd sample-contracts
-forge test
-
-# Verbose output
-forge test -vvv
-
-# Gas reporting
+forge test           # Run all tests
+forge test -vvv      # Verbose output
 forge test --gas-report
 ```
 
-### Integration Testing
+## Frontend Integration
 
-The main QuickDapp test suite includes contract interaction tests:
+After deployment, the contract address is available via [`clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/config/client.ts). ABIs are generated from Foundry build artifacts to [`src/shared/abi/generated.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/abi/generated.ts) when you run `bun run gen`.
 
-```shell
-# Run full integration tests (includes contract deployment)
-bun run test
-```
+Use viem/wagmi on the client for contract interactions. The `ERC20NewToken` and `TokenTransferred` events are useful for real-time tracking via WebSockets.
 
 ## Customization
 
-### Adding Custom Contracts
+To add your own contracts:
 
-1. **Create Contract** - Add your Solidity file to `src/`
-2. **Update Deployment** - Modify `deploy.ts` to include your contract
-3. **Generate ABIs** - Run `forge build` to generate artifacts
-4. **Update Frontend** - Import the generated ABI in your application
-
-### Modifying Factory
-
-The factory contract can be extended with additional features:
-
-```solidity
-// Example: Add token registry functionality
-mapping(address => bool) public isToken;
-mapping(address => address[]) public userTokens;
-
-event TokenDeployed(
-    address indexed creator,
-    address indexed token,
-    string name,
-    string symbol
-);
-```
-
-Note: Emitting TokenDeployed is useful for contract indexing and client-side tracking. In QuickDapp, there are no GraphQL subscriptions for this; use WebSockets for realtime notifications and handle on-chain events with viem/wagmi on the client.
-
-## Advanced Usage
-
-### Manual Forge Commands
-
-Direct Foundry commands for advanced operations:
-
-```shell
-cd sample-contracts
-
-# Compile contracts
-forge build
-
-# Run specific tests
-forge test --match-contract ERC20FactoryTest
-
-# Deploy with specific parameters
-forge create src/ERC20Factory.sol:ERC20Factory \
-  --rpc-url $RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-```
-
-### Contract Verification
-
-Verify contracts on Etherscan:
-
-```shell
-# Sepolia verification
-forge verify-contract \
-  --chain sepolia \
-  --compiler-version 0.8.20 \
-  $CONTRACT_ADDRESS \
-  src/ERC20Factory.sol:ERC20Factory \
-  --etherscan-api-key $ETHERSCAN_API_KEY
-
-# Mainnet verification  
-forge verify-contract \
-  --chain mainnet \
-  --compiler-version 0.8.20 \
-  $CONTRACT_ADDRESS \
-  src/ERC20Factory.sol:ERC20Factory \
-  --etherscan-api-key $ETHERSCAN_API_KEY
-```
-
-## Production Considerations
-
-### Security
-
-* **Audit Contracts** - Have contracts audited before mainnet deployment
-* **Use Battle-tested Libraries** - Based on OpenZeppelin contracts
-* **Test Thoroughly** - Comprehensive testing before production use
-* **Gradual Rollout** - Deploy to testnets first
-
-### Gas Optimization
-
-* **Constructor Optimization** - Minimize deployment costs  
-* **Function Efficiency** - Optimize frequently called functions
-* **Storage Layout** - Efficient storage usage patterns
-
-### Monitoring
-
-* **Event Logging** - Comprehensive event emissions for indexing
-* **Error Handling** - Clear error messages and revert reasons
-* **Upgrade Planning** - Consider upgrade strategies if needed
-
-## Environment Variables
-
-Contract deployment uses these environment variables:
-
-```bash
-# Network Configuration
-CHAIN=anvil                              # Network: anvil, sepolia, mainnet
-WEB3_ANVIL_RPC=http://localhost:8545     # RPC endpoint (use WEB3_{CHAIN}_RPC pattern)
-WEB3_SERVER_WALLET_PRIVATE_KEY=0x...     # Deployment wallet private key
-
-# Contract Addresses (auto-updated by deployment)
-WEB3_FACTORY_CONTRACT_ADDRESS=0x...      # Deployed factory address
-
-# Optional: Etherscan verification
-ETHERSCAN_API_KEY=...                    # For contract verification
-```
-
-The sample contracts provide a solid foundation for token-based dApps while remaining simple enough to understand and modify for your specific requirements.
+1. Add Solidity files to `sample-contracts/src/`
+2. Run `forge build` to compile
+3. Update [`deploy.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/sample-contracts/deploy.ts) to deploy your contracts
+4. Run `bun run gen` to regenerate ABI types

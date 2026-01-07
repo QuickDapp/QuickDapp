@@ -1,346 +1,125 @@
 # Forms
 
-QuickDapp uses simple React state management for form handling. Forms integrate with the GraphQL API and provide basic validation and error handling.
+QuickDapp uses a custom hook-based form system rather than external libraries like React Hook Form. The [`useForm`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/hooks/useForm.ts) and [`useField`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/hooks/useForm.ts) hooks provide validation, error handling, and field state management.
+
+## The useField Hook
+
+Each form field gets its own `useField` instance that tracks value, validation state, and touched status:
+
+```typescript
+const nameField = useField({
+  initialValue: "",
+  validate: (value) => {
+    if (!value.trim()) return "Name is required"
+    if (value.length < 2) return "Name must be at least 2 characters"
+  }
+})
+```
+
+The hook returns:
+- `name` — Field name from options
+- `value` — Current field value
+- `valid` — Whether the field passes validation
+- `error` — Validation error message (if any)
+- `version` — Increments on each change
+- `isSet` — True if the field has a value or is optional
+- `isValidating` — True during async validation
+- `handleChange(value)` — Update the field value
+- `unset()` — Reset to initial state
+
+## Async Validation
+
+Fields support async validation with debouncing. This is useful for checking availability or validating against a server:
+
+```typescript
+const addressField = useField({
+  initialValue: "",
+  validateAsync: async (value) => {
+    const isValid = await checkAddressOnChain(value)
+    if (!isValid) return "Invalid address"
+  },
+  validateAsyncDebounceMs: 300
+})
+```
+
+The `isValidating` flag indicates when async validation is in progress, so you can show a loading indicator.
+
+## The useForm Hook
+
+For forms with multiple fields, `useForm` coordinates validation across all fields:
+
+```typescript
+const form = useForm({
+  onSubmit: async (values) => {
+    await createToken(values)
+  }
+})
+```
+
+The form tracks overall validity and handles submission. Fields register themselves with the form and validation runs on submit.
 
 ## Form Components
 
-### Basic Form Structure
+The form UI components in [`Form.tsx`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/Form.tsx) integrate with the field hooks:
 
-Forms use standard React state with simple validation:
+`Input` and `Textarea` accept an `error` prop to display validation messages below the field. They show a red border when invalid.
+
+`Label` wraps Radix UI's label with optional required indicator styling.
+
+`FormField` combines a label, input, and error message into a single component.
+
+`TextInput` and `NumberInput` are pre-integrated with `useField` for common use cases.
+
+`FieldSuffix` shows a spinning indicator during async validation.
+
+## Validation Patterns
+
+Validate on change for immediate feedback:
 
 ```typescript
-import * as React from "react"
-import { Button } from "./Button"
-import { Form, Input, Label } from "./Form"
-
-interface FormData {
-  name: string
-  symbol: string
-  initialSupply: string
-}
-
-interface FormErrors {
-  name?: string
-  symbol?: string
-  initialSupply?: string
-}
-
-export function TokenForm() {
-  const [formData, setFormData] = React.useState<FormData>({
-    name: '',
-    symbol: '',
-    initialSupply: ''
-  })
-  const [errors, setErrors] = React.useState<FormErrors>({})
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required'
-    }
-    
-    if (!formData.symbol.trim()) {
-      newErrors.symbol = 'Symbol is required'
-    } else if (formData.symbol.length > 6) {
-      newErrors.symbol = 'Symbol must be 6 characters or less'
-    }
-    
-    if (!formData.initialSupply.trim()) {
-      newErrors.initialSupply = 'Initial supply is required'
-    }
-    
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+const field = useField({
+  initialValue: "",
+  validate: (value) => {
+    if (!value) return "Required"
   }
+})
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) return
-    
-    setIsSubmitting(true)
-    try {
-      // Handle form submission
-      await submitForm(formData)
-    } catch (error) {
-      // Handle error
-    } finally {
-      setIsSubmitting(false)
-    }
+// Error updates as user types
+```
+
+Validate on blur for less intrusive feedback:
+
+```typescript
+// Check field.isSet before showing errors
+{field.isSet && field.error && <span>{field.error}</span>}
+```
+
+Combine sync and async validation:
+
+```typescript
+const field = useField({
+  initialValue: "",
+  validate: (value) => {
+    // Sync validation runs first
+    if (!isAddress(value)) return "Invalid address format"
+  },
+  validateAsync: async (value) => {
+    // Async only runs if sync passes
+    const exists = await checkAddressExists(value)
+    if (!exists) return "Address not found"
   }
-
-  const handleInputChange = (field: keyof FormData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }))
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
-    }
-  }
-
-  return (
-    <Form onSubmit={handleSubmit}>
-      <div>
-        <Label htmlFor="name">Token Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={handleInputChange('name')}
-          error={errors.name}
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="symbol">Symbol</Label>
-        <Input
-          id="symbol"
-          value={formData.symbol}
-          onChange={handleInputChange('symbol')}
-          error={errors.symbol}
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="initialSupply">Initial Supply</Label>
-        <Input
-          id="initialSupply"
-          value={formData.initialSupply}
-          onChange={handleInputChange('initialSupply')}
-          error={errors.initialSupply}
-        />
-      </div>
-      
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creating...' : 'Create Token'}
-      </Button>
-    </Form>
-  )
-}
+})
 ```
 
-## Form Components
+## Sanitization
 
-### Form Container
-
-Basic form wrapper:
+Fields can sanitize values before validation:
 
 ```typescript
-interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
-  children: React.ReactNode
-}
-
-export function Form({ children, ...props }: FormProps) {
-  return (
-    <form {...props} className="space-y-4">
-      {children}
-    </form>
-  )
-}
+const field = useField({
+  initialValue: "",
+  sanitize: (value) => value.toLowerCase().trim()
+})
 ```
 
-### Input Component
-
-Input with error handling:
-
-```typescript
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  error?: string
-}
-
-export function Input({ error, className, ...props }: InputProps) {
-  return (
-    <div>
-      <input
-        {...props}
-        className={`input ${error ? 'input-error' : ''} ${className || ''}`}
-      />
-      {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
-    </div>
-  )
-}
-```
-
-### Label Component
-
-Form labels:
-
-```typescript
-interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
-  children: React.ReactNode
-}
-
-export function Label({ children, ...props }: LabelProps) {
-  return (
-    <label {...props} className="block text-sm font-medium mb-1">
-      {children}
-    </label>
-  )
-}
-```
-
-## Integration with GraphQL
-
-Forms typically integrate with GraphQL mutations:
-
-```typescript
-import { useMutation } from '@tanstack/react-query'
-import { graphql } from '../lib/graphql'
-
-const CREATE_TOKEN_MUTATION = graphql(`
-  mutation CreateToken($input: CreateTokenInput!) {
-    createToken(input: $input) {
-      id
-      name
-      symbol
-      address
-    }
-  }
-`)
-
-export function useCreateToken() {
-  return useMutation({
-    mutationFn: async (input: CreateTokenInput) => {
-      const response = await fetch('/graphql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: CREATE_TOKEN_MUTATION,
-          variables: { input }
-        })
-      })
-      return response.json()
-    }
-  })
-}
-```
-
-Use in form:
-
-```typescript
-export function TokenForm() {
-  const createToken = useCreateToken()
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validateForm()) return
-    
-    try {
-      await createToken.mutateAsync(formData)
-      // Handle success
-    } catch (error) {
-      // Handle error
-    }
-  }
-  
-  // ... rest of form logic
-}
-```
-
-## Error Handling
-
-### Validation Errors
-
-Client-side validation for immediate feedback:
-
-```typescript
-const validateField = (field: string, value: string): string | undefined => {
-  switch (field) {
-    case 'name':
-      return !value.trim() ? 'Name is required' : undefined
-    case 'symbol':
-      if (!value.trim()) return 'Symbol is required'
-      if (value.length > 6) return 'Symbol must be 6 characters or less'
-      return undefined
-    case 'initialSupply':
-      if (!value.trim()) return 'Initial supply is required'
-      if (isNaN(Number(value))) return 'Must be a number'
-      return undefined
-    default:
-      return undefined
-  }
-}
-```
-
-### Server Errors
-
-Handle GraphQL errors:
-
-```typescript
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  
-  try {
-    await createToken.mutateAsync(formData)
-    onSuccess()
-  } catch (error: any) {
-    if (error.graphQLErrors) {
-      // Handle GraphQL validation errors
-      const fieldErrors = error.graphQLErrors
-        .filter(err => err.extensions?.field)
-        .reduce((acc, err) => ({
-          ...acc,
-          [err.extensions.field]: err.message
-        }), {})
-      
-      setErrors(fieldErrors)
-    } else {
-      // Handle general errors
-      setGeneralError(error.message || 'An error occurred')
-    }
-  }
-}
-```
-
-## Form Patterns
-
-### Reset Form
-
-Clear form after successful submission:
-
-```typescript
-const resetForm = () => {
-  setFormData({ name: '', symbol: '', initialSupply: '' })
-  setErrors({})
-}
-
-const handleSubmit = async (e: React.FormEvent) => {
-  // ... submission logic
-  
-  if (success) {
-    resetForm()
-  }
-}
-```
-
-### Loading States
-
-Show loading during submission:
-
-```typescript
-<Button type="submit" disabled={isSubmitting}>
-  {isSubmitting ? 'Creating...' : 'Create Token'}
-</Button>
-```
-
-### Form Validation
-
-Validate on submit and optionally on blur:
-
-```typescript
-const handleBlur = (field: keyof FormData) => () => {
-  const error = validateField(field, formData[field])
-  setErrors(prev => ({ ...prev, [field]: error }))
-}
-
-<Input
-  value={formData.name}
-  onChange={handleInputChange('name')}
-  onBlur={handleBlur('name')}
-  error={errors.name}
-/>
-```
-
-QuickDapp's form system keeps things simple while providing the essential functionality needed for user input and validation.
+The sanitized value is what gets validated and submitted.

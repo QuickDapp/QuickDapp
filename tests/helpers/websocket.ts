@@ -1,5 +1,5 @@
 /**
- * WebSocket test helpers for QuickDapp v3
+ * WebSocket test helpers for QuickDapp
  *
  * Utilities for testing WebSocket connections, messages,
  * and connection management.

@@ -1,5 +1,5 @@
 /**
- * Auth Directive Tests for QuickDapp v3
+ * Auth Directive Tests for QuickDapp
  *
  * Tests for the @auth directive functionality, including directive parsing,
  * operation identification, and runtime enforcement of authentication requirements.

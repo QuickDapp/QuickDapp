@@ -10,21 +10,20 @@ QuickDapp follows a modern, clean architecture built around the **ServerApp depe
 ├─────────────────────────────────────────────────────────────┤
 │  Frontend (React + Vite)                                  │
 │  ├── React 19 + TypeScript                                │
-│  ├── RainbowKit + Wagmi (Web3)                           │
 │  ├── GraphQL Client (React Query)                        │
-│  └── WebSocket Client                                     │
+│  ├── WebSocket Client                                     │
+│  └── RainbowKit + Wagmi (Optional Web3)                  │
 ├─────────────────────────────────────────────────────────────┤
 │  Backend (Bun + ElysiaJS)                                 │
 │  ├── ElysiaJS Server                                     │
 │  ├── GraphQL Yoga API                                    │
-│  ├── SIWE Authentication                                 │
+│  ├── JWT Authentication (+ Optional SIWE)                │
 │  ├── WebSocket Server                                    │
 │  └── Static Asset Serving                                │
 ├─────────────────────────────────────────────────────────────┤
 │  Worker System (Child Processes)                          │
 │  ├── Background Job Processing                           │
 │  ├── Cron Job Scheduling                                 │
-│  ├── Blockchain Monitoring                               │
 │  └── IPC Communication                                   │
 ├─────────────────────────────────────────────────────────────┤
 │  Database Layer (DrizzleORM + PostgreSQL)                 │
@@ -32,7 +31,7 @@ QuickDapp follows a modern, clean architecture built around the **ServerApp depe
 │  ├── Schema Migrations                                   │
 │  └── Connection Pooling                                  │
 ├─────────────────────────────────────────────────────────────┤
-│  Blockchain Layer (Viem)                                  │
+│  Blockchain Layer (Optional - Viem)                       │
 │  ├── Public Client (Read Operations)                     │
 │  ├── Wallet Client (Write Operations)                    │
 │  └── Contract Interactions                               │
@@ -46,14 +45,16 @@ The core architectural innovation in QuickDapp is the **ServerApp pattern** - a 
 ```typescript
 export type ServerApp = {
   app: Elysia                    // ElysiaJS server instance
-  db: PostgresJsDatabase         // DrizzleORM database connection
+  db: Database                   // DrizzleORM database connection
   rootLogger: Logger             // Root logger instance
-  createLogger: typeof createLogger  // Logger factory
+  createLogger: (category: string) => Logger  // Logger factory
+  startSpan: typeof startSpan    // Sentry performance monitoring
   workerManager: WorkerManager   // Background job processing
   socketManager: ISocketManager  // WebSocket manager
-  publicClient: PublicClient     // Blockchain read client
-  walletClient: WalletClient     // Blockchain write client
-  createNotification: Function   // Notification system
+  createNotification: (userId: number, data: NotificationData) => Promise<void>
+  // Web3 (optional - when WEB3_ENABLED=true)
+  publicClient?: PublicClient    // Blockchain read client
+  walletClient?: WalletClient    // Blockchain write client
 }
 ```
 
@@ -89,7 +90,7 @@ tests/                  # Integration test suite
 ## Technology Stack
 
 ### Runtime & Server
-* **Bun** - Primary runtime (Node.js v22+ compatible)
+* **Bun** - Primary runtime and package manager
 * **ElysiaJS** - High-performance web framework with native WebSocket support
 * **GraphQL Yoga** - GraphQL server (no GraphQL subscriptions; use WebSockets for realtime)
 
@@ -104,14 +105,15 @@ tests/                  # Integration test suite
 * **postgres** - High-performance PostgreSQL client
 
 ### Authentication & Security
-* **SIWE (Sign-in with Ethereum)** - Decentralized authentication
 * **JWT (Jose)** - Stateless token authentication
+* **Multiple auth providers** - Email, OAuth, and SIWE (Sign-in with Ethereum)
 * **Custom auth directive** - GraphQL operation-level security
 
-### Web3 Integration
+### Web3 Integration (Optional)
 * **Viem** - Type-safe Ethereum library
 * **Wagmi** - React hooks for Ethereum
 * **RainbowKit** - Wallet connection UI
+* **SIWE** - Wallet-based authentication
 
 ### Background Processing
 * **Child process architecture** - Isolated worker processes
@@ -188,12 +190,11 @@ Configuration is loaded by the shared bootstrap pattern and provides type-safe a
 
 ### Authentication Flow
 ```
-1. User connects wallet
-2. Frontend requests SIWE message
-3. User signs message with wallet
-4. Backend validates signature
-5. JWT token issued and stored
-6. Token used for subsequent requests
+1. User initiates login (email, OAuth, or wallet)
+2. Auth provider validates credentials
+3. Backend verifies identity
+4. JWT token issued and stored
+5. Token used for subsequent requests
 ```
 
 ### Database Operations
@@ -214,4 +215,4 @@ Configuration is loaded by the shared bootstrap pattern and provides type-safe a
 5. UI updates reactively
 ```
 
-This architecture provides a solid foundation for building scalable, maintainable Web3 applications with modern development practices and excellent developer experience.
+This architecture provides a solid foundation for building scalable, maintainable web applications with modern development practices and excellent developer experience—with optional Web3 capabilities when needed.

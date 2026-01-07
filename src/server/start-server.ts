@@ -147,7 +147,7 @@ export const createApp = async (
         return {
           workspace: {
             root: path.join(__dirname, "..", ".."),
-            uuid: "quickdapp-v3-server",
+            uuid: "quickdapp-server",
           },
         }
       }

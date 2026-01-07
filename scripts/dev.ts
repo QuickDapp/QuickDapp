@@ -5,7 +5,6 @@ import path from "node:path"
 import { $, spawn } from "bun"
 import { watch } from "fs"
 import { copyStaticSrc } from "./shared/copy-static-src"
-import { generateAbis } from "./shared/generate-abis"
 import { createScriptRunner, type ScriptOptions } from "./shared/script-runner"
 
 interface DevOptions extends ScriptOptions {
@@ -30,22 +29,13 @@ async function devHandler(
   // Copy static-src to static
   copyStaticSrc(config.rootFolder, true)
 
-  // Generate ABIs
-  console.log("🔧 Generating ABIs...")
+  // Generate types (ABIs, GraphQL, db migrations)
+  console.log("🔧 Generating types...")
   try {
-    await generateAbis({ verbose: false })
-    console.log("✅ ABIs generated")
+    await $`bun run gen`
+    console.log("✅ Types generated")
   } catch (error) {
-    console.warn("⚠️  ABI generation failed, using defaults:", error)
-  }
-
-  // Generate GraphQL types
-  console.log("🔧 Generating GraphQL types...")
-  try {
-    await $`bun run codegen`
-    console.log("✅ GraphQL types generated")
-  } catch (error) {
-    console.warn("⚠️  GraphQL type generation failed:", error)
+    console.warn("⚠️  Type generation failed:", error)
   }
   console.log("")
 
@@ -79,7 +69,7 @@ async function devHandler(
   const runCodegen = async () => {
     console.log("📝 GraphQL files changed, regenerating types...")
     try {
-      await $`bun run codegen`
+      await $`bun run gen`
       console.log("✅ Types regenerated")
     } catch (error) {
       console.error("❌ Type regeneration failed:", error)

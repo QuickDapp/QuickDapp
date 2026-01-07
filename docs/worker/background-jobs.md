@@ -1,205 +1,81 @@
 # Background Jobs
 
-QuickDapp's worker system provides simple background job processing for system maintenance tasks. It uses child processes and a database-backed job queue for basic job scheduling and execution.
+This page covers the internal implementation of the worker system. For adding custom jobs, see [Adding Jobs](./adding-jobs.md).
 
-## System Overview
+## Job Storage
 
-### Simple Architecture
+Jobs are stored in the [`workerJobs`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/db/schema.ts) table with these key fields:
 
-The worker system consists of:
+| Field | Purpose |
+|-------|---------|
+| `tag` | Identifier for logging and debugging |
+| `type` | Job type name matching the registry |
+| `userId` | Associated user (0 for system jobs) |
+| `data` | JSON payload passed to the job runner |
+| `due` | When the job should run |
+| `started` | When execution began |
+| `finished` | When execution completed |
+| `success` | Whether the job succeeded |
+| `result` | Return value from the job runner |
+| `cronSchedule` | Cron expression for recurring jobs |
+| `persistent` | Whether job survives server restarts |
+| `autoRescheduleOnFailure` | Retry on failure |
+| `autoRescheduleOnFailureDelay` | Seconds to wait before retry |
+| `removeDelay` | Seconds to keep completed job |
 
-```typescript
-// Simple worker architecture
-Main Server Process
-├── ElysiaJS HTTP Server
-├── GraphQL API  
-└── WorkerManager
-    ├── Child Worker Processes (configurable count)
-    └── Job Queue (workerJobs table)
+## Worker Process
+
+Each worker runs as a forked child process with its own `ServerApp` instance. The [`start-worker.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/start-worker.ts) entry point handles:
+
+1. Creating a `ServerApp` without the `WorkerManager` (to avoid recursive spawning)
+2. Connecting to the database with a smaller connection pool
+3. Starting the job polling loop
+4. Graceful shutdown on SIGTERM
+
+Workers poll the database every second for jobs where `due <= now` and `started IS NULL`. They use `FOR UPDATE SKIP LOCKED` to claim jobs without blocking other workers.
+
+## IPC Communication
+
+Workers communicate with the main server through Node.js IPC. Message types are defined in [`ipc-types.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/ipc-types.ts):
+
+- `WorkerStarted` — Worker process initialized
+- `WorkerShutdown` — Worker shutting down
+- `WorkerError` — Unhandled error in worker
+- `Heartbeat` — Keep-alive signal
+- `SendToUser` — Route WebSocket message to specific user
+- `Broadcast` — Send WebSocket message to all connected clients
+
+When a job needs to send a real-time notification, it uses [`serverApp.createNotification()`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/bootstrap.ts) which saves to the database and sends an IPC message. The main server receives this and routes it through the `SocketManager`.
+
+## Cron Scheduling
+
+Jobs with a `cronSchedule` field automatically reschedule after completion. The schedule uses standard cron syntax:
+
+```
+┌───────────── second (0-59)
+│ ┌───────────── minute (0-59)
+│ │ ┌───────────── hour (0-23)
+│ │ │ ┌───────────── day of month (1-31)
+│ │ │ │ ┌───────────── month (1-12)
+│ │ │ │ │ ┌───────────── day of week (0-6)
+│ │ │ │ │ │
+* * * * * *
 ```
 
-### Job Processing
-
-1. **Job Creation** - Jobs are inserted into the `workerJobs` database table
-2. **Worker Polling** - Child processes poll the database for due jobs
-3. **Job Execution** - Workers execute jobs and update status
-4. **Cleanup** - Completed jobs are automatically removed based on `removeDelay`
-
-## Built-in Job Types
-
-QuickDapp includes three maintenance job types:
-
-### removeOldWorkerJobs
-
-Cleans up completed worker jobs from the database:
-
-```typescript
-// Automatic cleanup job
-{
-  type: 'removeOldWorkerJobs',
-  data: {}, // No specific data needed
-  cronSchedule: '0 2 * * *' // Daily at 2 AM
-}
-```
-
-### watchChain
-
-Monitors blockchain events and processes new transactions:
-
-```typescript
-// Blockchain monitoring job
-{
-  type: 'watchChain',
-  data: {}, // No specific data needed
-  cronSchedule: '*/30 * * * * *' // Every 30 seconds
-}
-```
-
-### deployMulticall3
-
-Ensures the Multicall3 contract is deployed on the current chain:
-
-```typescript
-// Contract deployment job
-{
-  type: 'deployMulticall3',
-  data: {
-    forceRedeploy?: boolean // Optional: force redeployment
-  }
-}
-```
-
-## Job Structure
-
-Jobs in the `workerJobs` table have this simple structure:
-
-```typescript
-interface WorkerJob {
-  id: number
-  type: 'removeOldWorkerJobs' | 'watchChain' | 'deployMulticall3'
-  userId: number
-  data: any
-  due: Date
-  started?: Date
-  finished?: Date
-  removeAt: Date
-  success?: boolean
-  result?: any
-  cronSchedule?: string
-  autoRescheduleOnFailure: boolean
-  autoRescheduleOnFailureDelay: number
-  removeDelay: number
-  persistent: boolean
-}
-```
-
-## Job Handler Implementation
-
-Each job type has a simple handler function:
-
-```typescript
-// src/server/workers/jobs/removeOldWorkerJobs.ts
-import type { Job, JobParams } from './types'
-
-export const removeOldWorkerJobsJob: Job = {
-  async run({ serverApp, log, job }: JobParams) {
-    log.info('Starting cleanup of old worker jobs', { jobId: job.id })
-    
-    const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 days ago
-    
-    const result = await serverApp.db
-      .delete(workerJobs)
-      .where(
-        and(
-          lt(workerJobs.removeAt, cutoffDate),
-          isNotNull(workerJobs.finished)
-        )
-      )
-    
-    log.info('Cleanup completed', {
-      jobId: job.id,
-      deletedCount: result.rowCount
-    })
-    
-    return { deletedCount: result.rowCount }
-  }
-}
-```
-
-### Job Registry
-
-All jobs are registered in a simple registry:
-
-```typescript
-// src/server/workers/jobs/registry.ts
-import { deployMulticall3Job } from './deployMulticall3'
-import { removeOldWorkerJobsJob } from './removeOldWorkerJobs'
-import { watchChainJob } from './watchChain'
-import type { JobRegistry } from './types'
-
-export const jobRegistry: JobRegistry = {
-  removeOldWorkerJobs: removeOldWorkerJobsJob,
-  watchChain: watchChainJob,
-  deployMulticall3: deployMulticall3Job,
-}
-```
-
-## Worker Configuration
-
-Configure workers through environment variables:
-
-```bash
-# Worker settings
-WORKER_COUNT=cpus        # Number of worker processes ('cpus' for auto-scale)
-WORKER_LOG_LEVEL=info    # Worker-specific log level
-```
-
-## Submitting Jobs
-
-Jobs are submitted through the WorkerManager:
-
-```typescript
-// Submit a maintenance job
-const job = await serverApp.workerManager.submitJob({
-  type: 'deployMulticall3',
-  userId: 1,
-  data: { forceRedeploy: false },
-  due: new Date(),
-  persistent: false,
-  autoRescheduleOnFailure: true
-})
-```
-
-## Cron Jobs
-
-Maintenance jobs are automatically scheduled:
-
-```typescript
-// System automatically schedules maintenance jobs
-// removeOldWorkerJobs: Daily at 2 AM
-// watchChain: Every 30 seconds
-// deployMulticall3: On startup if needed
-```
-
-## Monitoring
-
-The worker system provides basic monitoring through:
-
-- **Structured Logging** - All job execution is logged with job IDs and status
-- **Database Status** - Job status stored in `workerJobs` table
-- **Health Checks** - WorkerManager tracks worker process health
+The [`removeOldWorkerJobs`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/removeOldWorkerJobs.ts) job runs hourly. The [`watchChain`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/watchChain.ts) job runs every few seconds when Web3 is enabled.
 
 ## Error Handling
 
-Simple error handling with automatic rescheduling:
+When a job throws an error:
 
-```typescript
-// Jobs can be configured to reschedule on failure
-interface WorkerJob {
-  autoRescheduleOnFailure: boolean // Reschedule if job fails
-  autoRescheduleOnFailureDelay: number // Delay in seconds
-  removeDelay: number // When to remove completed jobs
-}
-```
+1. The `finished` timestamp and `success = false` are recorded
+2. If `autoRescheduleOnFailure` is true, a new job is scheduled after the configured delay
+3. The error is logged with the job context
 
-The worker system is designed to be simple and focused on essential maintenance tasks, providing a solid foundation for QuickDapp's background processing needs without unnecessary complexity.
+Jobs don't retry infinitely—the rescheduled job is a new record. The original failed job remains for debugging until the cleanup job removes it.
+
+## Monitoring
+
+Job execution is logged with structured data including job ID, type, duration, and result. Enable debug logging with `WORKER_LOG_LEVEL=debug` for detailed execution traces.
+
+The `workerJobs` table serves as both queue and audit log. Query it to check pending jobs, recent failures, or execution patterns.

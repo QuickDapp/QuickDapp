@@ -1,5 +1,5 @@
 /**
- * JWT Lifecycle Tests for QuickDapp v3
+ * JWT Lifecycle Tests for QuickDapp
  *
  * Comprehensive testing of JWT token generation, validation, expiration,
  * and various edge cases using real cryptographic operations.

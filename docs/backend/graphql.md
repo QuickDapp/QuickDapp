@@ -1,17 +1,18 @@
 # GraphQL
 
-QuickDapp exposes a GraphQL API via GraphQL Yoga integrated with ElysiaJS. The current API focuses on SIWE authentication and user notifications.
+QuickDapp exposes its API through GraphQL Yoga integrated with ElysiaJS. The schema uses a custom `@auth` directive to protect operations that require authentication.
 
-## Schema
+## Schema Overview
+
+The API provides authentication and notification management. There are no GraphQL subscriptions—real-time updates happen through WebSockets instead.
+
+**Queries** include token validation (public), fetching notifications (authenticated), and getting unread counts (authenticated).
+
+**Mutations** handle SIWE authentication flow (generating messages, verifying signatures), email verification, OAuth login URLs, and notification management.
+
+The full schema is defined in [`src/shared/graphql/schema.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/schema.ts). Key types:
 
 ```graphql
-directive @auth on FIELD_DEFINITION
-
-scalar DateTime
-scalar JSON
-scalar PositiveInt
-scalar BigInt
-
 type Notification {
   id: PositiveInt!
   userId: PositiveInt!
@@ -20,36 +21,11 @@ type Notification {
   read: Boolean!
 }
 
-type NotificationsResponse {
-  notifications: [Notification]!
-  startIndex: Int!
-  total: Int!
-}
-
-type Success {
-  success: Boolean!
-}
-
-type SiweMessageResult {
-  message: String!
-  nonce: String!
-}
-
 type AuthResult {
   success: Boolean!
   token: String
-  wallet: String
+  web3Wallet: String
   error: String
-}
-
-type ValidateTokenResult {
-  valid: Boolean!
-  wallet: String
-}
-
-input PageParam {
-  startIndex: Int!
-  perPage: Int!
 }
 
 type Query {
@@ -61,78 +37,43 @@ type Query {
 type Mutation {
   generateSiweMessage(address: String!, chainId: Int!, domain: String!): SiweMessageResult!
   authenticateWithSiwe(message: String!, signature: String!): AuthResult!
+  sendEmailVerificationCode(email: String!): EmailVerificationResult!
+  authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!
+  getOAuthLoginUrl(provider: String!, redirectUrl: String!): OAuthLoginUrlResult!
   markNotificationAsRead(id: PositiveInt!): Success! @auth
   markAllNotificationsAsRead: Success! @auth
 }
 ```
 
-Notes:
-- No User/Token CRUD or GraphQL subscriptions.
-- @auth is enforced on user-specific fields; validateToken is public but uses the Authorization header if present.
+## The @auth Directive
 
-## Example operations
+Operations marked with `@auth` require a valid JWT in the Authorization header. The GraphQL handler extracts auth requirements at startup and checks them before running resolvers.
 
-- Token validation:
-```graphql
-query {
-  validateToken { valid wallet }
-}
-```
+When an unauthenticated request tries to access a protected operation, it returns a GraphQL error with `extensions.code = "UNAUTHORIZED"`. Mixed queries containing both public and protected fields fail entirely when unauthenticated—no partial data is returned.
 
-- Generate SIWE message:
-```graphql
-mutation($address: String!, $chainId: Int!, $domain: String!) {
-  generateSiweMessage(address: $address, chainId: $chainId, domain: $domain) { message nonce }
-}
-```
+## Resolver Implementation
 
-- Authenticate with SIWE:
-```graphql
-mutation($message: String!, $signature: String!) {
-  authenticateWithSiwe(message: $message, signature: $signature) {
-    success
-    token
-    wallet
-    error
+Resolvers are defined in [`src/server/graphql/resolvers.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/graphql/resolvers.ts). Each resolver receives the context containing `ServerApp` and the authenticated user (if any):
+
+```typescript
+const resolvers = {
+  Query: {
+    getMyNotifications: async (_, { pageParam }, context) => {
+      const user = getAuthenticatedUser(context)
+      return await getNotifications(context.serverApp.db, user.id, pageParam)
+    }
   }
 }
 ```
 
-- Get notifications (auth required):
-```graphql
-query($page: PageParam!) {
-  getMyNotifications(pageParam: $page) {
-    notifications { id data read createdAt }
-    startIndex
-    total
-  }
-}
-```
+All resolvers are wrapped with `withSpan` for Sentry performance tracking. Database errors return with `extensions.code = "DATABASE_ERROR"`, authentication failures with `"AUTHENTICATION_FAILED"`, and disabled accounts with `"ACCOUNT_DISABLED"`.
 
-- Get unread count (auth required):
-```graphql
-query { getMyUnreadNotificationsCount }
-```
+## No Field Resolvers
 
-- Mark notification as read (auth required):
-```graphql
-mutation($id: PositiveInt!) {
-  markNotificationAsRead(id: $id) { success }
-}
-```
+QuickDapp deliberately avoids GraphQL field resolvers. All data is fetched in the parent resolver using SQL joins, which prevents N+1 query problems and keeps performance predictable.
 
-- Mark all as read (auth required):
-```graphql
-mutation { markAllNotificationsAsRead { success } }
-```
+## Client Integration
 
-## Auth directive behavior
+The frontend uses `graphql-request` with the queries and mutations defined in [`src/shared/graphql/queries.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) and [`mutations.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/mutations.ts). The GraphQL client is a singleton that includes the auth token when set.
 
-- Unauthorized access to @auth fields returns GraphQL errors with extensions.code = "UNAUTHORIZED".
-- Mixed queries containing both public and @auth fields will error when unauthenticated; no partial data is returned.
-
-See tests:
-- tests/server/graphql/auth-directive.test.ts
-- tests/server/graphql/auth.test.ts
-- tests/server/graphql/queries.test.ts
-- tests/server/graphql/mutations.test.ts
+See [`src/server/graphql/index.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/graphql/index.ts) for the handler setup and [`src/shared/graphql/schema.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/schema.ts) for the complete schema definition.

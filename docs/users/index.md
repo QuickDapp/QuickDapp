@@ -1,441 +1,98 @@
 # Users
 
-QuickDapp provides a comprehensive user management system built around Ethereum wallet addresses and Sign-in with Ethereum (SIWE) authentication. Users can connect their wallets, manage tokens, and receive real-time notifications about their activities.
+QuickDapp provides a simple user management system with flexible authentication. Users can sign in via SIWE (wallet), email verification, or OAuth providers. Each authentication method links to a single user record, allowing multiple sign-in options per account.
 
 ## User Model
 
-Users in QuickDapp are identified by their Ethereum wallet addresses:
+The user system uses two tables: `users` for account records and `userAuth` for authentication methods.
+
+The [`users`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/db/schema.ts) table stores minimal account data:
 
 ```typescript
-// Database schema
-export const userTable = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  address: text('address').notNull().unique(),
-  nonce: text('nonce').notNull(),
-  isAdmin: boolean('is_admin').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
-
-// TypeScript type
-export interface User {
-  id: string
-  address: string
-  nonce: string
-  isAdmin: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-```
-
-## Authentication Flow
-
-### Wallet-Based Authentication
-
-QuickDapp uses SIWE (Sign-in with Ethereum) for decentralized authentication:
-
-1. **Wallet Connection** - User connects their wallet (MetaMask, WalletConnect, etc.)
-2. **Nonce Request** - Client requests a unique nonce for the wallet address
-3. **Message Signing** - User signs a SIWE message with their private key
-4. **Verification** - Server verifies the signature and issues a JWT token
-5. **Session Management** - JWT token used for subsequent API requests
-
-### User Registration
-
-Users are automatically registered when they first authenticate:
-
-```typescript
-// Automatic user creation during authentication
-export async function verifySignature(message: string, signature: string): Promise<User | null> {
-  const siweMessage = new SiweMessage(message)
-  
-  // Verify signature
-  const result = await siweMessage.verify({ signature })
-  if (!result.success) return null
-  
-  // Find or create user
-  let [user] = await db
-    .select()
-    .from(userTable)
-    .where(eq(userTable.address, siweMessage.address))
-  
-  if (!user) {
-    // Create new user
-    [user] = await db
-      .insert(userTable)
-      .values({
-        address: siweMessage.address,
-        nonce: generateNonce()
-      })
-      .returning()
-  }
-  
-  return user
-}
-```
-
-## User Roles
-
-### Regular Users
-Default user role with access to:
-* Token deployment and management
-* Personal dashboard and activity history
-* Real-time notifications
-* GraphQL API for owned resources
-
-### Admin Users
-Enhanced permissions for administrative functions:
-* System-wide statistics and monitoring
-* User management capabilities
-* Access to administrative GraphQL operations
-* Advanced debugging and logging features
-
-```typescript
-// Admin check in GraphQL resolvers
-export const adminResolvers = {
-  Query: {
-    allUsers: async (parent, args, context) => {
-      const { user } = context
-      if (!user?.isAdmin) {
-        throw new Error('Admin access required')
-      }
-      
-      return await serverApp.db.select().from(userTable)
-    }
-  }
-}
-```
-
-## User Profile Management
-
-### Profile Data
-
-Users can manage their profile information:
-
-```typescript
-// Extended user profile
-export const userProfileTable = pgTable('user_profiles', {
-  userId: uuid('user_id').references(() => userTable.id).primaryKey(),
-  displayName: text('display_name'),
-  email: text('email'),
-  bio: text('bio'),
-  website: text('website'),
-  twitter: text('twitter'),
-  github: text('github'),
-  avatar: text('avatar'), // IPFS hash or URL
-  preferences: text('preferences'), // JSON string
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  disabled: boolean("disabled").default(false).notNull(),
+  settings: json("settings"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 ```
 
-### Profile Updates
-
-GraphQL mutations for profile management:
-
-```graphql
-type Mutation {
-  updateProfile(input: UpdateProfileInput!): UserProfile! @auth
-}
-
-input UpdateProfileInput {
-  displayName: String
-  email: String
-  bio: String
-  website: String
-  twitter: String
-  github: String
-}
-
-type UserProfile {
-  userId: ID!
-  displayName: String
-  email: String
-  bio: String
-  website: String
-  twitter: String
-  github: String
-  avatar: String
-  preferences: JSON
-  updatedAt: String!
-}
-```
-
-## User Activity
-
-### Activity Tracking
-
-Track user actions for history and analytics:
+The [`userAuth`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/db/schema.ts) table links authentication methods to users:
 
 ```typescript
-export const userActivityTable = pgTable('user_activity', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => userTable.id).notNull(),
-  action: text('action').notNull(), // 'token_deployed', 'token_transferred', etc.
-  entityType: text('entity_type'), // 'token', 'transaction', etc.
-  entityId: text('entity_id'),
-  metadata: text('metadata'), // JSON string with additional data
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const userAuth = pgTable("user_auth", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  authType: text("auth_type").notNull(),       // "web3_wallet", "email", "google", etc.
+  authIdentifier: text("auth_identifier").unique().notNull(),  // wallet address, email, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 ```
 
-### Activity Logging
+This separation allows a single user to have multiple authentication methods—for example, a wallet address and an email—all pointing to the same account.
 
-Automatic activity logging through the backend:
+## Authentication Methods
 
-```typescript
-// Activity service
-export class ActivityService {
-  constructor(private serverApp: ServerApp) {}
-  
-  async logActivity(userId: string, action: string, entityType?: string, entityId?: string, metadata?: any) {
-    await this.serverApp.db.insert(userActivityTable).values({
-      userId,
-      action,
-      entityType,
-      entityId,
-      metadata: metadata ? JSON.stringify(metadata) : null
-    })
-  }
-}
+QuickDapp supports three authentication approaches:
 
-// Usage in resolvers
-export const tokenResolvers = {
-  Mutation: {
-    deployToken: async (parent, { input }, context) => {
-      const { serverApp, user } = context
-      
-      // Submit deployment job
-      await serverApp.workerManager.submitJob({
-        type: 'deployToken',
-        data: { ...input, ownerId: user.id }
-      })
-      
-      // Log activity
-      const activityService = new ActivityService(serverApp)
-      await activityService.logActivity(
-        user.id, 
-        'token_deployment_started',
-        'token',
-        null,
-        { name: input.name, symbol: input.symbol }
-      )
-      
-      return { success: true }
-    }
-  }
-}
-```
+**SIWE (Sign-In With Ethereum)** — When Web3 is enabled, users sign a message with their wallet. The signature proves ownership of the address without exposing private keys.
 
-## User Dashboard
+**Email Verification** — Users receive a verification code via email. The code is encrypted into a stateless blob, avoiding database storage for pending verifications.
 
-### Dashboard Data
+**OAuth** — Six providers are supported: Google, Facebook, GitHub, X (Twitter), TikTok, and LinkedIn. Each uses encrypted state for CSRF protection.
 
-GraphQL queries for user dashboard:
+All methods result in a JWT token stored in the client and sent with subsequent API requests.
 
-```graphql
-type Query {
-  dashboard: UserDashboard! @auth
-}
+## User Lifecycle
 
-type UserDashboard {
-  user: User!
-  stats: DashboardStats!
-  recentTokens: [Token!]!
-  recentActivity: [Activity!]!
-  notifications: [Notification!]!
-}
+Users are created automatically on first authentication. The flow:
 
-type DashboardStats {
-  totalTokens: Int!
-  totalTransactions: Int!
-  totalValue: String! # In ETH
-  activeTokens: Int!
-}
-```
+1. User authenticates via their chosen method
+2. Server looks up `userAuth` by auth identifier
+3. If found, retrieve the linked user
+4. If not found, create a new user and auth record
+5. Return JWT token
 
-### Dashboard Implementation
+This just-in-time creation means there's no separate registration step. Users exist as soon as they authenticate.
+
+## Account Linking
+
+A user can add additional authentication methods to their account. For example, someone who signed up with their wallet can later add email authentication. The new auth record links to the existing user ID.
+
+The unique constraint on `authIdentifier` prevents the same email or wallet from linking to multiple accounts.
+
+## User Disabling
+
+Set `users.disabled = true` to prevent a user from accessing protected operations. The GraphQL handler checks this flag and returns `ACCOUNT_DISABLED` errors for disabled users.
+
+Disabling doesn't delete the user or their data—it only prevents new API access.
+
+## User Settings
+
+The `settings` JSON field stores user preferences. There's no fixed schema—store whatever your application needs:
 
 ```typescript
-export const dashboardResolvers = {
-  Query: {
-    dashboard: async (parent, args, context) => {
-      const { serverApp, user } = context
-      
-      // Get user tokens
-      const tokens = await serverApp.db
-        .select()
-        .from(tokenTable)
-        .where(eq(tokenTable.ownerId, user.id))
-        .orderBy(desc(tokenTable.createdAt))
-        .limit(5)
-      
-      // Get recent activity
-      const activity = await serverApp.db
-        .select()
-        .from(userActivityTable)
-        .where(eq(userActivityTable.userId, user.id))
-        .orderBy(desc(userActivityTable.createdAt))
-        .limit(10)
-      
-      // Get stats
-      const totalTokens = await serverApp.db
-        .select({ count: count() })
-        .from(tokenTable)
-        .where(eq(tokenTable.ownerId, user.id))
-        .then(rows => rows[0].count)
-      
-      return {
-        user,
-        stats: {
-          totalTokens,
-          totalTransactions: 0, // Calculate from activity
-          totalValue: '0',
-          activeTokens: totalTokens
-        },
-        recentTokens: tokens,
-        recentActivity: activity,
-        notifications: [] // Will be populated by notification system
-      }
-    }
-  }
-}
+// Update user settings
+await serverApp.db
+  .update(users)
+  .set({ settings: { theme: "dark", notifications: true } })
+  .where(eq(users.id, userId))
 ```
 
-## Notification System
+## Notifications
 
-### User Notifications
-
-Real-time notifications for user activities:
+Users receive real-time notifications stored in the [`notifications`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/db/schema.ts) table. Create notifications with:
 
 ```typescript
-export const notificationTable = pgTable('notifications', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => userTable.id).notNull(),
-  type: text('type').notNull(),
-  title: text('title').notNull(),
-  message: text('message').notNull(),
-  data: text('data'), // JSON string
-  read: boolean('read').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+await serverApp.createNotification(userId, {
+  type: "token_deployed",
+  message: "Your token has been deployed",
+  tokenAddress: "0x..."
 })
 ```
 
-### Notification Types
+This saves to the database and pushes via WebSocket to connected clients. The frontend's [`useNotifications`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/hooks/useNotifications.ts) hook handles real-time updates.
 
-Common notification types in QuickDapp:
-
-* `token_deployed` - Token deployment completed
-* `token_deployment_failed` - Token deployment failed
-* `transaction_confirmed` - Transaction confirmed on blockchain
-* `system_maintenance` - System maintenance notifications
-* `security_alert` - Security-related notifications
-
-### Frontend Notification Hook
-
-React hook for managing user notifications:
-
-```typescript
-// src/client/hooks/useNotifications.ts
-import { useState, useEffect } from 'react'
-import { useWebSocket } from './useWebSocket'
-import { graphqlClient } from '../lib/graphql'
-
-export function useNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  
-  // Load initial notifications
-  useEffect(() => {
-    loadNotifications()
-  }, [])
-  
-  // Listen for real-time notifications
-  useWebSocket((data) => {
-    if (data.type === 'notification') {
-      setNotifications(prev => [data.notification, ...prev])
-      setUnreadCount(prev => prev + 1)
-    }
-  })
-  
-  const loadNotifications = async () => {
-    const data = await graphqlClient.request(`
-      query GetNotifications($limit: Int) {
-        notifications(limit: $limit) {
-          id
-          type
-          title
-          message
-          read
-          createdAt
-        }
-      }
-    `, { limit: 50 })
-    
-    setNotifications(data.notifications)
-    setUnreadCount(data.notifications.filter(n => !n.read).length)
-  }
-  
-  const markAsRead = async (notificationId: string) => {
-    await graphqlClient.request(`
-      mutation MarkNotificationRead($id: ID!) {
-        markNotificationRead(id: $id)
-      }
-    `, { id: notificationId })
-    
-    setNotifications(prev => 
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-    )
-    setUnreadCount(prev => Math.max(0, prev - 1))
-  }
-  
-  return {
-    notifications,
-    unreadCount,
-    markAsRead,
-    reload: loadNotifications
-  }
-}
-```
-
-## Privacy and Security
-
-### Data Privacy
-
-User data privacy considerations:
-* **Minimal Data Collection** - Only collect necessary data (wallet address, preferences)
-* **No Personal Information** - No email, phone, or personal details required
-* **Blockchain Transparency** - All token activities are publicly visible on blockchain
-* **Local Storage** - Sensitive data stays in user's wallet/browser
-
-### Security Measures
-
-User security features:
-* **Wallet-Only Authentication** - No passwords to compromise
-* **Session Management** - JWT tokens with expiration
-* **Address Verification** - All actions verified against wallet ownership
-* **Nonce Protection** - Prevent replay attacks with unique nonces
-
-### Data Export
-
-Allow users to export their data:
-
-```typescript
-// GraphQL mutation for data export
-type Mutation {
-  exportUserData: UserDataExport! @auth
-}
-
-type UserDataExport {
-  user: User!
-  tokens: [Token!]!
-  activity: [Activity!]!
-  notifications: [Notification!]!
-  exportedAt: String!
-}
-```
-
-## Documentation Sections
-
-* [Authentication](./authentication.md) - Wallet authentication and session management
-
-The user management system in QuickDapp provides a secure, privacy-focused approach to user identity and data management while maintaining the decentralized principles of Web3.
+See [Authentication](./authentication.md) for detailed auth flows and implementation.

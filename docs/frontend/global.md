@@ -1,608 +1,128 @@
-# Global
+# Global State
 
-QuickDapp uses React Context and custom hooks for global state management, providing clean access to shared data and functionality across the application. The global state system handles authentication, user data, notifications, and application-wide settings.
+QuickDapp uses React Context for global state management. The application separates concerns into focused providers: authentication, WebSocket connections, and toast notifications. Each handles one responsibility and exposes a hook for components to access its data.
 
-## State Management Architecture
+## Provider Structure
 
-### Context Providers
+The [`App.tsx`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx) nests providers to make them available throughout the application. When Web3 is enabled, the stack includes Wagmi and RainbowKit for wallet connections:
 
-QuickDapp uses multiple context providers for different concerns:
+```tsx
+// Web3 enabled
+<WagmiProvider config={web3Config}>
+  <QueryClientProvider client={queryClient}>
+    <RainbowKitProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <ToastProvider>
+            {/* routes */}
+          </ToastProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </RainbowKitProvider>
+  </QueryClientProvider>
+</WagmiProvider>
 
-```typescript
-// src/client/App.tsx
-import { AuthProvider } from './contexts/AuthContext'
-import { NotificationProvider } from './contexts/NotificationContext'
-import { ThemeProvider } from './contexts/ThemeContext'
-
-export function App() {
-  return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <ThemeProvider>
-                <Router>
-                  <Routes>
-                    {/* App routes */}
-                  </Routes>
-                </Router>
-              </ThemeProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
-  )
-}
+// Web3 disabled
+<QueryClientProvider client={queryClient}>
+  <AuthProvider>
+    <SocketProvider>
+      <ToastProvider>
+        {/* routes */}
+      </ToastProvider>
+    </SocketProvider>
+  </AuthProvider>
+</QueryClientProvider>
 ```
+
+The `WEB3_ENABLED` config flag determines which structure is used. Both share the same inner providers, so components work identically regardless of Web3 mode.
 
 ## Authentication Context
 
-### AuthContext Implementation
-
-Manages user authentication state and wallet connections:
+The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) manages SIWE (Sign-In With Ethereum) authentication when Web3 is enabled, or provides a minimal auth shell for email/OAuth when disabled. It uses a state machine to track the authentication lifecycle.
 
 ```typescript
-// src/client/contexts/AuthContext.tsx
-interface AuthContextType {
-  user: User | null
+interface AuthContextValue {
   isAuthenticated: boolean
   isLoading: boolean
-  signIn: (address: string) => Promise<void>
-  signOut: () => void
-  refreshUser: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const { address, isConnected } = useAccount()
-  
-  const signIn = useCallback(async (address: string) => {
-    try {
-      setIsLoading(true)
-      
-      // Get nonce from server
-      const { data: nonceData } = await graphqlClient.request(`
-        mutation GetNonce($address: String!) {
-          getNonce(address: $address)
-        }
-      `, { address })
-      
-      // Create SIWE message
-      const message = new SiweMessage({
-        domain: window.location.host,
-        address,
-        statement: 'Sign in with Ethereum to QuickDapp',
-        uri: window.location.origin,
-        version: '1',
-        chainId: 1,
-        nonce: nonceData.getNonce
-      })
-      
-      // Sign message with wallet
-      const signature = await walletClient.signMessage({
-        message: message.prepareMessage()
-      })
-      
-      // Verify signature and get token
-      const { data: verifyData } = await graphqlClient.request(`
-        mutation VerifySignature($message: String!, $signature: String!) {
-          verifySignature(message: $message, signature: $signature) {
-            token
-            user {
-              id
-              address
-              isAdmin
-              createdAt
-            }
-          }
-        }
-      `, {
-        message: message.prepareMessage(),
-        signature
-      })
-      
-      if (verifyData.verifySignature.token) {
-        // Store token
-        localStorage.setItem('auth-token', verifyData.verifySignature.token)
-        
-        // Update GraphQL client headers
-        graphqlClient.setHeader('authorization', `Bearer ${verifyData.verifySignature.token}`)
-        
-        // Set user
-        setUser(verifyData.verifySignature.user)
-      }
-      
-    } catch (error) {
-      console.error('Authentication failed:', error)
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-  
-  const signOut = useCallback(() => {
-    localStorage.removeItem('auth-token')
-    graphqlClient.setHeader('authorization', '')
-    setUser(null)
-  }, [])
-  
-  const refreshUser = useCallback(async () => {
-    try {
-      const { data } = await graphqlClient.request(`
-        query Me {
-          me {
-            id
-            address
-            isAdmin
-            createdAt
-          }
-        }
-      `)
-      setUser(data.me)
-    } catch (error) {
-      console.error('Failed to refresh user:', error)
-      signOut()
-    }
-  }, [signOut])
-  
-  // Auto-authenticate when wallet connects
-  useEffect(() => {
-    if (isConnected && address && !user) {
-      signIn(address).catch(console.error)
-    } else if (!isConnected && user) {
-      signOut()
-    }
-  }, [isConnected, address, user, signIn, signOut])
-  
-  // Load existing token on mount
-  useEffect(() => {
-    const token = localStorage.getItem('auth-token')
-    if (token && !user) {
-      graphqlClient.setHeader('authorization', `Bearer ${token}`)
-      refreshUser().finally(() => setIsLoading(false))
-    } else {
-      setIsLoading(false)
-    }
-  }, [refreshUser, user])
-  
-  const value = useMemo(() => ({
-    user,
-    isAuthenticated: !!user,
-    isLoading,
-    signIn,
-    signOut,
-    refreshUser
-  }), [user, isLoading, signIn, signOut, refreshUser])
-  
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+  error: Error | null
+  authToken: string | null
+  walletAddress: string | null
+  userRejectedAuth: boolean
+  authenticate: (address: string) => Promise<AuthResult>
+  logout: () => void
+  restoreAuth: () => void
 }
 ```
 
-## Notification Context
+The authentication flow works as follows: when a wallet connects, the context generates a SIWE message from the server, prompts the user to sign it, then sends the signature for verification. On success, the JWT token is stored in localStorage and attached to GraphQL requests.
 
-### Global Notification Management
+The context tracks several states: `IDLE`, `RESTORING` (checking for existing session), `WAITING_FOR_WALLET`, `AUTHENTICATING`, `AUTHENTICATED`, `REJECTED` (user cancelled signature), and `ERROR`. This state machine prevents race conditions and handles edge cases like wallet disconnection mid-auth.
 
-Handles application-wide notifications and WebSocket messages:
+If the wallet disconnects after authentication, the user is automatically logged out. If they previously rejected signing, the context remembers and won't auto-prompt again until they connect a different wallet.
+
+Access the context via `useAuthContext()`.
+
+## Socket Context
+
+The [`SocketProvider`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/SocketContext.tsx) manages WebSocket connections for real-time updates. It initializes after auth loading completes and automatically reconnects with the appropriate token when authentication state changes.
 
 ```typescript
-// src/client/contexts/NotificationContext.tsx
-interface Notification {
-  id: string
-  type: 'success' | 'error' | 'warning' | 'info'
-  title: string
-  message: string
-  timestamp: Date
-  read: boolean
-  data?: any
-}
-
-interface NotificationContextType {
-  notifications: Notification[]
-  unreadCount: number
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void
-  markAsRead: (id: string) => void
-  markAllAsRead: () => void
-  removeNotification: (id: string) => void
-  clearAll: () => void
-}
-
-export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const { user } = useAuth()
-  
-  // WebSocket connection for real-time notifications
-  useWebSocket((data) => {
-    if (data.type === 'notification') {
-      addNotification({
-        type: data.notification.type,
-        title: data.notification.title,
-        message: data.notification.message,
-        data: data.notification.data
-      })
-      
-      // Show browser notification if permission granted
-      if (Notification.permission === 'granted') {
-        new Notification(data.notification.title, {
-          body: data.notification.message,
-          icon: '/favicon.ico'
-        })
-      }
-    }
-  })
-  
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Math.random().toString(36).substring(7),
-      timestamp: new Date(),
-      read: false
-    }
-    
-    setNotifications(prev => [newNotification, ...prev])
-    
-    // Auto-remove after 5 seconds for success notifications
-    if (notification.type === 'success') {
-      setTimeout(() => {
-        removeNotification(newNotification.id)
-      }, 5000)
-    }
-  }, [])
-  
-  const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true }
-          : notification
-      )
-    )
-  }, [])
-  
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    )
-  }, [])
-  
-  const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id))
-  }, [])
-  
-  const clearAll = useCallback(() => {
-    setNotifications([])
-  }, [])
-  
-  const unreadCount = useMemo(() => 
-    notifications.filter(n => !n.read).length, 
-    [notifications]
-  )
-  
-  const value = useMemo(() => ({
-    notifications,
-    unreadCount,
-    addNotification,
-    markAsRead,
-    markAllAsRead,
-    removeNotification,
-    clearAll
-  }), [notifications, unreadCount, addNotification, markAsRead, markAllAsRead, removeNotification, clearAll])
-  
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  )
+interface SocketContextValue {
+  connected: boolean
+  subscribe: (type: WebSocketMessageType, handler: (message: WebSocketMessage) => void) => () => void
 }
 ```
 
-## Theme Context
+When a user authenticates, the socket reconnects with their JWT to establish an authenticated session. When they log out, it reconnects without a token. The `subscribe()` method returns an unsubscribe function for cleanup.
 
-### Dark/Light Mode Support
+Access the context via `useSocket()`.
 
-Manages application theme and user preferences:
+## Toast Notifications
+
+The [`ToastProvider`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/Toast.tsx) manages temporary notification messages displayed in the UI. Toasts have types (default, success, error, warning), optional titles and descriptions, and auto-dismiss after a configurable duration.
 
 ```typescript
-// src/client/contexts/ThemeContext.tsx
-type Theme = 'light' | 'dark' | 'system'
-
-interface ThemeContextType {
-  theme: Theme
-  setTheme: (theme: Theme) => void
-  effectiveTheme: 'light' | 'dark'
-}
-
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) || 'system'
-  })
-  
-  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() =>
-    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  )
-  
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemTheme(e.matches ? 'dark' : 'light')
-    }
-    
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [])
-  
-  // Calculate effective theme
-  const effectiveTheme = theme === 'system' ? systemTheme : theme
-  
-  // Apply theme to document
-  useEffect(() => {
-    const root = document.documentElement
-    root.classList.remove('light', 'dark')
-    root.classList.add(effectiveTheme)
-  }, [effectiveTheme])
-  
-  // Persist theme preference
-  const updateTheme = useCallback((newTheme: Theme) => {
-    setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
-  }, [])
-  
-  const value = useMemo(() => ({
-    theme,
-    setTheme: updateTheme,
-    effectiveTheme
-  }), [theme, updateTheme, effectiveTheme])
-  
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  )
+interface ToastContextType {
+  toasts: Toast[]
+  addToast: (toast: Omit<Toast, "id">) => void
+  removeToast: (id: string) => void
 }
 ```
 
-## Application Settings Context
+Toasts auto-dismiss after 5 seconds by default. The container renders in the top-right corner with slide-in animations.
 
-### User Preferences and Settings
+Access the context via `useToast()`.
 
-Manages user-specific application settings:
+## Notification Hook
+
+The [`useNotifications`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/hooks/useNotifications.ts) hook subscribes to real-time notification events from the WebSocket connection. It wraps the socket subscription for the `NotificationReceived` message type.
 
 ```typescript
-// src/client/contexts/SettingsContext.tsx
-interface Settings {
-  notifications: {
-    browser: boolean
-    sound: boolean
-    tokenDeployment: boolean
-    transactions: boolean
+useNotifications({
+  onNotificationReceived: (notification) => {
+    // Handle notification
   }
-  display: {
-    compactMode: boolean
-    showTestNets: boolean
-    defaultGasPrice: 'slow' | 'standard' | 'fast'
-  }
-  advanced: {
-    debugMode: boolean
-    showRawData: boolean
-  }
-}
-
-const defaultSettings: Settings = {
-  notifications: {
-    browser: true,
-    sound: false,
-    tokenDeployment: true,
-    transactions: true
-  },
-  display: {
-    compactMode: false,
-    showTestNets: true,
-    defaultGasPrice: 'standard'
-  },
-  advanced: {
-    debugMode: false,
-    showRawData: false
-  }
-}
-
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<Settings>(() => {
-    const saved = localStorage.getItem('app-settings')
-    return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings
-  })
-  
-  const updateSettings = useCallback((updates: Partial<Settings>) => {
-    const newSettings = { ...settings, ...updates }
-    setSettings(newSettings)
-    localStorage.setItem('app-settings', JSON.stringify(newSettings))
-  }, [settings])
-  
-  const resetSettings = useCallback(() => {
-    setSettings(defaultSettings)
-    localStorage.removeItem('app-settings')
-  }, [])
-  
-  const contextValue = {
-    settings,
-    updateSettings,
-    resetSettings
-  }
-  
-  return (
-    <SettingsContext.Provider value={contextValue}>
-      {children}
-    </SettingsContext.Provider>
-  )
-}
+})
 ```
 
-## Global Hooks
+This hook provides a cleaner API than directly subscribing to socket messages for notifications.
 
-### useGlobalState Hook
+## Cookie Consent (Optional)
 
-Centralized access to all global state:
+The [`CookieConsentProvider`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/CookieConsentContext.tsx) tracks whether users have accepted or declined cookies. It shows a banner component and persists the choice to localStorage.
 
 ```typescript
-// src/client/hooks/useGlobalState.ts
-export function useGlobalState() {
-  const auth = useAuth()
-  const notifications = useNotifications()
-  const theme = useTheme()
-  const settings = useSettings()
-  const { address, isConnected } = useAccount()
-  
-  return {
-    // Authentication
-    user: auth.user,
-    isAuthenticated: auth.isAuthenticated,
-    signIn: auth.signIn,
-    signOut: auth.signOut,
-    
-    // Wallet
-    walletAddress: address,
-    isWalletConnected: isConnected,
-    
-    // Notifications
-    notifications: notifications.notifications,
-    unreadCount: notifications.unreadCount,
-    addNotification: notifications.addNotification,
-    
-    // Theme
-    theme: theme.theme,
-    setTheme: theme.setTheme,
-    isDarkMode: theme.effectiveTheme === 'dark',
-    
-    // Settings
-    settings: settings.settings,
-    updateSettings: settings.updateSettings
-  }
+interface CookieConsentContextValue {
+  consent: "accepted" | "declined" | null
+  hasConsented: boolean
+  isAccepted: boolean
+  isDeclined: boolean
+  acceptCookies: () => void
+  declineCookies: () => void
+  resetConsent: () => void
 }
 ```
 
-### useNotificationActions Hook
+This provider is not included in the default [`App.tsx`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx) but can be added when needed for GDPR compliance.
 
-Convenient notification helpers:
-
-```typescript
-// src/client/hooks/useNotificationActions.ts
-export function useNotificationActions() {
-  const { addNotification } = useNotifications()
-  
-  return {
-    showSuccess: (message: string, title = 'Success') => {
-      addNotification({ type: 'success', title, message })
-    },
-    
-    showError: (message: string, title = 'Error') => {
-      addNotification({ type: 'error', title, message })
-    },
-    
-    showWarning: (message: string, title = 'Warning') => {
-      addNotification({ type: 'warning', title, message })
-    },
-    
-    showInfo: (message: string, title = 'Info') => {
-      addNotification({ type: 'info', title, message })
-    }
-  }
-}
-```
-
-## State Persistence
-
-### LocalStorage Integration
-
-Persist important state across browser sessions:
-
-```typescript
-// src/client/lib/storage.ts
-export const storage = {
-  // Authentication token
-  getAuthToken: () => localStorage.getItem('auth-token'),
-  setAuthToken: (token: string) => localStorage.setItem('auth-token', token),
-  removeAuthToken: () => localStorage.removeItem('auth-token'),
-  
-  // Theme preference
-  getTheme: () => localStorage.getItem('theme') as Theme | null,
-  setTheme: (theme: Theme) => localStorage.setItem('theme', theme),
-  
-  // User settings
-  getSettings: () => {
-    const settings = localStorage.getItem('app-settings')
-    return settings ? JSON.parse(settings) : null
-  },
-  setSettings: (settings: Settings) => {
-    localStorage.setItem('app-settings', JSON.stringify(settings))
-  },
-  
-  // Recent transactions
-  getRecentTransactions: () => {
-    const txs = localStorage.getItem('recent-transactions')
-    return txs ? JSON.parse(txs) : []
-  },
-  addRecentTransaction: (tx: Transaction) => {
-    const recent = storage.getRecentTransactions()
-    const updated = [tx, ...recent.slice(0, 9)] // Keep last 10
-    localStorage.setItem('recent-transactions', JSON.stringify(updated))
-  }
-}
-```
-
-## Best Practices
-
-### Context Optimization
-
-1. **Separate Concerns** - Use multiple contexts instead of one large context
-2. **Memoization** - Memoize context values to prevent unnecessary re-renders
-3. **Selective Updates** - Only update the parts of state that actually changed
-
-### Performance Considerations
-
-```typescript
-// Memoize context values
-const value = useMemo(() => ({
-  user,
-  signIn,
-  signOut
-}), [user, signIn, signOut])
-
-// Use callback for functions
-const signOut = useCallback(() => {
-  // Implementation
-}, [])
-```
-
-### Error Boundaries
-
-Wrap context providers with error boundaries:
-
-```typescript
-// src/client/components/ErrorBoundary.tsx
-export function GlobalStateErrorBoundary({ children }: { children: React.ReactNode }) {
-  return (
-    <ErrorBoundary fallback={<ErrorFallback />}>
-      {children}
-    </ErrorBoundary>
-  )
-}
-```
-
-The global state management system in QuickDapp provides a clean, performant, and maintainable way to handle application-wide state while keeping concerns properly separated.
+Access via `useCookieConsent()`.

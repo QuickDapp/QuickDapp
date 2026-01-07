@@ -1,5 +1,5 @@
 /**
- * Server test helpers for QuickDapp v3
+ * Server test helpers for QuickDapp
  *
  * Utilities for starting/stopping test servers, making requests,
  * and managing test server lifecycle.

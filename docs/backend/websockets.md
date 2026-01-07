@@ -1,35 +1,57 @@
 # WebSockets
 
-QuickDapp uses WebSockets to push real‑time notifications to signed‑in users.
+QuickDapp uses WebSockets for real-time communication between the server and connected clients. When the application creates a notification, it gets saved to the database and immediately pushed to the user's browser sessions.
 
-- What it’s for: instant delivery of new notifications created by the app and background workers.
-- How it works: when a notification is saved to the database, the server broadcasts it to the user’s open sessions over WebSockets.
+## How It Works
 
-## Message
+Clients connect to `/ws` after authenticating. They send a registration message with their JWT token, and the server associates that connection with their user ID. From then on, any notification created for that user gets delivered instantly.
 
-- Type: NotificationReceived
-- Payload: { id, userId, data, createdAt, read }
+The [`SocketManager`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/ws/index.ts) tracks two mappings: client IDs to WebSocket connections, and user IDs to sets of client IDs. A single user can have multiple browser tabs open, and each receives the same notifications.
 
-## Client usage
+When a worker process creates a notification, it sends an IPC message to the main server process, which then routes the message through the `SocketManager` to the user's connected clients.
 
-- Connect after sign‑in, passing the JWT (e.g. as a query param).
-- On NotificationReceived, update your UI state/cache.
+## Connection Lifecycle
 
-Example:
-```ts
-const token = localStorage.getItem('auth-token')
-if (token) {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws'
-  const ws = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`)
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data)
-    if (msg?.type === 'NotificationReceived' || msg?.type === 1) {
-      // msg.data is the notification { id, userId, data, createdAt, read }
-    }
-  }
-}
+1. Client establishes WebSocket connection to `/ws`
+2. Server sends a `Connected` message confirming the connection
+3. Client sends `register` with JWT token
+4. Server validates the token and associates the connection with the user
+5. Server sends `Registered` confirmation
+6. Server pushes `NotificationReceived` messages as notifications are created
+7. On disconnect, server removes the client from its tracking maps
+
+## Message Types
+
+Messages are defined in [`src/shared/websocket/types.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/websocket/types.ts):
+
+- `Connected` — Initial connection acknowledgment
+- `Registered` — User registration successful
+- `NotificationReceived` — New notification with id, userId, data, createdAt, read
+- `Error` — Connection errors (limit exceeded, invalid token)
+
+## Connection Limits
+
+The server enforces connection limits through configuration:
+
+- `SOCKET_MAX_TOTAL_CONNECTIONS` — Global limit across all users
+- `SOCKET_MAX_CONNECTIONS_PER_USER` — Per-user limit
+
+When limits are exceeded, the connection receives an `Error` message and closes.
+
+## Client Usage
+
+The frontend's [`SocketContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/SocketContext.tsx) handles the connection automatically. It reconnects when authentication state changes and provides a `subscribe()` method for listening to specific message types:
+
+```typescript
+const { subscribe } = useSocket()
+
+useEffect(() => {
+  return subscribe(WebSocketMessageType.NotificationReceived, (message) => {
+    // Handle new notification
+  })
+}, [subscribe])
 ```
 
-Notes:
-- Real‑time is via WebSockets only. No GraphQL subscriptions.
-- Notifications are persisted before being sent.
+There are no GraphQL subscriptions—all real-time updates flow through this WebSocket connection.
+
+See [`src/server/ws/index.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/ws/index.ts) for the server implementation and [`src/client/lib/socket.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/lib/socket.ts) for the client wrapper.

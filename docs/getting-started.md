@@ -6,8 +6,8 @@ Ensure you have the following pre-requisites installed and ready:
 
 * [Bun](https://bun.sh/) v1.0+ (required - only supported runtime and package manager)
 * [PostgreSQL](https://www.postgresql.org/) 11+ running locally on port 5432, with a default admin user called `postgres`.
-* [Foundry](https://book.getfoundry.sh/getting-started/installation) for smart contract development.
 * [Git](https://git-scm.com/) for version control.
+* [Foundry](https://book.getfoundry.sh/getting-started/installation) (optional - for Web3/smart contract development)
 
 !!!
 QuickDapp exclusively uses Bun as its runtime and package manager. npm/yarn/pnpm are not supported. This design choice ensures optimal performance and consistency across all development, testing, and deployment workflows.
@@ -18,8 +18,8 @@ QuickDapp exclusively uses Bun as its runtime and package manager. npm/yarn/pnpm
 Clone or fork the QuickDapp repository from GitHub:
 
 ```shell
-git clone https://github.com/QuickDapp/quickdapp-v3.git
-cd quickdapp-v3
+git clone https://github.com/QuickDapp/quickdapp.git
+cd quickdapp
 ```
 
 ## Step 2 - Dependencies
@@ -53,63 +53,7 @@ bun run db push
 
 This command uses DrizzleORM to set up your database schema based on the definitions in `src/server/db/schema.ts`.
 
-## Step 4 - Local smart contract development
-
-QuickDapp includes a sample ERC-20 token factory contract for local development. The contracts are located in the `sample-contracts/` directory and use a simple factory pattern (not Diamond Standard).
-
-### Install Foundry (if not already installed)
-
-If you haven't installed Foundry yet:
-
-```shell
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
-
-### Start local blockchain
-
-In a new terminal, start the local Hardhat development node:
-
-```shell
-cd sample-contracts
-bun devnet.ts
-```
-
-This starts a local blockchain on `http://localhost:8545` with pre-funded test accounts.
-
-### Deploy contracts locally
-
-In another terminal, deploy the ERC-20 factory contract:
-
-```shell
-cd sample-contracts
-bun deploy.ts
-```
-
-This will:
-- Build the contracts using Foundry
-- Deploy the ERC-20Factory contract to your local node
-- Automatically save the contract address to `../.env.local`
-
-The factory contract allows you to deploy custom ERC-20 tokens through the QuickDapp interface.
-
-## Step 5 - Setup wallet
-
-The local blockchain pre-funds test accounts using this mnemonic:
-
-```
-test test test test test test test test test test test junk
-```
-
-Import this mnemonic into your browser wallet (like [MetaMask](https://metamask.io/)) to access pre-funded test accounts.
-
-You'll also need to add the local network to your wallet:
-- Network Name: Localhost 8545
-- RPC URL: http://localhost:8545
-- Chain ID: 31337
-- Currency Symbol: ETH
-
-## Step 6 - Start development server
+## Step 4 - Start development server
 
 Now start the QuickDapp development server:
 
@@ -126,18 +70,18 @@ This will:
 
 The development server provides live reloading for an optimal development experience.
 
-## Step 7 - Interact with the dapp
+## Step 5 - Interact with the application
 
-Goto http://localhost:5173 in your Metamask-enabled browser to interact with the dapp!
+Open http://localhost:5173 in your browser to interact with the application.
 
 The development setup includes:
-* Full Web3 wallet integration via RainbowKit
 * GraphQL API with authentication
 * Real-time WebSocket connections
 * Background job processing
 * Comprehensive logging
+* Optional Web3 wallet integration via RainbowKit (if enabled)
 
-## Step 8 - Run tests
+## Step 6 - Run tests
 
 QuickDapp includes a basic test framework. Run tests with:
 
@@ -147,22 +91,22 @@ bun run test
 
 You can add your own tests to the `tests/` directory. The test framework includes database isolation, server lifecycle management, and GraphQL testing utilities.
 
-## Step 9 - Deploying to production
+## Step 7 - Deploying to production
 
-The following steps all deal with deploying our dapp to production.
+The following steps cover deploying your application to production.
 
 We will do the following:
 
-* Deploy smart contracts to Sepolia test network.
 * Build the application for production.
 * Deploy using Docker containers or binary builds.
 * Use a hosted PostgreSQL database as the production database.
+* (Optional) Deploy smart contracts for Web3 applications.
 
 !!!
 QuickDapp supports multiple deployment strategies: Docker containers, self-contained binaries, or separate frontend/backend deployments. The choice depends on your infrastructure preferences.
 !!!
 
-## Step 10 - Setup production database
+## Step 8 - Setup production database
 
 We will setup a PostgreSQL database for production use. You can use any PostgreSQL hosting service such as:
 
@@ -183,40 +127,7 @@ Now setup the production database schema:
 bun run db migrate
 ```
 
-## Step 11 - Deploy contracts to Sepolia
-
-Deploy the ERC-20 factory contract to [Sepolia](https://www.alchemy.com/overviews/sepolia-testnet) testnet for production use.
-
-### Prerequisites:
-
-1. Get Sepolia ETH from the [Sepolia faucet](https://sepoliafaucet.com/)
-2. Get a Sepolia RPC endpoint from [Alchemy](https://www.alchemy.com/) or [Infura](https://infura.io/)
-
-### Set environment variables:
-
-Add these to your shell environment or `.env.production`:
-
-```bash
-CHAIN=sepolia
-WEB3_SEPOLIA_RPC="https://sepolia.infura.io/v3/your-api-key"
-WEB3_SERVER_WALLET_PRIVATE_KEY="0x..." # Your deployment wallet private key
-```
-
-### Deploy to Sepolia:
-
-```shell
-cd sample-contracts
-bun deploy.ts
-```
-
-This will:
-- Deploy the ERC-20Factory contract to Sepolia
-- Save the contract address to `../.env.production`
-- Display the deployed contract address
-
-The deployed factory address will be automatically saved to your environment configuration for production use.
-
-## Step 12 - Test-run production build locally
+## Step 9 - Test-run production build locally
 
 _Note: This step is optional, and is useful if you want to debug some production issues locally_
 
@@ -234,9 +145,9 @@ Now, run the production apps:
 bun run prod
 ```
 
-Now goto http://localhost:3000 in your Metamask-enabled browser to interact with the dapp. You will need to connect to the Sepolia test network in your wallet.
+Open http://localhost:3000 in your browser to test the production build locally.
 
-## Step 13 - Deploy to production
+## Step 10 - Deploy to production
 
 QuickDapp supports several deployment options:
 
@@ -258,16 +169,60 @@ docker run -p 3000:3000 quickdapp
 
 See the [deployment documentation](./deployment/) for detailed guides on various deployment strategies.
 
-## Step 14 - Hurrah!
+## Step 11 - Hurrah!
 
-**Congratulations! your dapp is now available on the web in production mode.**
+**Congratulations! Your application is now available on the web in production mode.**
+
+## Optional: Web3 Setup
+
+If building a Web3 application, you can enable blockchain features:
+
+### Local Development
+
+1. Install Foundry if not already installed:
+```shell
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+2. Start local blockchain:
+```shell
+cd sample-contracts
+bun devnet.ts
+```
+
+3. Deploy sample contracts:
+```shell
+cd sample-contracts
+bun deploy.ts
+```
+
+4. Import the test mnemonic into your wallet (e.g., MetaMask):
+```
+test test test test test test test test test test test junk
+```
+
+5. Add local network to wallet: Chain ID 31337, RPC http://localhost:8545
+
+### Production Web3 Deployment
+
+To deploy contracts to Sepolia testnet:
+
+1. Get Sepolia ETH from a faucet and an RPC endpoint
+2. Set environment variables in `.env.production`:
+```bash
+WEB3_SUPPORTED_CHAINS=sepolia
+WEB3_SEPOLIA_RPC="https://sepolia.infura.io/v3/your-api-key"
+WEB3_SERVER_WALLET_PRIVATE_KEY="0x..."
+```
+3. Deploy: `cd sample-contracts && bun deploy.ts`
 
 ## Next steps
 
 Now that you have QuickDapp running, explore the documentation to learn about:
 
 * [Backend architecture](./backend/) - Understanding the ServerApp pattern and database layer
-* [Frontend development](./frontend/) - Building React components and Web3 integrations  
+* [Frontend development](./frontend/) - Building React components and optional Web3 integrations
 * [Worker system](./worker/) - Adding background jobs and cron tasks
 * [Command line tools](./command-line/) - Development and deployment commands
-* [Testing](./getting-started.md#step-8---run-tests) - Writing and running tests
+* [Testing](./getting-started.md#step-6---run-tests) - Writing and running tests

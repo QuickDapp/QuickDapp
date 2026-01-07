@@ -1,5 +1,5 @@
 /**
- * Database Integration Tests for QuickDapp v3
+ * Database Integration Tests for QuickDapp
  *
  * Tests the full database integration with authentication, user creation,
  * notification management, and data ownership validation using real wallet addresses.

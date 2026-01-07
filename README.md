@@ -4,28 +4,31 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 
-QuickDapp is a highly opinionated framework that helps you quickly build and deploy Web3 dapps. Built with modern TypeScript, PostgreSQL, and comprehensive blockchain integration.
+QuickDapp is a highly opinionated modern web application boilerplate with built-in Web3 support. Built with TypeScript, PostgreSQL, and a modern tech stack—with optional blockchain integration for Web3 applications.
 
 ## Features
 
-- **Full-Stack Web3 Development**: Complete dapp development environment with blockchain integration
 - **Modern Tech Stack**: Bun runtime, ElysiaJS web framework, PostgreSQL with DrizzleORM
 - **GraphQL API**: Schema-first GraphQL API with authentication
 - **Background Workers**: Job processing with cron scheduling support
-- **Wallet Authentication**: SIWE (Sign-in with Ethereum) + JWT authentication
-- **Comprehensive Testing**: Full integration test suite with blockchain simulation
+- **Flexible Authentication**: JWT authentication with optional SIWE (Sign-in with Ethereum)
+- **Comprehensive Testing**: Full integration test suite
 - **Hot Reload Development**: Fast development cycle with hot reload
+- **Built-in Web3 Support**: Optional RainbowKit, Wagmi, Viem integration for blockchain apps
 - **Fully documented**: See `docs/` folder or https://docs.quickdapp.xyz
 
 ## Tech Stack
 
+### Core
 - **[Bun](https://bun.sh)** + **[ElysiaJS](https://elysiajs.com)** + **[TypeScript](https://www.typescriptlang.org)** - Runtime, web framework, and type-safe development
 - **[PostgreSQL](https://www.postgresql.org)** + **[DrizzleORM](https://orm.drizzle.team)** + **[DrizzleKit](https://orm.drizzle.team/kit-docs/overview)** - Database with type-safe toolkit and migrations
 - **[GraphQL](https://graphql.org)** + **[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server)** + **[GraphQL Tools](https://the-guild.dev/graphql/tools)** - Schema-first API with server and utilities
 - **[React](https://react.dev)** + **[React Router](https://reactrouter.com)** + **[TailwindCSS](https://tailwindcss.com)** + **[Vite](https://vitejs.dev)** + **[Radix UI](https://www.radix-ui.com)** - Frontend UI library with routing, styling, bundling, and components
-- **[RainbowKit](https://www.rainbowkit.com)** + **[Wagmi](https://wagmi.sh)** + **[Viem](https://viem.sh)** + **[SIWE](https://login.xyz)** + **[WalletConnect](https://walletconnect.com)** - Comprehensive Web3 wallet integration and authentication
 - **[Biome](https://biomejs.dev)** + **[Husky](https://typicode.github.io/husky/)** + **[Docker](https://www.docker.com)** + **[Retype](https://retype.com)** - Development tooling for linting, git hooks, containerization, and docs
 - **[Commander](https://github.com/tj/commander.js)** + **[cron-schedule](https://github.com/harrisiirak/cron-schedule)** + **[JOSE](https://github.com/panva/jose)** + **[TanStack Query](https://tanstack.com/query)** - CLI framework, job scheduling, JWT handling, and data fetching
+
+### Web3 (Optional)
+- **[RainbowKit](https://www.rainbowkit.com)** + **[Wagmi](https://wagmi.sh)** + **[Viem](https://viem.sh)** + **[SIWE](https://login.xyz)** + **[WalletConnect](https://walletconnect.com)** - Wallet integration and blockchain authentication
 
 ## Prerequisites
 
@@ -69,26 +72,7 @@ foundryup
 bun run db push
 ```
 
-### 4. Start Local Blockchain
-
-In a **separate terminal**, start the local blockchain:
-
-```bash
-bun run sample-contracts/devnet.ts
-```
-
-This will start a Hardhat node on `http://localhost:8545` with:
-- Chain ID: 31337
-- Block time: 1 second
-- 10 pre-funded test accounts
-
-### 5. Deploy Sample Contracts
-
-```bash
-bun run sample-contracts/deploy.ts
-```
-
-### 6. Start Development Server
+### 4. Start Development Server
 
 ```bash
 bun run dev
@@ -100,6 +84,18 @@ To get help on available options:
 
 ```bash
 bun run dev -h
+```
+
+### Optional: Web3 Setup
+
+If building a Web3 application, you can also set up the local blockchain:
+
+```bash
+# In a separate terminal, start local blockchain
+bun run sample-contracts/devnet.ts
+
+# Deploy sample ERC-20 contracts (optional example)
+bun run sample-contracts/deploy.ts
 ```
 
 ## Production
@@ -151,7 +147,7 @@ bun run test
 
 The test suite automatically:
 - Sets up a clean test database before each test
-- Starts its own blockchain instance (Hardhat node)
+- Starts a blockchain instance when running Web3-related tests
 - Provides comprehensive integration testing
 
 To get help on available options:

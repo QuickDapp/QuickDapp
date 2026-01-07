@@ -1,5 +1,5 @@
 /**
- * SIWE Authentication Tests for QuickDapp v3
+ * SIWE Authentication Tests for QuickDapp
  *
  * Comprehensive testing of Sign-In with Ethereum authentication flow
  * using real wallet operations, message signing, and verification.

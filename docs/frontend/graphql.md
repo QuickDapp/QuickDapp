@@ -1,55 +1,31 @@
-# GraphQL
+# GraphQL Client
 
-The frontend uses graphql-request with React Query. GraphQL is used for authentication and notifications; on-chain interactions use viem/wagmi.
+The frontend communicates with the backend API using `graphql-request` paired with React Query for caching and state management. GraphQL handles authentication and notifications—blockchain interactions use Wagmi and Viem directly.
 
-## Client setup
+## Client Setup
 
-- Include Authorization header if a JWT is present.
-- Handle UNAUTHORIZED errors by clearing token and prompting re-auth.
+The [`getGraphQLClient()`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/client.ts) function returns a singleton GraphQL client configured with the API endpoint. The [`setAuthToken()`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/client.ts) function updates the Authorization header when a user signs in or out.
+
+The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) manages the token lifecycle. When authentication succeeds, it stores the JWT and configures the client. On sign-out or token expiry, it clears the header and resets the auth state.
 
 ## Operations
 
-- validateToken on app init to determine auth state.
-```graphql
-query { validateToken { valid wallet } }
-```
+Queries and mutations are defined in the shared folder so both client and server can reference them. The main operations include:
 
-- SIWE:
-```graphql
-mutation($address: String!, $chainId: Int!, $domain: String!) { generateSiweMessage(address: $address, chainId: $chainId, domain: $domain) { message nonce } }
-mutation($message: String!, $signature: String!) {
-  authenticateWithSiwe(message: $message, signature: $signature) { success token wallet error }
-}
-```
+**Authentication**: [`VALIDATE_TOKEN`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) checks if the current JWT is valid on app initialization. The SIWE mutations handle wallet-based sign-in.
 
-- Notifications:
-```graphql
-query($page: PageParam!) {
-  getMyNotifications(pageParam: $page) {
-    notifications { id data read createdAt }
-    startIndex
-    total
-  }
-}
-query { getMyUnreadNotificationsCount }
-mutation($id: PositiveInt!) { markNotificationAsRead(id: $id) { success } }
-mutation { markAllNotificationsAsRead { success } }
-```
+**Notifications**: [`GET_MY_NOTIFICATIONS`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) fetches paginated notifications, [`GET_MY_UNREAD_NOTIFICATIONS_COUNT`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) returns the badge count, and mutations mark notifications as read.
 
-## Real-time updates
+See [`src/shared/graphql/queries.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) and [`src/shared/graphql/mutations.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/mutations.ts) for all available operations.
 
-WebSockets are used for real-time notification delivery. The server emits WebSocketMessageType.NotificationReceived with the persisted notification payload. Update UI/react-query caches on receipt.
+## Real-time Updates
 
-See:
-- src/shared/websocket/socket-manager.ts
-- src/server/bootstrap.ts
+GraphQL doesn't handle real-time updates. Instead, WebSockets push notifications directly to connected clients. When the server creates a notification, it emits a `NotificationReceived` message through the socket connection. The [`useNotifications`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/hooks/useNotifications.ts) hook listens for these messages and updates the React Query cache automatically.
 
-## On-chain operations
+## Error Handling
 
-Use viem/wagmi/RainbowKit for blockchain interactions. Do not use GraphQL for token CRUD or deployments.
+When the server returns an `UNAUTHORIZED` error code, the [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) clears the token and prompts re-authentication. Other GraphQL errors surface through React Query's error handling.
 
-## Error handling
+## On-chain Operations
 
-- On GraphQL errors with extensions.code = "UNAUTHORIZED": clear token and prompt re-auth.
-- Validate inputs (e.g., PositiveInt for notification ID).
-- Surface server error messages from authenticateWithSiwe.error to the user.
+Blockchain interactions bypass GraphQL entirely. Use Wagmi hooks and Viem for reading contract state, sending transactions, and handling wallet connections. See the [Web3 documentation](./web3.md) for details.
