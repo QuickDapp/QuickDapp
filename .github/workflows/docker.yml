@@ -25,7 +25,7 @@ jobs:
         version: nightly
 
     - name: Build binaries
-      run: bun run build
+      run: bun run build --bundle
 
     - name: Upload binaries artifact
       uses: actions/upload-artifact@v4
