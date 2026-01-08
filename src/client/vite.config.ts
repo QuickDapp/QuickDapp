@@ -31,7 +31,7 @@ function injectConfig(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), injectConfig()],
-  // Define global constants that will be replaced at build time
+  publicDir: path.resolve(__dirname, "../server/static-src"),
   define: {
     "globalThis.__CONFIG__": JSON.stringify(clientConfig),
   },

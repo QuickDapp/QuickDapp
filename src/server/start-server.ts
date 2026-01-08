@@ -168,19 +168,28 @@ export const createApp = async (
   // Serve static assets from Vite build (or configurable location)
   const staticDir =
     serverConfig.STATIC_ASSETS_FOLDER || path.join(import.meta.dir, "static")
+
+  // Serve index.html for root path (SPA entry point)
+  app.get("/", async ({ set }) => {
+    const indexPath = path.join(staticDir, "index.html")
+    const file = Bun.file(indexPath)
+    if (await file.exists()) {
+      set.headers["content-type"] = "text/html; charset=utf-8"
+      return file
+    }
+    set.status = 404
+    return "Not found"
+  })
+
   app.use(
     staticPlugin({
       assets: staticDir,
       prefix: "",
-      indexHTML: true,
+      indexHTML: false,
       alwaysStatic: true,
       noCache: true,
     }),
   )
-
-  app.head("/", () => {
-    return new Response(null, { status: 200 })
-  })
 
   // Start the server
   const server = app.listen(

@@ -109,6 +109,12 @@ bun run format           # Format code with Biome
 - Use `cn()` utility for dynamic className content - no template string interpolation
 - Client code uses `clientConfig` from `src/shared/config/client.ts` - never access `globalThis.__CONFIG__` directly
 
+**Static Assets**
+- Static files (favicon.ico, robots.txt, fonts) go in `src/server/static-src/`
+- Vite serves these during dev (via publicDir) and copies to build output
+- Never edit `src/server/static/` directly - it's regenerated on every build
+- For assets in React components, use Vite imports (they get optimized and hashed)
+
 ---
 
 ### 4. Testing & Debugging

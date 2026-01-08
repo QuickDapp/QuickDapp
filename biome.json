@@ -15,7 +15,8 @@
   "javascript": {
     "formatter": {
       "semicolons": "asNeeded"
-    }
+    },
+    "globals": ["Bun"]
   },
   "linter": {
     "enabled": true,

@@ -75,4 +75,5 @@ Components work identically in either mode. The [`AuthContext`](https://github.c
 - [Forms](./forms.md) — Form handling and validation
 - [Global](./global.md) — Context providers and global state
 - [GraphQL](./graphql.md) — GraphQL client usage
+- [Static Assets](./static-assets.md) — Serving static files (favicon, fonts, etc.)
 - [Web3](./web3.md) — Blockchain integration (optional)

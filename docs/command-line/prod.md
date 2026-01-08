@@ -22,9 +22,15 @@ DATABASE_URL=postgresql://user:password@prod-host:5432/quickdapp
 SESSION_ENCRYPTION_KEY=your_32_character_production_key
 ```
 
+## How it Works
+
+`bun run prod` runs `dist/server/binary.js`, which sets production environment defaults (via `EMBEDDED_ENV`) before loading the server. This ensures `NODE_ENV=production` is set before any configuration is evaluated.
+
+The binary entry point also extracts bundled static assets to a temp directory and serves them via the static file plugin.
+
 ## Binary vs bun run prod
 
-**`bun run prod`** runs the built JavaScript with Bun. Use this for local testing or when Bun is installed on the server.
+**`bun run prod`** runs `binary.js` with Bun. Use this for local testing or when Bun is installed on the server.
 
 **Binary deployment** uses self-contained executables with no dependencies:
 

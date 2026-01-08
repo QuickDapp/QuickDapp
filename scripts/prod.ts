@@ -17,7 +17,7 @@ async function serverHandler(
   _options: ProdOptions,
   config: { rootFolder: string; env: string },
 ) {
-  const serverPath = path.join(config.rootFolder, "dist", "server", "index.js")
+  const serverPath = path.join(config.rootFolder, "dist", "server", "binary.js")
 
   if (!existsSync(serverPath)) {
     console.error("❌ Production server not found. Run 'bun run build' first.")
@@ -53,6 +53,7 @@ async function clientHandler(
   config: { rootFolder: string; env: string },
 ) {
   const clientPath = path.join(config.rootFolder, "dist", "client")
+  const clientSrcPath = path.join(config.rootFolder, "src", "client")
 
   if (!existsSync(clientPath)) {
     console.error("❌ Production client not found. Run 'bun run build' first.")
@@ -64,7 +65,7 @@ async function clientHandler(
 
   const server = spawn({
     cmd: ["bun", "vite", "preview", "--port", "4173", "--host"],
-    cwd: clientPath,
+    cwd: clientSrcPath,
     env: {
       ...process.env,
       NODE_ENV: "production",
@@ -89,8 +90,9 @@ async function defaultHandler(
   _options: ProdOptions,
   config: { rootFolder: string; env: string },
 ) {
-  const serverPath = path.join(config.rootFolder, "dist", "server", "index.js")
+  const serverPath = path.join(config.rootFolder, "dist", "server", "binary.js")
   const clientPath = path.join(config.rootFolder, "dist", "client")
+  const clientSrcPath = path.join(config.rootFolder, "src", "client")
 
   if (!existsSync(serverPath)) {
     console.error("❌ Production server not found. Run 'bun run build' first.")
@@ -121,7 +123,7 @@ async function defaultHandler(
   // Start client preview server
   const client = spawn({
     cmd: ["bun", "vite", "preview", "--port", "4173", "--host"],
-    cwd: clientPath,
+    cwd: clientSrcPath,
     env: {
       ...process.env,
       NODE_ENV: "production",
