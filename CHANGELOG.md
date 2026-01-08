@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.4.0](https://github.com/QuickDapp/QuickDapp/compare/v3.3.0...v3.4.0) (2026-01-08)
+
+
+### Features
+
+* add static assets documentation and fix SPA routing ([4921daf](https://github.com/QuickDapp/QuickDapp/commit/4921daf5d403b8347a92c59e59b0704fec86b9dc))
+* do a bundled build for docker ([3e357ca](https://github.com/QuickDapp/QuickDapp/commit/3e357ca272b45fa67038f820d88b2e702ce3a344))
+
 ## [3.3.0](https://github.com/QuickDapp/QuickDapp/compare/v3.2.0...v3.3.0) (2026-01-07)
 
 
