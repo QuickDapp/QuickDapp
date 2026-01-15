@@ -754,14 +754,22 @@ QuickDapp is a **boilerplate/template**, not a library. Users clone or download 
 
 ## Updating Base and Propagating Changes
 
-When base is updated with bug fixes, improvements, or new features:
+When base is updated with bug fixes, improvements, or new features, those changes must be ported to variants and website **before publishing a new release**.
 
-1. **Identify the changes** that should propagate to variants and website
-2. **Port relevant changes** manually to each derivation
-3. **Update versions** in each affected package
-4. **Test each package** independently
+### Porting Process
 
-Not all base changes need to propagate - variants may have intentionally diverged in certain areas.
+1. **Analyze changes** - Use LLM analysis to review what changed in base and determine what needs to be ported to each derivation
+2. **Port relevant changes** - Apply the identified changes to variants and website. The LLM can help figure out what modifications are needed given each derivation's differences
+3. **Update/add tests** - Ensure tests are updated or added to cover the ported changes
+4. **Run tests** - Execute test suites in each affected package
+5. **Manual verification** - Developer should manually verify the changes work correctly in each derivation
+6. **Update versions** - Bump versions in each affected package
+
+### Important Notes
+
+- Not all base changes need to propagate - variants may have intentionally diverged in certain areas
+- Review each change carefully - some base changes may conflict with variant-specific code
+- Always test thoroughly before releasing - automated tests plus manual verification
 
 ## Creating New Variants
 
