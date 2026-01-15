@@ -132,8 +132,10 @@ describe("Tag-Based Job Cancellation", () => {
 
     test("multiple pending jobs with same tag are all cancelled", async () => {
       const tag = "multi-cancel-test"
+      const futureDue = new Date(Date.now() + 3600000)
 
       // Directly insert multiple pending jobs without triggering cancellation
+      // Use future due date to prevent worker from picking them up during the test
       const jobs = await Promise.all([
         serverContext.serverApp.db
           .insert(workerJobs)
@@ -142,8 +144,8 @@ describe("Tag-Based Job Cancellation", () => {
             type: "removeOldWorkerJobs",
             userId: 1,
             data: {},
-            due: new Date(),
-            removeAt: new Date(Date.now() + 3600000),
+            due: futureDue,
+            removeAt: new Date(Date.now() + 7200000),
           })
           .returning(),
         serverContext.serverApp.db
@@ -153,8 +155,8 @@ describe("Tag-Based Job Cancellation", () => {
             type: "removeOldWorkerJobs",
             userId: 2,
             data: {},
-            due: new Date(),
-            removeAt: new Date(Date.now() + 3600000),
+            due: futureDue,
+            removeAt: new Date(Date.now() + 7200000),
           })
           .returning(),
         serverContext.serverApp.db
@@ -164,8 +166,8 @@ describe("Tag-Based Job Cancellation", () => {
             type: "removeOldWorkerJobs",
             userId: 3,
             data: {},
-            due: new Date(),
-            removeAt: new Date(Date.now() + 3600000),
+            due: futureDue,
+            removeAt: new Date(Date.now() + 7200000),
           })
           .returning(),
       ])
