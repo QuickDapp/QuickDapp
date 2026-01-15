@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - name: Create test database
+        run: |
+          PGPASSWORD='' psql -h localhost -p 5433 -U postgres -c "CREATE DATABASE quickdapp_test;"
+      - run: bun run test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://postgres@localhost:5433/quickdapp_test

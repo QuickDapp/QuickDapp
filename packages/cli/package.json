@@ -1,0 +1,29 @@
+{
+  "name": "create-quickdapp",
+  "version": "3.4.0",
+  "description": "CLI tool to scaffold new QuickDapp projects",
+  "author": "Ramesh Nair <ram@hiddentao.com>",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-quickdapp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "commander": "^14.0.0"
+  }
+}

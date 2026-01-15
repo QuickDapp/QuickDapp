@@ -17,7 +17,9 @@ logs
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # dotenv environment variable files
+.env
 .env.local
+.env.test
 .env.production
 .env.*.local
 
@@ -36,9 +38,9 @@ cache
 # Generated files
 generated/
 *.generated.*
-src/shared/abi/generated.ts
-src/shared/graphql/generated/
-src/server/static
+**/src/shared/abi/generated.ts
+**/src/shared/graphql/generated/
+**/src/server/static
 
 # Database files
 *.db
@@ -57,5 +59,9 @@ temp/
 
 # Claude local
 CLAUDE.local.md
-v2
-chatfall
+
+# Lock files (each package has its own)
+bun.lock
+
+# Retype output
+.retype

@@ -1,0 +1,11 @@
+{
+  "packageFiles": ["packages/cli/package.json"],
+  "bumpFiles": ["packages/cli/package.json"],
+  "infile": "CHANGELOG.md",
+  "types": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "docs", "section": "Documentation" }
+  ]
+}
