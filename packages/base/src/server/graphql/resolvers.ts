@@ -15,7 +15,7 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "../db/notifications"
-import { getUserById } from "../db/users"
+import { getMyProfile, getUserById } from "../db/users"
 import {
   generateVerificationCodeAndBlob,
   validateEmailFormat,
@@ -92,6 +92,40 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
             return {
               valid: false,
             }
+          }
+        })
+      },
+
+      // Current user profile (auth required)
+      me: async (_, __, context) => {
+        return withSpan("graphql.Query.me", context, async () => {
+          try {
+            if (!context.user) {
+              throw new GraphQLError("Authentication required", {
+                extensions: { code: GraphQLErrorCode.UNAUTHORIZED },
+              })
+            }
+
+            const profile = await getMyProfile(serverApp.db, context.user.id)
+            if (!profile) {
+              throw new GraphQLError("User not found", {
+                extensions: { code: GraphQLErrorCode.NOT_FOUND },
+              })
+            }
+
+            return profile
+          } catch (error) {
+            if (error instanceof GraphQLError) {
+              throw error
+            }
+            logger.error("Failed to get user profile:", error)
+            throw new GraphQLError("Failed to retrieve user profile", {
+              extensions: {
+                code: GraphQLErrorCode.DATABASE_ERROR,
+                originalError:
+                  error instanceof Error ? error.message : String(error),
+              },
+            })
           }
         })
       },
@@ -241,9 +275,15 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 blob,
               )
 
+              const profile = await getMyProfile(
+                serverApp.db,
+                authResult.user.id,
+              )
+
               return {
                 success: true,
                 token: authResult.token,
+                profile: profile ?? null,
                 error: null,
               }
             } catch (error) {
@@ -252,6 +292,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               return {
                 success: false,
                 token: null,
+                profile: null,
                 error:
                   error instanceof Error
                     ? error.message

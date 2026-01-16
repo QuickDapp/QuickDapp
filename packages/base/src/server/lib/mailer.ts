@@ -52,7 +52,14 @@ export class Mailer {
       if (this.mailClient && this.domain) {
         await this.mailClient.messages.create(this.domain, attrs as any)
       } else {
-        this.logger.warn("Email not sent, mail client not initialized")
+        this.logger.warn(
+          "Mail client not configured - logging email to console instead:",
+        )
+        this.logger.info("━".repeat(50))
+        this.logger.info(`To: ${Array.isArray(to) ? to.join(", ") : to}`)
+        this.logger.info(`Subject: ${subject}`)
+        this.logger.info(`Body: ${text}`)
+        this.logger.info("━".repeat(50))
       }
     } catch (err: unknown) {
       const error = err as { message?: string }

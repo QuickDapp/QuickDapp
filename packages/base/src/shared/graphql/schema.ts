@@ -27,10 +27,18 @@ export const typeDefs = gql`
     success: Boolean!
   }
 
+  # User profile type
+  type UserProfile {
+    id: PositiveInt!
+    email: String
+    createdAt: DateTime!
+  }
+
   # Authentication types
   type AuthResult {
     success: Boolean!
     token: String
+    profile: UserProfile
     error: String
   }
 
@@ -71,6 +79,7 @@ export const typeDefs = gql`
     validateToken: ValidateTokenResult!
 
     # User-specific queries (auth required)
+    me: UserProfile! @auth
     getMyNotifications(pageParam: PageParam!): NotificationsResponse! @auth
     getMyUnreadNotificationsCount: Int! @auth
   }

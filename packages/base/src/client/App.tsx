@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useMemo } from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { ErrorBoundary } from "./components/ErrorBoundary"
-import { Header } from "./components/Header"
 import { ToastProvider } from "./components/Toast"
 import { AuthProvider } from "./contexts/AuthContext"
 import { SocketProvider } from "./contexts/SocketContext"
@@ -25,21 +24,20 @@ export function App() {
   }, [])
 
   return (
-    <div className="flex flex-col w-full min-h-screen relative font-body bg-background text-foreground">
+    <div className="flex flex-col w-full min-h-screen font-body gradient-bg text-foreground">
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <SocketProvider>
               <ToastProvider>
                 <BrowserRouter>
-                  <Header className="fixed h-header" />
-                  <main className="relative m-after-header">
+                  <main className="flex-1 flex flex-col">
                     <Routes>
                       <Route path="/" element={<HomePage />} />
                     </Routes>
                   </main>
-                  <footer>
-                    <p className="text-xs p-4">
+                  <footer className="pb-6 text-center">
+                    <p className="text-sm text-muted">
                       Built with <a href="https://quickdapp.xyz">QuickDapp</a>
                     </p>
                   </footer>

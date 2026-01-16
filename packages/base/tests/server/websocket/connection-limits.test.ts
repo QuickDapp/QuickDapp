@@ -52,6 +52,9 @@ describe("WebSocket Connection Limits", () => {
   afterAll(async () => {
     cleanupClients()
 
+    // Allow WebSocket connections to fully close
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
     if (testServer) {
       await testServer.shutdown()
     }
@@ -145,8 +148,9 @@ describe("WebSocket Connection Limits", () => {
       )
       expect(hasError).toBe(true)
 
-      // Clean up user clients
+      // Clean up user clients and remove from global array
       disconnectAllClients(userClients)
+      clients = clients.filter((c) => !userClients.includes(c))
     })
 
     it("should allow different users to each have max connections", async () => {
@@ -186,9 +190,11 @@ describe("WebSocket Connection Limits", () => {
       expect(user1Clients.length).toBe(maxPerUser)
       expect(user2Clients.length).toBe(maxPerUser)
 
-      // Clean up
+      // Clean up and remove from global array
       disconnectAllClients(user1Clients)
       disconnectAllClients(user2Clients)
+      const localClients = [...user1Clients, ...user2Clients]
+      clients = clients.filter((c) => !localClients.includes(c))
     })
   })
 

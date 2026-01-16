@@ -1,17 +1,17 @@
 /* Import Google Fonts first (before Tailwind) */
-@import url("https://fonts.googleapis.com/css2?family=Comfortaa:wght@400&family=Noto+Sans:wght@300;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap");
 
 /* Import Tailwind CSS v4 */
 @import "tailwindcss";
 
 /* Theme configuration for Tailwind v4 */
 @theme {
-  /* v2 Color Palette */
+  /* Light theme color palette */
   --color-anchor: #0ec8ff;
-  --color-background: #000000;
-  --color-foreground: #ffffff;
-  --color-muted: #f8fafc;
-  --color-border: #e2e8f0;
+  --color-background: #ffffff;
+  --color-foreground: #374151;
+  --color-muted: #9ca3af;
+  --color-border: #e5e7eb;
 
   /* Slate colors from v2 */
   --color-slate-300: #cbd5e1;
@@ -40,8 +40,8 @@
   --line-height-xl: 32px;
 
   /* Custom fonts */
-  --font-heading: "Comfortaa", sans-serif;
-  --font-body: "Noto Sans", sans-serif;
+  --font-heading: "Poppins", system-ui, -apple-system, sans-serif;
+  --font-body: "Poppins", system-ui, -apple-system, sans-serif;
 
   /* Layout - v2 header */
   --header-height: 56px;
@@ -80,14 +80,14 @@
     @apply h-full;
   }
 
-  /* v2 anchor styling */
+  /* Anchor styling for light theme */
   a,
   a:link,
   a:visited {
     @apply text-anchor;
 
     &:hover {
-      @apply bg-anchor text-black;
+      @apply bg-anchor/10;
     }
 
     &.no-anchor-hover-styles {
@@ -173,4 +173,10 @@
 
 @utility m-after-header {
   margin: var(--header-height) 0 0;
+}
+
+/* Fixed gradient background */
+@utility gradient-bg {
+  background: linear-gradient(to bottom, #ffffff 0%, #f3f4f6 100%);
+  background-attachment: fixed;
 }

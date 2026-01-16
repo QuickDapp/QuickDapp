@@ -86,8 +86,9 @@ bun run format           # Format code with Biome
 **GraphQL**
 - Schema-first approach with `@auth` directive for protected fields
 - Never use field resolvers - fetch all data via SQL joins to avoid N+1 queries
-- All queries/mutations in `src/shared/graphql/queries.ts` and `mutations.ts`
-- Use fragments in `fragments.ts`
+- Define reusable fragments in `src/shared/graphql/fragments.ts`
+- All queries/mutations MUST use defined fragments for response types
+- Queries in `src/shared/graphql/queries.ts`, mutations in `mutations.ts`
 - Use GraphQL for all server APIs - no separate REST endpoints
 
 ---

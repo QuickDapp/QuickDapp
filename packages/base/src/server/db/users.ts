@@ -240,6 +240,38 @@ export async function getUserPrimaryAuthIdentifier(
   })
 }
 
+export interface UserProfile {
+  id: number
+  email: string | null
+  createdAt: Date
+}
+
+/**
+ * Get user profile for authenticated user
+ * Returns email only if user has email auth, not OAuth
+ */
+export async function getMyProfile(
+  db: DatabaseOrTransaction,
+  userId: number,
+): Promise<UserProfile | undefined> {
+  return db.startSpan("db.users.getMyProfile", async () => {
+    const user = await getUserById(db, userId)
+    if (!user) {
+      return undefined
+    }
+
+    // Only return email if user has email auth method
+    const auths = await getUserAuthsByUserId(db, userId)
+    const emailAuth = auths.find((a) => a.authType === AUTH_METHOD.EMAIL)
+
+    return {
+      id: user.id,
+      email: emailAuth?.authIdentifier ?? null,
+      createdAt: user.createdAt,
+    }
+  })
+}
+
 /**
  * Update user settings by user ID
  */

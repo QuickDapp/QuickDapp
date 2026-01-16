@@ -1,5 +1,5 @@
 import { getGraphQLClient, setAuthToken } from "@shared/graphql/client"
-import { VALIDATE_TOKEN } from "@shared/graphql/queries"
+import { ME, VALIDATE_TOKEN } from "@shared/graphql/queries"
 import type { ReactNode } from "react"
 import {
   createContext,
@@ -11,16 +11,28 @@ import {
   useRef,
 } from "react"
 
-// Constants
+// User profile type (matches GraphQL UserProfile)
+export interface UserProfile {
+  id: number
+  email: string | null
+  createdAt: string
+}
+
+// Constants - localStorage only stores token
 const STORAGE_KEYS = {
   AUTH_TOKEN: "auth_token",
 } as const
 
 // Helper functions for localStorage operations
-const getAuthFromStorage = () => {
+const getTokenFromStorage = () => {
   const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-  console.log("Getting auth from localStorage:", { token })
-  return { token }
+  console.log("Getting token from localStorage:", { hasToken: !!token })
+  return token
+}
+
+const saveTokenToStorage = (token: string) => {
+  console.log("Saving token to localStorage")
+  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token)
 }
 
 const clearAuthFromStorage = () => {
@@ -55,6 +67,7 @@ type AuthState =
   | {
       status: AuthStatus.AUTHENTICATED
       token: string
+      profile: UserProfile
     }
   | { status: AuthStatus.ERROR; error: string }
 
@@ -62,7 +75,7 @@ type AuthAction =
   | { type: AuthActionType.AUTH_START }
   | {
       type: AuthActionType.AUTH_SUCCESS
-      payload: { token: string }
+      payload: { token: string; profile: UserProfile }
     }
   | { type: AuthActionType.AUTH_ERROR; payload: { error: string } }
   | { type: AuthActionType.LOGOUT }
@@ -79,6 +92,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         status: AuthStatus.AUTHENTICATED,
         token: action.payload.token,
+        profile: action.payload.profile,
       }
 
     case AuthActionType.AUTH_ERROR:
@@ -111,8 +125,11 @@ interface AuthContextValue {
   isLoading: boolean
   error: Error | null
   authToken: string | null
+  profile: UserProfile | null
+  email: string | null
 
   // Methods
+  login: (token: string, profile: UserProfile) => void
   logout: () => void
   restoreAuth: () => void
 }
@@ -128,6 +145,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, dispatch] = useReducer(authReducer, initialState)
   const restorationStarted = useRef(false)
 
+  // Login function - stores token in localStorage, profile in memory only
+  const login = useCallback((token: string, profile: UserProfile) => {
+    setAuthToken(token)
+    saveTokenToStorage(token)
+    dispatch({
+      type: AuthActionType.AUTH_SUCCESS,
+      payload: { token, profile },
+    })
+  }, [])
+
   // Logout function
   const logout = useCallback(() => {
     setAuthToken(null)
@@ -135,24 +162,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearAuthFromStorage()
   }, [])
 
-  // Restore authentication from localStorage (for OAuth/email tokens)
+  // Restore authentication from localStorage
   const restoreAuth = useCallback(async () => {
     dispatch({ type: AuthActionType.RESTORE_START })
 
-    const { token } = getAuthFromStorage()
+    const token = getTokenFromStorage()
 
     if (token) {
       try {
         setAuthToken(token)
         const graphqlClient = getGraphQLClient()
-        const response = (await graphqlClient.request(VALIDATE_TOKEN)) as {
+
+        // First validate the token
+        const validateResponse = (await graphqlClient.request(
+          VALIDATE_TOKEN,
+        )) as {
           validateToken: { valid: boolean }
         }
 
-        if (response.validateToken.valid) {
+        if (validateResponse.validateToken.valid) {
+          // Token is valid, fetch user profile
+          const meResponse = (await graphqlClient.request(ME)) as {
+            me: UserProfile
+          }
+
           dispatch({
             type: AuthActionType.AUTH_SUCCESS,
-            payload: { token },
+            payload: { token, profile: meResponse.me },
           })
         } else {
           clearAuthFromStorage()
@@ -191,10 +227,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       error: null,
       authToken:
         authState.status === AuthStatus.AUTHENTICATED ? authState.token : null,
+      profile:
+        authState.status === AuthStatus.AUTHENTICATED
+          ? authState.profile
+          : null,
+      email:
+        authState.status === AuthStatus.AUTHENTICATED
+          ? authState.profile.email
+          : null,
+      login,
       logout,
       restoreAuth,
     }),
-    [isAuthenticated, isLoading, authState, logout, restoreAuth],
+    [isAuthenticated, isLoading, authState, login, logout, restoreAuth],
   )
 
   return (

@@ -60,25 +60,25 @@ WORKER_LOG_LEVEL=debug
   })
 
   try {
-    // Set up test database first
+    // Start test database container
+    console.log("🐳 Starting test database container...")
+    try {
+      await $`docker compose -f docker-compose.test.yaml up -d --wait`
+      console.log("✅ Test database container started")
+    } catch (error) {
+      console.error("❌ Failed to start test database container:", error)
+      cleanup()
+      process.exit(1)
+    }
+    console.log("")
+
+    // Set up test database schema
     console.log("📦 Setting up test database...")
     try {
       await $`bun run db push --force`
       console.log("✅ Test database schema updated successfully")
     } catch (error) {
       console.error("❌ Failed to set up test database:", error)
-      cleanup()
-      process.exit(1)
-    }
-    console.log("")
-
-    // Build contracts
-    console.log("🔨 Building contracts...")
-    try {
-      await $`cd tests/helpers/contracts && forge build`
-      console.log("✅ Contracts built successfully")
-    } catch (error) {
-      console.error("❌ Failed to build contracts:", error)
       cleanup()
       process.exit(1)
     }

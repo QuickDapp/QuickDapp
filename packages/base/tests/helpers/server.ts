@@ -44,9 +44,9 @@ export async function startTestServer(
       testLogger.info("🛑 Shutting down test server...")
 
       try {
-        // Stop the server
+        // Stop the server - pass true to close immediately without waiting for connections
         if (server && typeof server.stop === "function") {
-          await server.stop()
+          server.stop(true)
         }
 
         // Stop workers if they exist

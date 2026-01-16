@@ -122,7 +122,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -136,7 +135,6 @@ describe("Email Authentication", () => {
       expect(body.errors).toBeUndefined()
       expect(body.data.authenticateWithEmail.success).toBe(true)
       expect(body.data.authenticateWithEmail.token).toBeTruthy()
-      expect(body.data.authenticateWithEmail.web3Wallet).toBeNull()
       expect(body.data.authenticateWithEmail.error).toBeNull()
     })
 
@@ -152,7 +150,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -183,7 +180,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -209,7 +205,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -241,7 +236,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -266,7 +260,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -296,7 +289,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -320,7 +312,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -348,7 +339,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -364,7 +354,7 @@ describe("Email Authentication", () => {
       const validateResponse = await makeRequest(
         `${testServer.url}/graphql`,
         createGraphQLRequest(
-          `query { validateToken { valid web3Wallet } }`,
+          `query { validateToken { valid } }`,
           undefined,
           token,
         ),
@@ -372,7 +362,6 @@ describe("Email Authentication", () => {
 
       const validateBody = await validateResponse.json()
       expect(validateBody.data.validateToken.valid).toBe(true)
-      expect(validateBody.data.validateToken.web3Wallet).toBeNull()
     })
   })
 
@@ -392,7 +381,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
@@ -426,7 +414,6 @@ describe("Email Authentication", () => {
             authenticateWithEmail(email: $email, code: $code, blob: $blob) {
               success
               token
-              web3Wallet
               error
             }
           }
