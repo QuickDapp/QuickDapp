@@ -81,6 +81,12 @@ jobs:
         env:
           NODE_ENV: test
           DATABASE_URL: postgres://postgres@localhost:5433/quickdapp_test
+      # playwright e2e tests
+      - run: bunx playwright install --with-deps chromium                      
+      - run: bun run test:e2e                                                  
+        env:                                                                   
+          NODE_ENV: test                                                       
+          DATABASE_URL: postgres://postgres@localhost:5433/quickdapp_test   
 
   test-web3:
     name: Test Web3 Package
