@@ -55,6 +55,12 @@ temp/
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # Claude local
 CLAUDE.local.md
 v2
