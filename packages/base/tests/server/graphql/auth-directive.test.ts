@@ -51,6 +51,7 @@ describe("Auth Directive Tests", () => {
 
       // Expected operations based on schema.ts
       const expectedAuthOps = [
+        "me",
         "getMyNotifications",
         "getMyUnreadNotificationsCount",
         "markNotificationAsRead",
