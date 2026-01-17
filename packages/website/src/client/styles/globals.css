@@ -1,0 +1,191 @@
+@import url("https://fonts.googleapis.com/css2?family=Comfortaa:wght@400&family=Noto+Sans:wght@300;700&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  --color-anchor: #0ec8ff;
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-muted: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-emphasis: #0ec8ff;
+  --color-alt: #94a3b8;
+
+  --color-gradcol1: #000000;
+  --color-gradcol2: #1a1a2e;
+  --color-gradcol3: #16213e;
+  --color-gradcol3b: #0f3460;
+
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  --shadow-glow: 0 0 1rem
+    color-mix(in srgb, var(--color-anchor) 30%, transparent);
+  --shadow-strong: 0 0 2rem
+    color-mix(in srgb, var(--color-anchor) 50%, transparent);
+  --shadow-big: 0px 0px 26px 21px rgba(0, 0, 0, 0.75);
+
+  --font-size-sm: 14px;
+  --line-height-sm: 20px;
+  --font-size-base: 16px;
+  --line-height-base: 24px;
+  --font-size-lg: 20px;
+  --line-height-lg: 28px;
+  --font-size-xl: 24px;
+  --line-height-xl: 32px;
+
+  --font-heading: "Comfortaa", sans-serif;
+  --font-body: "Noto Sans", sans-serif;
+
+  --header-height: 56px;
+
+  --transition-props:
+    height, width, opacity, background-color, color, border-color;
+}
+
+@layer base {
+  :root {
+    --header-height: 56px;
+  }
+
+  * {
+    box-sizing: border-box;
+    transition-property: var(--transition-props);
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  html {
+    @apply h-full m-0 p-0 box-border;
+  }
+
+  body {
+    @apply h-full m-0 p-0 box-border bg-background text-foreground;
+    @apply font-body antialiased;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+
+  #root {
+    @apply h-full;
+  }
+
+  a,
+  a:link,
+  a:visited {
+    @apply text-anchor;
+
+    &:hover {
+      @apply bg-anchor text-black;
+    }
+
+    &.no-anchor-hover-styles {
+      &:hover {
+        @apply bg-transparent text-current;
+      }
+    }
+  }
+}
+
+@utility btn-primary {
+  @apply px-4 py-2 bg-anchor text-background rounded-lg;
+  @apply hover:opacity-80 transition-opacity duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-anchor focus:ring-offset-2;
+}
+
+@utility btn-secondary {
+  @apply px-4 py-2 bg-muted text-background rounded-lg;
+  @apply hover:opacity-80 transition-opacity duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-muted focus:ring-offset-2;
+}
+
+@utility card {
+  @apply bg-muted border border-border rounded-lg p-6;
+  @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+@utility glow-effect {
+  box-shadow: var(--shadow-glow);
+}
+
+@utility glow-strong {
+  box-shadow: var(--shadow-strong);
+}
+
+@utility flex-center {
+  @apply flex items-center justify-center;
+}
+
+@utility flex-between {
+  @apply flex items-center justify-between;
+}
+
+@utility transition-base {
+  @apply transition-all duration-200 ease-out;
+}
+
+@utility transition-smooth {
+  @apply transition-all duration-300 ease-out;
+}
+
+@utility svg-inline {
+  svg {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+  }
+}
+
+@utility big-shadow {
+  box-shadow: var(--shadow-big);
+}
+
+@utility icon {
+  color: inherit;
+}
+
+@utility h-header {
+  height: var(--header-height);
+}
+
+@utility screen-minus-header {
+  height: calc(100vh - var(--header-height));
+}
+
+@utility m-after-header {
+  margin: var(--header-height) 0 0;
+}
+
+@utility p-after_header {
+  padding-top: var(--header-height);
+}
+
+@utility gradient-block {
+  @apply bg-gradient-to-b;
+}
+
+@utility gradient-block-1 {
+  @apply gradient-block from-gradcol1 to-gradcol2;
+}
+
+@utility gradient-block-2 {
+  @apply gradient-block from-gradcol2 to-gradcol1;
+}
+
+@utility gradient-block-3 {
+  @apply gradient-block from-gradcol3 to-gradcol3b;
+}
+
+@utility clickable {
+  cursor: pointer;
+}
+
+@utility container {
+  @apply max-w-4xl mx-auto;
+}
