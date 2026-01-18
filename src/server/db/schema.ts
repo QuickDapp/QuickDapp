@@ -99,6 +99,14 @@ export const workerJobs = pgTable("worker_jobs", {
   removeDelay: integer("remove_delay").default(0).notNull(),
   rescheduledFromJob: integer("rescheduled_from_job"),
   persistent: boolean("persistent").default(false).notNull(),
+  // Trigger.dev integration fields
+  executor: text("executor").default("internal").notNull(), // "internal" | "trigger"
+  triggerRunId: text("trigger_run_id"), // Trigger.dev run ID
+  triggerAttemptId: text("trigger_attempt_id"), // Current attempt ID
+  triggerStatus: text("trigger_status"), // "PENDING" | "EXECUTING" | "COMPLETED" | "FAILED" | "CANCELED"
+  triggerScheduleId: text("trigger_schedule_id"), // For cron jobs
+  cancelRequested: boolean("cancel_requested").default(false).notNull(),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

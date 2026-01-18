@@ -60,6 +60,12 @@ export interface ServerConfig extends ClientConfig {
   SENTRY_PROFILE_SESSION_SAMPLE_RATE: number
 
   DIGITALOCEAN_ACCESS_TOKEN?: string
+
+  // Trigger.dev configuration (optional)
+  TRIGGER_SECRET_KEY?: string
+  TRIGGER_PROJECT_REF?: string
+  TRIGGER_WEBHOOK_SECRET?: string
+  TRIGGER_ENABLED: boolean
 }
 
 // Helper to load web3-specific server config
@@ -178,6 +184,12 @@ export const serverConfig: ServerConfig = {
     .asFloat(),
 
   DIGITALOCEAN_ACCESS_TOKEN: env.get("DIGITALOCEAN_ACCESS_TOKEN").asString(),
+
+  // Trigger.dev configuration
+  TRIGGER_SECRET_KEY: env.get("TRIGGER_SECRET_KEY").asString(),
+  TRIGGER_PROJECT_REF: env.get("TRIGGER_PROJECT_REF").asString(),
+  TRIGGER_WEBHOOK_SECRET: env.get("TRIGGER_WEBHOOK_SECRET").asString(),
+  TRIGGER_ENABLED: Boolean(env.get("TRIGGER_SECRET_KEY").asString()),
 }
 
 // Helper to check if a config value is empty
