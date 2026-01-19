@@ -1,3 +1,6 @@
+// IMPORTANT: Import setup FIRST to initialize test database before server imports
+import "../../setup"
+
 import {
   afterAll,
   afterEach,
@@ -22,8 +25,6 @@ import {
   startTestWorker,
   stopTestWorker,
 } from "../../helpers/worker"
-// Import global test setup
-import "../../setup"
 
 describe("Worker Cron Job Scheduling", () => {
   let serverContext: TestServer

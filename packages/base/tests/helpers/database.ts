@@ -5,6 +5,9 @@
  * creating test data, and cleaning up between tests.
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
 import { dbManager, schema } from "@server/db/connection"
 import type {
   NewNotification,
@@ -12,32 +15,35 @@ import type {
   NewWorkerJob,
   User,
 } from "@server/db/schema"
-import { serverConfig } from "@shared/config/server"
 import { testLogger } from "@tests/helpers/logger"
+import {
+  getTestDatabaseName,
+  getTestDatabaseUrl,
+} from "@tests/helpers/test-config"
 import { sql } from "drizzle-orm"
+import postgres from "postgres"
+
+const ADMIN_DATABASE_URL = "postgresql://postgres@localhost:55433/postgres"
 
 /**
  * Initialize the shared test database connection
  * Uses the centralized connection manager to prevent pool exhaustion
  */
 export async function initTestDb() {
-  testLogger.info("🔌 Initializing shared test database connection...")
-
-  if (!serverConfig.DATABASE_URL) {
-    throw new Error(
-      "DATABASE_URL configuration is required for test database connection",
-    )
-  }
+  const databaseUrl = getTestDatabaseUrl()
+  testLogger.info(
+    `🔌 Initializing test database connection to: ${getTestDatabaseName()}`,
+  )
 
   // Use the centralized connection manager with test-specific settings
   const db = await dbManager.connect({
     maxConnections: 1, // Very low limit for tests to prevent pool exhaustion
     idleTimeout: 0, // Never timeout in tests
     connectTimeout: 10,
-    databaseUrl: serverConfig.DATABASE_URL,
+    databaseUrl,
   })
 
-  testLogger.info("✅ Shared test database connection established")
+  testLogger.info("✅ Test database connection established")
   return db
 }
 
@@ -317,4 +323,138 @@ export async function verifyTestDatabaseIsEmpty(): Promise<boolean> {
     stats.workerJobs === 0 &&
     stats.settings === 0
   )
+}
+
+/**
+ * Create the test database from template
+ * Called at the start of each test file in parallel execution
+ * Uses retry logic with exponential backoff because PostgreSQL requires
+ * exclusive lock on template during cloning - concurrent attempts may fail
+ */
+export async function createTestDatabaseFromTemplate(): Promise<void> {
+  const dbName = getTestDatabaseName()
+  const maxRetries = 10
+  const baseDelayMs = 100
+
+  testLogger.info(`📦 Creating test database from template: ${dbName}`)
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+
+    try {
+      // Drop database if it exists (from previous failed run)
+      await adminClient.unsafe(`DROP DATABASE IF EXISTS ${dbName}`)
+
+      // Create database from template
+      await adminClient.unsafe(
+        `CREATE DATABASE ${dbName} WITH TEMPLATE quickdapp_test OWNER postgres`,
+      )
+
+      testLogger.info(`✅ Created test database: ${dbName}`)
+      return
+    } catch (error: any) {
+      const isTemplateLockError =
+        error?.message?.includes("being accessed by other users") ||
+        error?.message?.includes("source database")
+
+      if (isTemplateLockError && attempt < maxRetries) {
+        // Exponential backoff with jitter for template lock contention
+        const delayMs =
+          baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 100
+        testLogger.info(
+          `⏳ Template locked, retrying in ${Math.round(delayMs)}ms (attempt ${attempt}/${maxRetries})`,
+        )
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      } else {
+        testLogger.error(`❌ Failed to create test database ${dbName}:`, error)
+        throw error
+      }
+    } finally {
+      await adminClient.end()
+    }
+  }
+
+  throw new Error(
+    `Failed to create test database ${dbName} after ${maxRetries} attempts`,
+  )
+}
+
+/**
+ * Drop the test database after tests complete
+ * Called at the end of each test file in parallel execution
+ */
+export async function dropTestDatabase(): Promise<void> {
+  const dbName = getTestDatabaseName()
+
+  testLogger.info(`🗑️ Dropping test database: ${dbName}`)
+
+  // First disconnect from the database
+  await closeTestDb()
+
+  const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+
+  try {
+    // Terminate any remaining connections to the database
+    await adminClient.unsafe(`
+      SELECT pg_terminate_backend(pg_stat_activity.pid)
+      FROM pg_stat_activity
+      WHERE pg_stat_activity.datname = '${dbName}'
+        AND pid <> pg_backend_pid()
+    `)
+
+    // Drop the database
+    await adminClient.unsafe(`DROP DATABASE IF EXISTS ${dbName}`)
+
+    testLogger.info(`✅ Dropped test database: ${dbName}`)
+  } finally {
+    await adminClient.end()
+  }
+}
+
+/**
+ * Mark quickdapp_test as a template database
+ * Called once after db push in test.ts
+ */
+export async function markDatabaseAsTemplate(): Promise<void> {
+  testLogger.info("📋 Marking quickdapp_test as template database...")
+
+  const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+
+  try {
+    // Terminate any connections to the template database
+    await adminClient.unsafe(`
+      SELECT pg_terminate_backend(pg_stat_activity.pid)
+      FROM pg_stat_activity
+      WHERE pg_stat_activity.datname = 'quickdapp_test'
+        AND pid <> pg_backend_pid()
+    `)
+
+    // Mark as template (must use WITH keyword for options)
+    await adminClient.unsafe(
+      `ALTER DATABASE quickdapp_test WITH IS_TEMPLATE = true`,
+    )
+
+    testLogger.info("✅ quickdapp_test marked as template database")
+  } finally {
+    await adminClient.end()
+  }
+}
+
+/**
+ * Unmark quickdapp_test as a template
+ * Called at the end of test.ts for cleanup
+ */
+export async function unmarkDatabaseAsTemplate(): Promise<void> {
+  testLogger.info("📋 Unmarking quickdapp_test as template database...")
+
+  const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+
+  try {
+    await adminClient.unsafe(
+      `ALTER DATABASE quickdapp_test WITH IS_TEMPLATE = false`,
+    )
+    testLogger.info("✅ quickdapp_test unmarked as template database")
+  } finally {
+    await adminClient.end()
+  }
 }

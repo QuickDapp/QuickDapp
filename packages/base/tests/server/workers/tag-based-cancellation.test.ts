@@ -1,3 +1,6 @@
+// IMPORTANT: Import setup FIRST to initialize test database before server imports
+import "../../setup"
+
 import {
   afterAll,
   afterEach,
@@ -21,7 +24,6 @@ import type { TestServer } from "../../helpers/server"
 import { startTestServer, waitForServer } from "../../helpers/server"
 import type { TestWorkerContext } from "../../helpers/worker"
 import { startTestWorker, stopTestWorker } from "../../helpers/worker"
-import "../../setup"
 
 describe("Tag-Based Job Cancellation", () => {
   let serverContext: TestServer

@@ -5,6 +5,9 @@
  * Note: This is the base package - no Web3/SIWE authentication.
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "./test-config"
+
 import { generateCodeVerifier } from "arctic"
 import { jwtVerify, SignJWT } from "jose"
 import type { OAuthProvider } from "../../src/server/auth/oauth"

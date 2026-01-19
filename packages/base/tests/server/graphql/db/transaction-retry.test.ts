@@ -1,3 +1,6 @@
+// IMPORTANT: Import setup FIRST to initialize test database before server imports
+import "@tests/setup"
+
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { dbManager } from "@server/db/connection"
 import { withTransaction } from "@server/db/shared"

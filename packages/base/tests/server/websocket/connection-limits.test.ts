@@ -6,6 +6,9 @@
  * - Per-user connection limit (SOCKET_MAX_CONNECTIONS_PER_USER)
  */
 
+// IMPORTANT: Import setup FIRST to initialize test database before server imports
+import "../../setup"
+
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { serverConfig } from "../../../src/shared/config/server"
 import {

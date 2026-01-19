@@ -1,3 +1,6 @@
+// IMPORTANT: Import setup FIRST to initialize test database before server imports
+import "../../setup"
+
 import {
   afterAll,
   afterEach,
@@ -21,8 +24,6 @@ import {
   stopTestWorker,
   waitForTestJobCompletion,
 } from "../../helpers/worker"
-// Import global test setup
-import "../../setup"
 
 describe("Worker Error Handling", () => {
   let serverContext: TestServer

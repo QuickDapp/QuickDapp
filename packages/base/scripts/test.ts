@@ -15,11 +15,25 @@ interface TestOptions extends ScriptOptions {
   timeout?: number
   testFile?: string
   bail?: boolean
-  serial?: boolean
+  concurrency?: number
+}
+
+interface TestResult {
+  file: string
+  index: number
+  success: boolean
+  output: string
+  duration: number
 }
 
 async function testHandler(options: TestOptions) {
-  const { pattern = "", timeout = 30000, testFile, bail = false } = options
+  const {
+    pattern = "",
+    timeout = 30000,
+    testFile,
+    bail = false,
+    concurrency = 5,
+  } = options
 
   // Create temporary .env.test.local for debug logging if verbose
   const envTestLocalPath = resolve(process.cwd(), ".env.test.local")
@@ -84,13 +98,29 @@ WORKER_LOG_LEVEL=debug
     }
     console.log("")
 
-    // Get all test files for isolation mode
+    // Mark database as template for parallel execution
+    console.log("📋 Marking database as template...")
+    try {
+      const { markDatabaseAsTemplate } = await import(
+        "../tests/helpers/database"
+      )
+      await markDatabaseAsTemplate()
+      console.log("✅ Database marked as template")
+    } catch (error) {
+      console.error("❌ Failed to mark database as template:", error)
+      cleanup()
+      process.exit(1)
+    }
+    console.log("")
+
+    // Get all test files and sort for deterministic indexing
     const testDir = "tests/"
     const glob = new Glob("**/*.test.ts")
-    const testFiles = []
+    const testFiles: string[] = []
     for await (const file of glob.scan(testDir)) {
       testFiles.push(`${testDir}${file}`)
     }
+    testFiles.sort()
 
     // Filter test files based on options
     let filesToRun = testFiles
@@ -106,83 +136,181 @@ WORKER_LOG_LEVEL=debug
       process.exit(1)
     }
 
-    console.log("🚀 Running tests in isolation mode...")
-    console.log(`   Found ${filesToRun.length} test file(s):`)
+    const effectiveConcurrency = Math.min(concurrency, filesToRun.length)
+    console.log(
+      `🚀 Running ${filesToRun.length} test file(s) with concurrency ${effectiveConcurrency}...`,
+    )
     for (const file of filesToRun) {
-      console.log(`   - ${file}`)
+      const index = testFiles.indexOf(file)
+      console.log(`   [${index}] ${file}`)
     }
     console.log("")
 
-    let totalPassed = 0
-    let totalFailed = 0
-    const failedFiles = []
+    // Track results and timing
+    const results: TestResult[] = []
+    let completedCount = 0
+    let failedEarly = false
+    const startTime = performance.now()
 
-    // Run each test file in isolation
-    for (const [index, file] of filesToRun.entries()) {
-      console.log(`[${index + 1}/${filesToRun.length}] Running: ${file}`)
+    // Progress display helper
+    const updateProgress = () => {
+      const pct = Math.round((completedCount / filesToRun.length) * 100)
+      process.stdout.write(
+        `\r⏳ Running tests... ${pct}% (${completedCount}/${filesToRun.length})`,
+      )
+    }
+
+    // Run single test file and capture output
+    const runTest = async (file: string): Promise<TestResult> => {
+      const index = testFiles.indexOf(file)
+      const testStartTime = performance.now()
 
       const args = ["test", `./${file}`]
-
-      if (timeout) {
-        args.push("--timeout", timeout.toString())
-      }
-
-      if (options.verbose) {
-        args.push("--verbose")
-      }
-
-      // Always run in serial mode for isolation
+      if (timeout) args.push("--timeout", timeout.toString())
+      if (options.verbose) args.push("--verbose")
       args.push("--concurrency", "1")
 
-      const result = await spawn(["bun", ...args], {
-        stdio: ["inherit", "inherit", "inherit"],
-        cwd: process.cwd(), // Ensure we stay in the current directory
+      // Spawn with piped output to capture
+      const proc = spawn(["bun", ...args], {
+        stdio: ["inherit", "pipe", "pipe"],
+        cwd: process.cwd(),
         env: {
           ...process.env,
-          NODE_ENV: "test", // Force test environment
+          NODE_ENV: "test",
+          TEST_FILE_INDEX: index.toString(),
         },
-      }).exited
+      })
 
-      if (result === 0) {
-        totalPassed++
-        console.log(`✅ ${file} passed`)
-      } else {
-        totalFailed++
-        failedFiles.push(file)
-        console.log(`❌ ${file} failed`)
+      // Collect stdout and stderr
+      const decoder = new TextDecoder()
 
-        if (bail) {
-          console.log("")
-          console.log("🛑 Stopping due to --bail flag")
-          break
+      const readStream = async (
+        reader: ReadableStreamDefaultReader<Uint8Array>,
+      ): Promise<string> => {
+        let result = ""
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          result += decoder.decode(value)
         }
+        return result
       }
 
+      const [stdout, stderr] = await Promise.all([
+        readStream(proc.stdout.getReader()),
+        readStream(proc.stderr.getReader()),
+      ])
+
+      const output = stdout + stderr
+      const exitCode = await proc.exited
+      const duration = performance.now() - testStartTime
+
+      return {
+        file,
+        index,
+        success: exitCode === 0,
+        output,
+        duration,
+      }
+    }
+
+    // Run tests with concurrency limit using a promise pool
+    const runningPromises: Promise<void>[] = []
+    const queue = [...filesToRun]
+
+    const processQueue = async () => {
+      while (queue.length > 0 && !failedEarly) {
+        // Wait if we've hit the concurrency limit
+        if (runningPromises.length >= effectiveConcurrency) {
+          await Promise.race(runningPromises)
+        }
+
+        const file = queue.shift()
+        if (!file) break
+
+        const promise = (async () => {
+          const result = await runTest(file)
+          results.push(result)
+          completedCount++
+          updateProgress()
+
+          if (!result.success && bail) {
+            failedEarly = true
+          }
+        })()
+
+        runningPromises.push(promise)
+        promise.finally(() => {
+          const idx = runningPromises.indexOf(promise)
+          if (idx !== -1) runningPromises.splice(idx, 1)
+        })
+      }
+
+      // Wait for all remaining promises
+      await Promise.all(runningPromises)
+    }
+
+    await processQueue()
+
+    const totalDuration = performance.now() - startTime
+
+    // Clear progress line
+    process.stdout.write("\r" + " ".repeat(60) + "\r")
+
+    // Unmark template database
+    try {
+      const { unmarkDatabaseAsTemplate } = await import(
+        "../tests/helpers/database"
+      )
+      await unmarkDatabaseAsTemplate()
+    } catch (error) {
+      console.warn("⚠️ Warning: Failed to unmark database as template:", error)
+    }
+
+    // Sort results by index for consistent output
+    results.sort((a, b) => a.index - b.index)
+
+    // Show results
+    const passed = results.filter((r) => r.success)
+    const failed = results.filter((r) => !r.success)
+
+    console.log("")
+    console.log("📊 Test Results:")
+    console.log("=".repeat(60))
+
+    for (const result of results) {
+      const status = result.success ? "PASS" : "FAIL"
+      const statusIcon = result.success ? "✅" : "❌"
+      const duration = (result.duration / 1000).toFixed(2)
+      console.log(`${statusIcon} [${status}] ${result.file} (${duration}s)`)
+    }
+
+    console.log("")
+    console.log("📈 Summary:")
+    console.log(`   Passed: ${passed.length}`)
+    console.log(`   Failed: ${failed.length}`)
+    console.log(`   Total:  ${results.length}`)
+    console.log(`   Time:   ${(totalDuration / 1000).toFixed(2)}s`)
+
+    // Show failure output
+    if (failed.length > 0) {
       console.log("")
-    }
-
-    // Summary
-    console.log("📊 Test Summary:")
-    console.log(`   Passed: ${totalPassed}`)
-    console.log(`   Failed: ${totalFailed}`)
-
-    if (failedFiles.length > 0) {
-      console.log("   Failed files:")
-      for (const file of failedFiles) {
-        console.log(`   - ${file}`)
+      console.log("❌ Failed Test Output:")
+      console.log("=".repeat(60))
+      for (const result of failed) {
+        console.log(`\n--- ${result.file} ---\n`)
+        console.log(result.output)
       }
-    }
 
-    if (totalFailed > 0) {
       console.log("")
       console.log("❌ Some tests failed!")
       cleanup()
       process.exit(1)
-    } else {
-      console.log("")
-      console.log("✅ All tests passed!")
-      cleanup()
     }
+
+    console.log("")
+    console.log("✅ All tests passed!")
+    cleanup()
   } catch (error) {
     console.error("❌ Test execution failed:", error)
     cleanup()
@@ -198,7 +326,7 @@ const setupTestCommand: CommandSetup = (program) => {
     .option("-w, --watch", "run tests in watch mode")
     .option("-t, --timeout <ms>", "test timeout in milliseconds", "30000")
     .option("-b, --bail", "stop on first test failure")
-    .option("-s, --serial", "run tests serially (one at a time)")
+    .option("-c, --concurrency <n>", "max concurrent test files", "5")
 }
 
 // Create script runner

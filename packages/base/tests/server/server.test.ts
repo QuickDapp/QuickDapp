@@ -10,6 +10,9 @@
  * - Graceful shutdown
  */
 
+// IMPORTANT: Import setup FIRST to initialize test database before server imports
+import "../setup"
+
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import {
   cleanTestDatabase,
@@ -18,8 +21,6 @@ import {
 } from "../helpers/database"
 import type { TestServer } from "../helpers/server"
 import { makeRequest, startTestServer, waitForServer } from "../helpers/server"
-// Import global test setup
-import "../setup"
 
 describe("Server Integration Tests", () => {
   let testServer: TestServer | null = null
@@ -197,7 +198,9 @@ describe("Server Integration Tests", () => {
   describe("Server Configuration", () => {
     it("should use test environment configuration", () => {
       expect(process.env.NODE_ENV).toBe("test")
-      expect(process.env.PORT).toBe("3002")
+      // Port is dynamically assigned based on test file index (54000 + index)
+      const port = parseInt(process.env.PORT || "0", 10)
+      expect(port).toBeGreaterThanOrEqual(54000)
       // LOG_LEVEL can be any value for debugging purposes
       expect(process.env.LOG_LEVEL).toBeDefined()
     })

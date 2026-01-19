@@ -1,3 +1,6 @@
+// Side-effect import: sets env vars before serverConfig loads
+import "./test-config"
+
 import { type ChildProcess, fork } from "node:child_process"
 import path from "node:path"
 import { and, desc, eq, isNotNull } from "drizzle-orm"
@@ -10,6 +13,7 @@ import {
 } from "../../src/server/db/worker"
 import type { ServerApp } from "../../src/server/types"
 import { testLogger } from "./logger"
+import { getTestDatabaseUrl, getTestFileIndex } from "./test-config"
 
 // Global registry of all spawned worker processes
 const activeWorkerProcesses = new Set<ChildProcess>()
@@ -35,12 +39,17 @@ export const startTestWorker = async (
   // Path to the server entry point (which will detect worker mode)
   const serverIndexPath = path.join(__dirname, "../../src/server/index.ts")
 
-  // Fork the server process as a worker
+  // Use unique WORKER_ID per test file to avoid collisions in parallel execution
+  const testIndex = getTestFileIndex()
+  const uniqueWorkerId = testIndex * 100 + workerId
+
+  // Fork the server process as a worker with test-specific database URL
   context.process = fork(serverIndexPath, [], {
     env: {
       ...process.env,
       NODE_ENV: "test",
-      WORKER_ID: workerId.toString(),
+      WORKER_ID: uniqueWorkerId.toString(),
+      DATABASE_URL: getTestDatabaseUrl(),
     },
     silent: false,
   })
