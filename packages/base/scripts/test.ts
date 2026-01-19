@@ -32,7 +32,7 @@ async function testHandler(options: TestOptions) {
     timeout = 30000,
     testFile,
     bail = false,
-    concurrency = 5,
+    concurrency = 10,
   } = options
 
   // Create temporary .env.test.local for debug logging if verbose
@@ -326,7 +326,7 @@ const setupTestCommand: CommandSetup = (program) => {
     .option("-w, --watch", "run tests in watch mode")
     .option("-t, --timeout <ms>", "test timeout in milliseconds", "30000")
     .option("-b, --bail", "stop on first test failure")
-    .option("-c, --concurrency <n>", "max concurrent test files", "5")
+    .option("-c, --concurrency <n>", "max concurrent test files", "10")
 }
 
 // Create script runner
