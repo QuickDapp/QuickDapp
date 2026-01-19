@@ -1,4 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { useMemo } from "react"
+import { validateClientConfig } from "../shared/config/client"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { HomePage } from "./pages/HomePage"
 
@@ -13,6 +15,10 @@ const queryClient = new QueryClient({
 })
 
 export function App() {
+  useMemo(() => {
+    validateClientConfig()
+  }, [])
+
   return (
     <div className="flex flex-col w-full min-h-screen relative font-body bg-background text-foreground">
       <ErrorBoundary>

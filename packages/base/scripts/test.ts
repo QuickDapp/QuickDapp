@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync, unlinkSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { $, Glob, spawn } from "bun"
 import {
@@ -24,6 +24,67 @@ interface TestResult {
   success: boolean
   output: string
   duration: number
+}
+
+const TEST_ORDER_FILE = "tests/test-run-order.json"
+
+interface TestOrderEntry {
+  file: string
+  duration: number
+}
+
+interface TestOrderData {
+  tests: TestOrderEntry[]
+  lastUpdated: string
+}
+
+function readTestOrder(): TestOrderData | null {
+  try {
+    if (!existsSync(TEST_ORDER_FILE)) return null
+    const content = readFileSync(TEST_ORDER_FILE, "utf-8")
+    return JSON.parse(content) as TestOrderData
+  } catch {
+    return null
+  }
+}
+
+function writeTestOrder(results: TestResult[]): void {
+  const sorted = [...results].sort((a, b) => b.duration - a.duration)
+  const data: TestOrderData = {
+    tests: sorted.map((r) => ({
+      file: r.file,
+      duration: Math.round(r.duration),
+    })),
+    lastUpdated: new Date().toISOString(),
+  }
+  writeFileSync(TEST_ORDER_FILE, JSON.stringify(data, null, 2) + "\n")
+}
+
+function orderTestsByDuration(
+  testFiles: string[],
+  orderData: TestOrderData | null,
+): string[] {
+  if (!orderData) return testFiles
+
+  const durationMap = new Map<string, number>()
+  for (const entry of orderData.tests) {
+    durationMap.set(entry.file, entry.duration)
+  }
+
+  const knownFiles: string[] = []
+  const unknownFiles: string[] = []
+
+  for (const file of testFiles) {
+    if (durationMap.has(file)) {
+      knownFiles.push(file)
+    } else {
+      unknownFiles.push(file)
+    }
+  }
+
+  knownFiles.sort((a, b) => durationMap.get(b)! - durationMap.get(a)!)
+
+  return [...knownFiles, ...unknownFiles]
 }
 
 async function testHandler(options: TestOptions) {
@@ -122,12 +183,21 @@ WORKER_LOG_LEVEL=debug
     }
     testFiles.sort()
 
-    // Filter test files based on options
-    let filesToRun = testFiles
+    // Determine if this is a full suite run (no filtering)
+    const isFullSuiteRun = !testFile && !pattern
+
+    // Read test order data for duration-based ordering
+    const orderData = isFullSuiteRun ? readTestOrder() : null
+
+    // Filter and order test files based on options
+    let filesToRun: string[]
     if (testFile) {
       filesToRun = [testFile]
     } else if (pattern) {
       filesToRun = testFiles.filter((file) => file.includes(pattern))
+    } else {
+      // Full suite run - order by duration (longest first)
+      filesToRun = orderTestsByDuration(testFiles, orderData)
     }
 
     if (filesToRun.length === 0) {
@@ -310,6 +380,14 @@ WORKER_LOG_LEVEL=debug
 
     console.log("")
     console.log("✅ All tests passed!")
+
+    if (isFullSuiteRun) {
+      console.log("")
+      console.log("📝 Updating test order file...")
+      writeTestOrder(results)
+      console.log(`✅ Test order saved to ${TEST_ORDER_FILE}`)
+    }
+
     cleanup()
   } catch (error) {
     console.error("❌ Test execution failed:", error)

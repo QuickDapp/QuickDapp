@@ -161,6 +161,18 @@ class DatabaseConnectionManager {
   isConnectionActive(): boolean {
     return isGloballyConnected && globalDb !== null
   }
+
+  getConnectionStats(): {
+    isConnected: boolean
+    maxConnections: number | null
+    connectionAttempts: number
+  } {
+    return {
+      isConnected: isGloballyConnected,
+      maxConnections: globalClient?.options.max ?? null,
+      connectionAttempts: connectionAttemptCount,
+    }
+  }
 }
 
 export const dbManager = DatabaseConnectionManager.getInstance()

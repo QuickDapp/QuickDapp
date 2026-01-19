@@ -2,6 +2,7 @@ import { makeExecutableSchema } from "@graphql-tools/schema"
 import { Elysia } from "elysia"
 import { createYoga } from "graphql-yoga"
 import { serverConfig } from "../../shared/config/server"
+import { defaultResolvers } from "../../shared/graphql/resolvers"
 import { typeDefs } from "../../shared/graphql/schema"
 import { LOG_CATEGORIES } from "../lib/logger"
 import type { ServerApp } from "../types"
@@ -12,7 +13,10 @@ export const createGraphQLHandler = (serverApp: ServerApp) => {
 
   const schema = makeExecutableSchema({
     typeDefs,
-    resolvers: createResolvers(serverApp),
+    resolvers: {
+      ...defaultResolvers,
+      ...createResolvers(serverApp),
+    },
   })
 
   const yoga = createYoga({

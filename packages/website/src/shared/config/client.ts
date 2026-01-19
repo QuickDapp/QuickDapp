@@ -1,4 +1,5 @@
 import env from "env-var"
+import packageJson from "../../../package.json"
 
 declare global {
   var __CONFIG__: ClientConfig | undefined
@@ -19,12 +20,15 @@ export const clientConfig: ClientConfig =
     ? globalThis.__CONFIG__
     : {
         APP_NAME: env.get("APP_NAME").default("QuickDapp").asString(),
-        APP_VERSION: env.get("APP_VERSION").default("1.0.0").asString(),
+        APP_VERSION: env
+          .get("APP_VERSION")
+          .default(packageJson.version)
+          .asString(),
         NODE_ENV: env
           .get("NODE_ENV")
           .default("development")
           .asEnum(["development", "production", "test"]),
-        API_URL: env.get("API_URL").required().asString(),
+        API_URL: env.get("API_URL").default("http://localhost:3000").asString(),
         SENTRY_DSN: env.get("SENTRY_DSN").asString(),
       }
 

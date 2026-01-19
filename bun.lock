@@ -171,7 +171,6 @@
         "@elysiajs/static": "^1.3.0",
         "@graphql-tools/schema": "^10.0.25",
         "@hiddentao/logger": "^1.3.1",
-        "@hiddentao/zip-json": "^1.1.0",
         "@octokit/rest": "^21.0.0",
         "@radix-ui/react-collapsible": "^1.1.0",
         "@radix-ui/react-dialog": "^1.1.15",
@@ -183,7 +182,7 @@
         "clsx": "^2.1.1",
         "commander": "^14.0.0",
         "cron-schedule": "^5.0.4",
-        "date-fns": "^3.6.0",
+        "date-fns": "^4.1.0",
         "dotenv": "^17.2.1",
         "drizzle-kit": "^0.31.4",
         "drizzle-orm": "^0.44.4",
@@ -196,6 +195,7 @@
         "graphql-tag": "^2.12.6",
         "graphql-yoga": "^5.15.1",
         "jose": "^6.0.12",
+        "json-bigint-patch": "^0.0.8",
         "lucide-react": "^0.460.0",
         "nanoid": "^5.1.6",
         "postgres": "^3.4.7",
@@ -211,6 +211,8 @@
         "@graphql-codegen/cli": "^5.0.0",
         "@graphql-codegen/typescript": "^4.0.1",
         "@graphql-codegen/typescript-resolvers": "^5.0.0",
+        "@hiddentao/zip-json": "^1.1.0",
+        "@playwright/test": "^1.57.0",
         "@tailwindcss/vite": "^4.0.0-alpha.19",
         "@types/bun": "latest",
         "@types/node": "^24.3.0",
@@ -3072,8 +3074,6 @@
     "@opentelemetry/instrumentation-http/@opentelemetry/core": ["@opentelemetry/core@2.2.0", "", { "dependencies": { "@opentelemetry/semantic-conventions": "^1.29.0" }, "peerDependencies": { "@opentelemetry/api": ">=1.0.0 <1.10.0" } }, "sha512-FuabnnUm8LflnieVxs6eP7Z383hgQU4W1e3KJS6aOG3RxWxcHyBxH8fDMHNgu/gFx/M2jvTOW/4/PHhLz6bjWw=="],
 
     "@oslojs/jwt/@oslojs/encoding": ["@oslojs/encoding@0.4.1", "", {}, "sha512-hkjo6MuIK/kQR5CrGNdAPZhS01ZCXuWDRJ187zh6qqF2+yMHZpD9fAYpX8q2bOO6Ryhl3XpCT6kUX76N8hhm4Q=="],
-
-    "@quickdapp/website/date-fns": ["date-fns@3.6.0", "", {}, "sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww=="],
 
     "@radix-ui/react-dialog/@radix-ui/react-slot": ["@radix-ui/react-slot@1.2.3", "", { "dependencies": { "@radix-ui/react-compose-refs": "1.1.2" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="],
 

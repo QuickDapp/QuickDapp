@@ -1,5 +1,8 @@
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
 
+/**
+ * Base application error class that all custom errors extend from
+ */
 export class ApplicationError extends Error {
   constructor(
     message: string,
