@@ -18,12 +18,10 @@ describe("GraphQL Mutations", () => {
     await waitForServer(testServer.url)
 
     // Create test auth token
-    const testWallet = "0x1234567890123456789012345678901234567890"
     const { SignJWT } = await import("jose")
     const jwtSecret = new TextEncoder().encode("test-secret-for-testing-only")
 
     authToken = await new SignJWT({
-      wallet: testWallet.toLowerCase(),
       iat: Math.floor(Date.now() / 1000),
     })
       .setProtectedHeader({ alg: "HS256" })

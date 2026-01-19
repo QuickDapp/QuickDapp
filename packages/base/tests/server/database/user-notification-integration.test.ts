@@ -2,7 +2,7 @@
  * Database Integration Tests for QuickDapp
  *
  * Tests the full database integration with authentication, user creation,
- * notification management, and data ownership validation using real wallet addresses.
+ * notification management, and data ownership validation.
  */
 
 import {
