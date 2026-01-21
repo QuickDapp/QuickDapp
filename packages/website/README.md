@@ -28,3 +28,7 @@ docker run -p 3000:3000 --env-file .env quickdapp-website
 ```
 
 Images are automatically published to GitHub Container Registry on push to main.
+
+## License
+
+MIT
