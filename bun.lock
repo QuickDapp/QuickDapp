@@ -149,6 +149,7 @@
         "@hiddentao/zip-json": "^1.0.3",
         "@nomicfoundation/hardhat-toolbox": "^3.0.0",
         "@openzeppelin/contracts": "^5.4.0",
+        "@playwright/test": "^1.57.0",
         "@tailwindcss/vite": "^4.0.0-alpha.19",
         "@types/bun": "latest",
         "@types/node": "^24.3.0",

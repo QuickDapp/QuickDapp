@@ -63,6 +63,49 @@ New variants should:
 3. Include all required files (package.json, tsconfig.json, biome.json, docker-compose files, scripts/, src/)
 4. Have their own CLAUDE.md tailored to the variant's features
 
+## Variant Maintenance Policy
+
+**variant-web3** is just one of many possible future variants. The variant system allows for specialized derivations of the base package for different use cases (Web3, mobile, desktop, etc.).
+
+### Critical Rule: Variants Must Stay Current
+
+All variants **MUST** be kept up-to-date with base package changes **before any release**. This ensures:
+
+1. Bug fixes propagate to all variants
+2. Security patches reach all derivations
+3. New features are available across the ecosystem
+4. Testing infrastructure improvements benefit all variants
+
+### Pre-Release Checklist
+
+Before running `bun run release`:
+
+1. Review recent commits to `packages/base/`
+2. Identify changes that need porting to each variant
+3. Port applicable changes to `packages/variant-web3/` (and any other variants)
+4. Run full test suite in each variant: `cd packages/variant-web3 && bun run test`
+5. Verify builds succeed: `cd packages/variant-web3 && bun run build`
+6. Manual smoke test of variant-specific features
+
+### What to Port vs What to Skip
+
+**Always port:**
+- Test infrastructure improvements
+- Build script enhancements
+- Bug fixes in shared code
+- Security updates
+- Dependency version updates
+
+**Review carefully (may need adaptation):**
+- Authentication changes (variants may have different auth methods)
+- Database schema changes (variants may have additional tables)
+- GraphQL schema changes (variants may have additional types/fields)
+- Client component changes (variants may have different UI)
+
+**Never port:**
+- Variant-specific features back to base
+- Changes that conflict with variant's purpose
+
 ## Publishing Policy
 
 - **Published to npm**: Only `create-quickdapp` (CLI)

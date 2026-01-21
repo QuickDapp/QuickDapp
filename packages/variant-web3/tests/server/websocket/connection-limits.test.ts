@@ -6,6 +6,9 @@
  * - Per-user connection limit (SOCKET_MAX_CONNECTIONS_PER_USER)
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { serverConfig } from "../../../src/shared/config/server"
 import {

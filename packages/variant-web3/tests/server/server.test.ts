@@ -10,6 +10,9 @@
  * - Graceful shutdown
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import {
   cleanTestDatabase,
@@ -197,7 +200,9 @@ describe("Server Integration Tests", () => {
   describe("Server Configuration", () => {
     it("should use test environment configuration", () => {
       expect(process.env.NODE_ENV).toBe("test")
-      expect(process.env.PORT).toBe("3002")
+      // Port is dynamically assigned per test file for parallel execution
+      expect(process.env.PORT).toBeDefined()
+      expect(parseInt(process.env.PORT!)).toBeGreaterThanOrEqual(54000)
       // LOG_LEVEL can be any value for debugging purposes
       expect(process.env.LOG_LEVEL).toBeDefined()
     })

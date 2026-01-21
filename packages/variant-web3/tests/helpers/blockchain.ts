@@ -5,9 +5,9 @@ import path from "node:path"
 import { createPublicClient, createWalletClient, http, parseEther } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { foundry } from "viem/chains"
-import { serverConfig } from "../../src/shared/config/server"
 import { getMulticall3Info } from "../../src/shared/contracts"
 import { testLogger } from "./logger"
+import { getTestBlockchainPort as getConfigBlockchainPort } from "./test-config"
 
 // Abstract base class for blockchain node adapters
 abstract class NodeAdapter {
@@ -121,21 +121,11 @@ const DEFAULT_PRIVATE_KEYS = [
 ]
 
 /**
- * Gets the test blockchain port from server config
+ * Gets the test blockchain port from test-config
+ * Each test file gets a unique port for parallel execution
  */
 const getTestBlockchainPort = (): number => {
-  try {
-    // Extract port from WEB3_ANVIL_RPC (e.g., "http://127.0.0.1:58545")
-    const rpcUrl = serverConfig.WEB3_ANVIL_RPC
-    if (rpcUrl) {
-      const url = new URL(rpcUrl)
-      return parseInt(url.port, 10) || 58545
-    }
-    return 58545
-  } catch {
-    // Fallback to default port if parsing fails
-    return 58545
-  }
+  return getConfigBlockchainPort()
 }
 
 /**

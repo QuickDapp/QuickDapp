@@ -21,6 +21,9 @@
     "build": "bun run scripts/build.ts",
     "prod": "bun run scripts/prod.ts",
     "test": "bun run scripts/test.ts",
+    "test:e2e": "bun scripts/test-e2e.ts",
+    "test:e2e:headed": "bun scripts/test-e2e.ts --headed",
+    "test:e2e:ui": "bun scripts/test-e2e.ts --ui",
     "typecheck": "tsc --noEmit",
     "lint": "bun run typecheck && biome check .",
     "lint:fix": "bun run typecheck && biome check --write .",
@@ -32,6 +35,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
+    "@playwright/test": "^1.57.0",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@graphql-codegen/cli": "^5.0.0",

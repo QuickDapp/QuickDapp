@@ -125,6 +125,54 @@ bun run format           # Format code with Biome
 - When starting test servers, ensure they inherit `process.env` since `NODE_ENV` will be `test`
 - Always think about adding/updating/removing tests after making changes
 
+**Test Parallelization**
+
+Tests run in parallel with each test file getting isolated resources.
+
+**Critical Requirement:** All test files MUST import `@tests/helpers/test-config` as their FIRST import (before any server modules):
+
+```typescript
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
+import { describe, expect, it } from "bun:test"
+// ... other imports
+```
+
+**Why this matters:** `serverConfig` caches environment variables at module load time. The test-config import sets PORT, DATABASE_URL, and API_URL before serverConfig is imported by any other module.
+
+**Resource Allocation:**
+- Server ports: 54000 + test file index
+- Database names: `quickdapp_test_{index}`
+
+**Template Database Pattern:**
+
+The test runner creates a template database (`quickdapp_test`) with schema pushed, then each parallel test file clones it:
+1. `scripts/test.ts` runs `db push` on `quickdapp_test`
+2. Marks it as a PostgreSQL template
+3. Each test file creates `quickdapp_test_{index}` from template
+4. After tests, each clone is dropped
+
+**Dynamic Port Assignment for Test Servers:**
+
+Any server started during tests must use dynamic port assignment:
+
+```typescript
+import { getTestPort } from "@tests/helpers/test-config"
+
+const port = await getTestPort()  // Returns unique port for this test file
+```
+
+See `tests/helpers/server.ts` for the `startTestServer()` pattern.
+
+**Test Ordering:**
+
+`tests/test-run-order.json` tracks test file durations. The test runner orders tests by duration (longest first) for optimal parallel execution. This file is auto-updated after each test run.
+
+**Worker Process Cleanup:**
+
+`tests/setup.ts` calls `killAllActiveWorkers()` in `afterAll` to ensure spawned worker processes don't leak between test files.
+
 **Debugging**
 - Use `bun run dev --verbose` for detailed startup logging
 - Create temporary `.env.test.local` with `LOG_LEVEL=debug` and `WORKER_LOG_LEVEL=debug` for test debugging

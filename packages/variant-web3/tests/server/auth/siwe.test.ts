@@ -5,6 +5,9 @@
  * using real wallet operations, message signing, and verification.
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
 import {
   afterAll,
   afterEach,

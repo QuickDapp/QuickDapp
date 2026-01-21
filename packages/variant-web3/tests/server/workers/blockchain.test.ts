@@ -1,3 +1,6 @@
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
 import {
   afterAll,
   beforeAll,

@@ -1,15 +1,16 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test"
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
+import { beforeAll, describe, expect, it } from "bun:test"
 import { dbManager } from "@server/db/connection"
 import { withTransaction } from "@server/db/shared"
-import { cleanTestDatabase, setupTestDatabase } from "@tests/helpers/database"
+import { setupTestDatabase } from "@tests/helpers/database"
+// Import global test setup
+import "@tests/setup"
 
 describe("Transaction Retry Logic", () => {
   beforeAll(async () => {
     await setupTestDatabase()
-  })
-
-  afterAll(async () => {
-    await cleanTestDatabase()
   })
 
   describe("Basic Functionality", () => {

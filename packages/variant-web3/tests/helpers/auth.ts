@@ -5,6 +5,9 @@
  * SIWE for sign-in with Ethereum, and jose for JWT token management.
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "./test-config"
+
 import { jwtVerify, SignJWT } from "jose"
 import { SiweMessage } from "siwe"
 import { getAddress, isAddress } from "viem"

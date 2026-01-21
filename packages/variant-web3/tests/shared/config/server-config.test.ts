@@ -9,6 +9,9 @@
  * that env-var's .required() throws during module load.
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
 import { describe, expect, it } from "bun:test"
 import { serverConfig, validateConfig } from "../../../src/shared/config/server"
 

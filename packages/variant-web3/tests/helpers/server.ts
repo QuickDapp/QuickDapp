@@ -5,9 +5,13 @@
  * and managing test server lifecycle.
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "./test-config"
+
 import { createApp } from "../../src/server/start-server"
 import type { ServerApp } from "../../src/server/types"
 import { testLogger } from "./logger"
+import { getTestPort } from "./test-config"
 
 export interface TestServer {
   app: any
@@ -19,19 +23,21 @@ export interface TestServer {
 
 /**
  * Start a test server instance using the real server creation code
+ * Uses dynamic port based on test file index for parallel execution
+ *
+ * Note: Environment variables (PORT, DATABASE_URL, API_URL) are already set
+ * by test-config.ts at module load time, so serverConfig will have correct values.
  */
 export async function startTestServer(
   options: { workerCountOverride?: number } = {},
 ): Promise<TestServer> {
-  testLogger.info("🚀 Starting test server...")
+  // Port and database URL are already set in process.env by test-config.ts
+  const port = await getTestPort()
+  const url = `http://localhost:${port}`
 
-  // Use the real server creation code - this will automatically use test configuration
-  // since NODE_ENV=test is set by the test runner
+  testLogger.info(`🚀 Starting test server on port ${port}...`)
+
   const { app, server, serverApp } = await createApp(options)
-
-  // The server will automatically start on the test port (3002)
-  // because that's configured in .env.test
-  const url = `http://localhost:3002`
 
   testLogger.info(`✅ Test server started at ${url}`)
 
@@ -44,9 +50,9 @@ export async function startTestServer(
       testLogger.info("🛑 Shutting down test server...")
 
       try {
-        // Stop the server
+        // Stop the server - pass true to close immediately without waiting for connections
         if (server && typeof server.stop === "function") {
-          await server.stop()
+          server.stop(true)
         }
 
         // Stop workers if they exist
