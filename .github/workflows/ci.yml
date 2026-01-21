@@ -19,7 +19,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun run lint
+      - run: bun run gen && bun run lint
 
   lint-web3:
     name: Lint Web3 Package
@@ -33,7 +33,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun run lint
+      - run: bun run gen && bun run lint
 
   lint-website:
     name: Lint Website Package
@@ -47,7 +47,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun run lint
+      - run: bun run gen && bun run lint
 
   test-base:
     name: Test Base Package
