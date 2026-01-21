@@ -6,9 +6,9 @@ export const Footer = () => {
       <div className="mt-12 sm:mt-0 sm:mr-24">
         <p className="font-heading text-white mb-4">QuickDapp</p>
         <p className="text-gray-300 mb-4">
-          Build and deploy web dapps quickly.
+          Build and deploy web apps quickly.
           <br />
-          ©️ 2025.
+          ©️ 2026.
         </p>
         <p className="text-gray-400">
           Built with <a href="https://quickdapp.xyz">QuickDapp</a>

@@ -48,6 +48,12 @@ When base is updated with bug fixes, improvements, or new features, those change
 - Review each change carefully - some base changes may conflict with variant-specific code
 - Always test thoroughly before releasing - automated tests plus manual verification
 
+### Website Package Exceptions
+
+When porting base changes to website:
+- **Skip husky/git hooks** - Website is not released as standalone code for third parties
+- **Skip commitlint setup** - Internal use only, commit conventions enforced at monorepo level
+
 ## Creating New Variants
 
 New variants should:
