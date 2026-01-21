@@ -106,6 +106,16 @@ Before running `bun run release`:
 - Variant-specific features back to base
 - Changes that conflict with variant's purpose
 
+### Reverse Porting: Variant to Base
+
+When making changes in a variant that apply to shared code (not variant-specific features), those changes should be ported back to base and all other variants:
+
+1. **Identify shared code changes** - Bug fixes, test improvements, or infrastructure changes that aren't variant-specific
+2. **Port to base first** - Apply the fix to the base package
+3. **Port to all variants** - Apply the same fix to all other variants (variant-web3, website, etc.)
+
+This ensures bug fixes and improvements discovered while working on a variant benefit the entire codebase.
+
 ## Publishing Policy
 
 - **Published to npm**: Only `create-quickdapp` (CLI)

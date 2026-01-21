@@ -90,12 +90,14 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const job2 = await scheduleJob(serverContext.serverApp, {
         tag,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -122,18 +124,21 @@ describe("Tag-Based Job Cancellation", () => {
         tag: "tag-alpha",
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const _job2 = await scheduleJob(serverContext.serverApp, {
         tag: "tag-beta",
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const _job3 = await scheduleJob(serverContext.serverApp, {
         tag: "tag-gamma",
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -158,7 +163,7 @@ describe("Tag-Based Job Cancellation", () => {
             type: "removeOldWorkerJobs",
             userId: 1,
             data: {},
-            due: new Date(),
+            due: new Date(Date.now() + 60000),
             removeAt: new Date(Date.now() + 3600000),
           })
           .returning(),
@@ -169,7 +174,7 @@ describe("Tag-Based Job Cancellation", () => {
             type: "removeOldWorkerJobs",
             userId: 2,
             data: {},
-            due: new Date(),
+            due: new Date(Date.now() + 60000),
             removeAt: new Date(Date.now() + 3600000),
           })
           .returning(),
@@ -180,7 +185,7 @@ describe("Tag-Based Job Cancellation", () => {
             type: "removeOldWorkerJobs",
             userId: 3,
             data: {},
-            due: new Date(),
+            due: new Date(Date.now() + 60000),
             removeAt: new Date(Date.now() + 3600000),
           })
           .returning(),
@@ -193,6 +198,7 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 4,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -223,12 +229,14 @@ describe("Tag-Based Job Cancellation", () => {
         tag: tag1,
         type: "watchChain",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const _job2 = await scheduleJob(serverContext.serverApp, {
         tag: tag2,
         type: "watchChain",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -247,12 +255,14 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const job2 = await scheduleJob(serverContext.serverApp, {
         tag,
         type: "watchChain",
         userId: 2,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -274,12 +284,14 @@ describe("Tag-Based Job Cancellation", () => {
         tag: "user1-task-a",
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const _job2 = await scheduleJob(serverContext.serverApp, {
         tag: "user1-task-b",
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -298,12 +310,14 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 100,
+        due: new Date(Date.now() + 60000),
       })
 
       const _job2 = await scheduleJob(serverContext.serverApp, {
         tag,
         type: "removeOldWorkerJobs",
         userId: 200,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -385,6 +399,7 @@ describe("Tag-Based Job Cancellation", () => {
         tag: oneTimeTag,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const cronJob = await scheduleCronJob(
@@ -444,6 +459,7 @@ describe("Tag-Based Job Cancellation", () => {
         userId: 1,
         autoRescheduleOnFailure: true,
         autoRescheduleOnFailureDelay: 1000,
+        due: new Date(Date.now() + 60000),
       })
 
       const rescheduledJob = await rescheduleFailedJob(
@@ -476,12 +492,14 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const job2 = await scheduleJob(serverContext.serverApp, {
         tag,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const jobs = await serverContext.serverApp.db
@@ -502,12 +520,14 @@ describe("Tag-Based Job Cancellation", () => {
         tag: tag1,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       const job2 = await scheduleJob(serverContext.serverApp, {
         tag: tag2,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       expect(job1.tag).toBe(tag1)
@@ -530,6 +550,7 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 1,
+        due: new Date(Date.now() + 60000),
       })
 
       await serverContext.serverApp.db
@@ -546,6 +567,7 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 2,
+        due: new Date(Date.now() + 60000),
       })
 
       // Third job should only cancel the pending one, not the completed one
@@ -553,6 +575,7 @@ describe("Tag-Based Job Cancellation", () => {
         tag,
         type: "removeOldWorkerJobs",
         userId: 3,
+        due: new Date(Date.now() + 60000),
       })
 
       const allJobs = await serverContext.serverApp.db
@@ -584,6 +607,7 @@ describe("Tag-Based Job Cancellation", () => {
         type: "watchChain",
         userId: 1,
         data: { filterId: 100 },
+        due: new Date(Date.now() + 60000),
       })
 
       const _context2Job = await scheduleJob(serverContext.serverApp, {
@@ -591,6 +615,7 @@ describe("Tag-Based Job Cancellation", () => {
         type: "watchChain",
         userId: 1,
         data: { filterId: 200 },
+        due: new Date(Date.now() + 60000),
       })
 
       const _context3Job = await scheduleJob(serverContext.serverApp, {
@@ -598,6 +623,7 @@ describe("Tag-Based Job Cancellation", () => {
         type: "watchChain",
         userId: 2,
         data: { filterId: 300 },
+        due: new Date(Date.now() + 60000),
       })
 
       // All should be pending since they have different tags
@@ -619,6 +645,7 @@ describe("Tag-Based Job Cancellation", () => {
         type: "watchChain",
         userId: 1,
         data: { filterId },
+        due: new Date(Date.now() + 60000),
       })
 
       // Resubmit (e.g., due to error recovery)
@@ -627,6 +654,7 @@ describe("Tag-Based Job Cancellation", () => {
         type: "watchChain",
         userId: 1,
         data: { filterId },
+        due: new Date(Date.now() + 60000),
       })
 
       const jobs = await serverContext.serverApp.db
@@ -649,6 +677,7 @@ describe("Tag-Based Job Cancellation", () => {
         type: "deployMulticall3",
         userId: 0,
         data: { forceRedeploy: false },
+        due: new Date(Date.now() + 60000),
       })
 
       const _deploy2 = await scheduleJob(serverContext.serverApp, {
@@ -656,6 +685,7 @@ describe("Tag-Based Job Cancellation", () => {
         type: "deployMulticall3",
         userId: 0,
         data: { forceRedeploy: false },
+        due: new Date(Date.now() + 60000),
       })
 
       // Both should be pending
