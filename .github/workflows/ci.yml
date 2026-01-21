@@ -119,6 +119,9 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+      - name: Install root dependencies
+        working-directory: .
+        run: bun install
       - run: bun install
       - name: Create test database
         run: |
