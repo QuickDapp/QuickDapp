@@ -158,6 +158,10 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
+      - name: Set up git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
       - run: bun run test
         env:
           NODE_ENV: test
