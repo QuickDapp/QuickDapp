@@ -126,7 +126,7 @@ jobs:
       - name: Create test database
         run: |
           PGPASSWORD='' psql -h localhost -p 5433 -U postgres -c "CREATE DATABASE quickdapp_test;"
-      - run: bun run test
+      - run: bun run gen && bun run test
         env:
           NODE_ENV: test
           DATABASE_URL: postgres://postgres@localhost:5433/quickdapp_test
