@@ -12,12 +12,22 @@ const { values } = parseArgs({
 
 const dryRun = values["dry-run"]
 
+async function getVersion(): Promise<string> {
+  const pkg = await Bun.file("packages/base/package.json").json()
+  return `v${pkg.version}`
+}
+
 async function run() {
   console.log("Starting release process...")
+
+  const version = await getVersion()
+  console.log(`Version: ${version}`)
 
   if (dryRun) {
     console.log("[DRY RUN] Would run commit-and-tag-version")
     await $`bunx commit-and-tag-version --dry-run`
+    console.log(`[DRY RUN] Would create base-${version}.tar.gz`)
+    console.log(`[DRY RUN] Would create variant-web3-${version}.tar.gz`)
     return
   }
 
@@ -30,9 +40,9 @@ async function run() {
   console.log("Building variant-web3 package...")
   await $`cd packages/variant-web3 && bun run build`
 
-  console.log("Creating zip files...")
-  await $`cd packages/base && zip -r ../../base.zip dist/ package.json tsconfig.json biome.json docker-compose.yaml docker-compose.test.yaml scripts/ src/ tests/ static/ .husky/ .dockerignore .gitignore drizzle.config.ts index.ts Dockerfile commitlint.config.js`
-  await $`cd packages/variant-web3 && zip -r ../../variant-web3.zip dist/ package.json tsconfig.json biome.json docker-compose.yaml docker-compose.test.yaml scripts/ src/ tests/ static/ sample-contracts/ .husky/ .dockerignore .gitignore drizzle.config.ts foundry.toml index.ts Dockerfile commitlint.config.js`
+  console.log("Creating tar.gz files...")
+  await $`cd packages/base && tar -czf ../../base-${version}.tar.gz --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='bun.lock' .`
+  await $`cd packages/variant-web3 && tar -czf ../../variant-web3-${version}.tar.gz --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='bun.lock' .`
 
   console.log("Pushing tags...")
   await $`git push --follow-tags origin main`

@@ -1,18 +1,35 @@
 #!/usr/bin/env node
 import { execSync, spawn } from "node:child_process"
-import { createWriteStream, existsSync, mkdirSync, rmSync } from "node:fs"
-import { mkdir, readdir, rename, rm } from "node:fs/promises"
+import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { basename, join } from "node:path"
+import { dirname, join } from "node:path"
 import { Readable } from "node:stream"
 import { finished } from "node:stream/promises"
+import { fileURLToPath } from "node:url"
 import { Command } from "commander"
+import { extract } from "tar"
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pkg = JSON.parse(readFileSync(join(__dirname, "../package.json"), "utf-8"))
+const CLI_VERSION = pkg.version
 
 const GITHUB_REPO = "QuickDapp/QuickDapp"
 const VARIANTS = {
   base: "@quickdapp/base",
   web3: "@quickdapp/variant-web3",
 } as const
+
+function getGithubApiBase(): string {
+  return process.env.QUICKDAPP_GITHUB_API_BASE ?? "https://api.github.com"
+}
+
+function getGithubDownloadBase(): string {
+  return process.env.QUICKDAPP_GITHUB_DOWNLOAD_BASE ?? "https://github.com"
+}
+
+function getSampleContractsUrl(): string {
+  return process.env.QUICKDAPP_SAMPLE_CONTRACTS_URL ?? "https://github.com/QuickDapp/sample-contracts.git"
+}
 
 type Variant = keyof typeof VARIANTS
 
@@ -40,7 +57,7 @@ function checkPrerequisites(): boolean {
 
 async function getLatestRelease(): Promise<string> {
   const response = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+    `${getGithubApiBase()}/repos/${GITHUB_REPO}/releases/latest`,
   )
   if (!response.ok) {
     throw new Error(`Failed to fetch latest release: ${response.statusText}`)
@@ -55,8 +72,8 @@ async function downloadAndExtract(
   targetDir: string,
 ): Promise<void> {
   const packageName = variant === "base" ? "base" : "variant-web3"
-  const assetName = `${packageName}-${version}.zip`
-  const downloadUrl = `https://github.com/${GITHUB_REPO}/releases/download/${version}/${assetName}`
+  const assetName = `${packageName}-${version}.tar.gz`
+  const downloadUrl = `${getGithubDownloadBase()}/${GITHUB_REPO}/releases/download/${version}/${assetName}`
 
   console.log(`Downloading ${assetName}...`)
 
@@ -76,25 +93,10 @@ async function downloadAndExtract(
 
   mkdirSync(targetDir, { recursive: true })
 
-  // Extract zip to temp location first, then move contents
-  const extractDir = join(tempDir, "extracted")
-  mkdirSync(extractDir, { recursive: true })
-  execSync(`unzip -q "${tempFile}" -d "${extractDir}"`, {
-    stdio: "inherit",
+  await extract({
+    file: tempFile,
+    cwd: targetDir,
   })
-
-  // Find the extracted folder and move its contents to target
-  const extractedContents = execSync(`ls "${extractDir}"`, { encoding: "utf-8" })
-    .trim()
-    .split("\n")
-  if (extractedContents.length === 1 && extractedContents[0]) {
-    // Single folder extracted, move its contents
-    const innerDir = join(extractDir, extractedContents[0])
-    execSync(`mv "${innerDir}"/* "${targetDir}"/`, { stdio: "inherit" })
-  } else {
-    // Multiple items extracted, move all
-    execSync(`mv "${extractDir}"/* "${targetDir}"/`, { stdio: "inherit" })
-  }
 
   rmSync(tempDir, { recursive: true, force: true })
 }
@@ -123,7 +125,7 @@ async function runBunInstall(targetDir: string): Promise<void> {
 async function cloneSampleContracts(targetDir: string): Promise<void> {
   console.log("\nCloning sample-contracts...")
   execSync(
-    "git clone https://github.com/QuickDapp/sample-contracts.git sample-contracts",
+    `git clone ${getSampleContractsUrl()} sample-contracts`,
     { cwd: targetDir, stdio: "inherit" },
   )
   execSync("git submodule update --init --recursive", {
@@ -199,7 +201,7 @@ const program = new Command()
 program
   .name("create-quickdapp")
   .description("Create a new QuickDapp project")
-  .version("3.4.0")
+  .version(CLI_VERSION)
 
 program
   .argument("<project-name>", "Name of the project to create")
@@ -226,4 +228,22 @@ program
     })
   })
 
-program.parse()
+export {
+  checkPrerequisites,
+  getLatestRelease,
+  downloadAndExtract,
+  runBunInstall,
+  cloneSampleContracts,
+  initGit,
+  createProject,
+  type Variant,
+  type CreateOptions,
+}
+
+const isDirectRun = import.meta.url === `file://${process.argv[1]}`
+  || process.argv[1]?.endsWith("/create-quickdapp")
+  || process.argv[1]?.endsWith("\\create-quickdapp")
+
+if (isDirectRun) {
+  program.parse()
+}

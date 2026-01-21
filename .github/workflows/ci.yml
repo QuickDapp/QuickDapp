@@ -146,6 +146,22 @@ jobs:
       - run: bun run build
       - run: bun run typecheck
 
+  test-cli:
+    name: Test CLI Package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run test
+        env:
+          NODE_ENV: test
+
   build-website:
     name: Build Website Package
     runs-on: ubuntu-latest
