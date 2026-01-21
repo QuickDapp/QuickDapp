@@ -17,7 +17,7 @@ export async function generateTypes(options: GenerateTypesOptions = {}) {
     const args = ["--config", "src/shared/graphql/codegen.ts"]
     if (watch) args.push("--watch")
 
-    await $`./node_modules/.bin/graphql-codegen ${args}`
+    await $`bunx graphql-codegen ${args}`
 
     if (verbose) console.log("✅ GraphQL types generated")
 
