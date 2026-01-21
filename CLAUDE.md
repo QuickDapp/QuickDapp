@@ -123,6 +123,28 @@ This ensures bug fixes and improvements discovered while working on a variant be
 
 The CLI downloads release zips from GitHub releases - it does not reference workspace packages.
 
+## Version Management
+
+### Synchronized Versions
+All packages share the same version and are bumped together by commit-and-tag-version:
+- `packages/base/` - Base template
+- `packages/variant-web3/` - Web3 variant
+- `packages/website/` - Marketing site
+- `packages/cli/` - Published CLI tool
+
+These versions are automatically synchronized when running `bun run release`.
+
+### Independent Versions
+- `packages/docs/` - Documentation, no version tracking
+
+### How Versioning Works
+1. `bun run release` invokes commit-and-tag-version
+2. commit-and-tag-version analyzes conventional commits
+3. All four packages are bumped to the new version
+4. Git tag is created from base package version
+5. GitHub Actions creates release with tarballs
+6. CLI npm release matches GitHub release version
+
 ## Root Files
 
 The root of this monorepo is intentionally minimal:

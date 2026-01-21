@@ -1,6 +1,6 @@
 {
   "name": "@quickdapp/website",
-  "version": "1.0.0",
+  "version": "3.4.0",
   "description": "QuickDapp marketing website built with Bun, ElysiaJS, and React",
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
@@ -25,14 +25,10 @@
     "lint:fix": "bun run typecheck && biome check --write .",
     "format": "biome format --write .",
     "gen": "bun run scripts/gen.ts",
-    "db": "bun run scripts/db.ts",
-    "prepare": "husky",
-    "postinstall": "husky install"
+    "db": "bun run scripts/db.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
     "@graphql-codegen/cli": "^5.0.0",
     "@graphql-codegen/typescript": "^4.0.1",
     "@graphql-codegen/typescript-resolvers": "^5.0.0",
@@ -44,7 +40,6 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
-    "husky": "^9.1.7",
     "tailwindcss": "^4.0.0-alpha.19",
     "typescript": "^5.6.3",
     "vite": "^6.0.3"
