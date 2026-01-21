@@ -36,6 +36,10 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - name: Clone sample-contracts
+        run: |
+          git clone https://github.com/QuickDapp/sample-contracts.git sample-contracts
+          cd sample-contracts && git submodule update --init --recursive
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

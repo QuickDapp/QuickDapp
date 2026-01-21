@@ -120,6 +120,18 @@ async function runBunInstall(targetDir: string): Promise<void> {
   })
 }
 
+async function cloneSampleContracts(targetDir: string): Promise<void> {
+  console.log("\nCloning sample-contracts...")
+  execSync(
+    "git clone https://github.com/QuickDapp/sample-contracts.git sample-contracts",
+    { cwd: targetDir, stdio: "inherit" },
+  )
+  execSync("git submodule update --init --recursive", {
+    cwd: join(targetDir, "sample-contracts"),
+    stdio: "inherit",
+  })
+}
+
 async function initGit(targetDir: string): Promise<void> {
   console.log("\nInitializing git repository...")
   execSync("git init", { cwd: targetDir, stdio: "inherit" })
@@ -149,6 +161,10 @@ async function createProject(
     console.log(`Using version: ${version}`)
 
     await downloadAndExtract(options.variant, version, targetDir)
+
+    if (options.variant === "web3") {
+      await cloneSampleContracts(targetDir)
+    }
 
     await initGit(targetDir)
 
