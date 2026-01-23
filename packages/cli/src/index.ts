@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execSync, spawn } from "node:child_process"
+import { execSync, spawn, spawnSync } from "node:child_process"
 import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
@@ -124,14 +124,20 @@ async function runBunInstall(targetDir: string): Promise<void> {
 
 async function cloneSampleContracts(targetDir: string): Promise<void> {
   console.log("\nCloning sample-contracts...")
-  execSync(
-    `git clone ${getSampleContractsUrl()} sample-contracts`,
-    { cwd: targetDir, stdio: "inherit" },
-  )
-  execSync("git submodule update --init --recursive", {
+  const cloneResult = spawnSync("git", ["clone", getSampleContractsUrl(), "sample-contracts"], {
+    cwd: targetDir,
+    stdio: "inherit",
+  })
+  if (cloneResult.status !== 0) {
+    throw new Error(`git clone failed with code ${cloneResult.status}`)
+  }
+  const submoduleResult = spawnSync("git", ["submodule", "update", "--init", "--recursive"], {
     cwd: join(targetDir, "sample-contracts"),
     stdio: "inherit",
   })
+  if (submoduleResult.status !== 0) {
+    throw new Error(`git submodule update failed with code ${submoduleResult.status}`)
+  }
 }
 
 async function initGit(targetDir: string): Promise<void> {

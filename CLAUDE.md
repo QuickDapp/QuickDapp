@@ -142,8 +142,8 @@ These versions are automatically synchronized when running `bun run release`.
 2. commit-and-tag-version analyzes conventional commits
 3. All four packages are bumped to the new version
 4. Git tag is created from base package version
-5. GitHub Actions creates release with tarballs
-6. CLI npm release matches GitHub release version
+5. Push changes and tag to GitHub
+6. Manually trigger the release workflow in GitHub Actions (creates GitHub release with zips and publishes CLI to npm)
 
 ## Root Files
 
@@ -172,4 +172,5 @@ This will:
 2. Update CHANGELOG.md
 3. Create git tag
 4. Build base and variant-web3 packages
-5. Push tag to trigger release workflow (creates GitHub release with zips)
+5. Push changes and tag to GitHub
+6. Manually trigger the release workflow in GitHub Actions (creates GitHub release with zips and publishes CLI to npm)
