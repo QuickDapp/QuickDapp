@@ -20,19 +20,21 @@ async function getVersion(): Promise<string> {
 async function run() {
   console.log("Starting release process...")
 
-  const version = await getVersion()
-  console.log(`Version: ${version}`)
-
   if (dryRun) {
-    console.log("[DRY RUN] Would run commit-and-tag-version")
+    const currentVersion = await getVersion()
+    console.log(`Current version: ${currentVersion}`)
+    console.log("[DRY RUN] Would run commit-and-tag-version (version will be bumped)")
     await $`bunx commit-and-tag-version --dry-run`
-    console.log(`[DRY RUN] Would create base-${version}.tar.gz`)
-    console.log(`[DRY RUN] Would create variant-web3-${version}.tar.gz`)
+    console.log("[DRY RUN] Would create base-{newVersion}.tar.gz")
+    console.log("[DRY RUN] Would create variant-web3-{newVersion}.tar.gz")
     return
   }
 
   console.log("Running commit-and-tag-version...")
   await $`bunx commit-and-tag-version`
+
+  const version = await getVersion()
+  console.log(`Version: ${version}`)
 
   console.log("Building base package...")
   await $`cd packages/base && bun run build`
