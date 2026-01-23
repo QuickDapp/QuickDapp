@@ -1,0 +1,21 @@
+{
+  "packageFiles": [
+    "packages/cli/package.json",
+    "packages/base/package.json",
+    "packages/variant-web3/package.json",
+    "packages/website/package.json"
+  ],
+  "bumpFiles": [
+    "packages/cli/package.json",
+    "packages/base/package.json",
+    "packages/variant-web3/package.json",
+    "packages/website/package.json"
+  ],
+  "infile": "CHANGELOG.md",
+  "types": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "docs", "section": "Documentation" }
+  ]
+}

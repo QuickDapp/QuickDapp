@@ -1,0 +1,13 @@
+{
+  "name": "@quickdapp/docs",
+  "version": "3.4.0",
+  "description": "QuickDapp documentation",
+  "author": "Ramesh Nair <ram@hiddentao.com>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "npx retypeapp watch",
+    "build": "npx retypeapp build",
+    "serve": "npx retypeapp serve"
+  }
+}
