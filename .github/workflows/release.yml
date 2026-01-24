@@ -92,6 +92,7 @@ jobs:
       - name: Publish CLI to npm
         if: steps.check.outputs.exists == 'false' && !inputs.dry_run
         run: |
+          npm install -g npm@latest
           cd packages/cli
           bun run build
           npm publish --access public --provenance
