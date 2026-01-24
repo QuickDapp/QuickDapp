@@ -1,6 +1,9 @@
 {
-  "name": "create-quickdapp",
+  "name": "@quickdapp/cli",
   "version": "3.4.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "CLI tool to scaffold new QuickDapp projects",
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
