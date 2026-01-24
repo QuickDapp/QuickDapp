@@ -1,6 +1,6 @@
 {
   "name": "@quickdapp/website",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "QuickDapp marketing website built with Bun, ElysiaJS, and React",
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
