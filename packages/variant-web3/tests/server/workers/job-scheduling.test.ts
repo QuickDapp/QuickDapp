@@ -1,5 +1,5 @@
-// Side-effect import: sets env vars before serverConfig loads
-import "@tests/helpers/test-config"
+// IMPORTANT: Import setup FIRST to initialize test database before server imports
+import "../../setup"
 
 import {
   afterAll,
@@ -24,8 +24,6 @@ import type { TestServer } from "../../helpers/server"
 import { startTestServer, waitForServer } from "../../helpers/server"
 import type { TestWorkerContext } from "../../helpers/worker"
 import { startTestWorker, stopTestWorker } from "../../helpers/worker"
-// Import global test setup
-import "../../setup"
 
 describe("Worker Job Scheduling", () => {
   let blockchainContext: BlockchainTestContext
