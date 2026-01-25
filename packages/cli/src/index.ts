@@ -36,6 +36,13 @@ type Variant = keyof typeof VARIANTS
 interface CreateOptions {
   variant: Variant
   skipInstall: boolean
+  release?: string
+}
+
+interface Release {
+  tag_name: string
+  published_at: string
+  prerelease: boolean
 }
 
 function checkCommand(command: string, displayName: string): boolean {
@@ -64,6 +71,16 @@ async function getLatestRelease(): Promise<string> {
   }
   const data = (await response.json()) as { tag_name: string }
   return data.tag_name
+}
+
+async function listReleases(): Promise<Release[]> {
+  const response = await fetch(
+    `${getGithubApiBase()}/repos/${GITHUB_REPO}/releases`,
+  )
+  if (!response.ok) {
+    throw new Error(`Failed to fetch releases: ${response.statusText}`)
+  }
+  return (await response.json()) as Release[]
 }
 
 async function downloadAndExtract(
@@ -165,7 +182,7 @@ async function createProject(
   console.log(`Variant: ${options.variant}`)
 
   try {
-    const version = await getLatestRelease()
+    const version = options.release ?? await getLatestRelease()
     console.log(`Using version: ${version}`)
 
     await downloadAndExtract(options.variant, version, targetDir)
@@ -210,14 +227,43 @@ program
   .version(CLI_VERSION)
 
 program
-  .argument("<project-name>", "Name of the project to create")
+  .argument("[project-name]", "Name of the project to create")
   .option(
     "-v, --variant <variant>",
     "Project variant (base or web3)",
     "web3",
   )
   .option("--skip-install", "Skip running bun install", false)
-  .action(async (projectName: string, options: { variant: string; skipInstall: boolean }) => {
+  .option("-r, --release <version>", "Use a specific release version")
+  .option("--list-versions", "List available QuickDapp versions")
+  .action(async (projectName: string | undefined, options: { variant: string; skipInstall: boolean; release?: string; listVersions?: boolean }) => {
+    if (options.listVersions) {
+      try {
+        const releases = await listReleases()
+        const latest = await getLatestRelease()
+        console.log("Available versions:")
+        for (const release of releases) {
+          const isLatest = release.tag_name === latest
+          const prerelease = release.prerelease ? " (prerelease)" : ""
+          const latestLabel = isLatest ? " (latest)" : ""
+          console.log(`  ${release.tag_name}${latestLabel}${prerelease}`)
+        }
+      } catch (error) {
+        console.error(
+          "Error:",
+          error instanceof Error ? error.message : String(error),
+        )
+        process.exit(1)
+      }
+      return
+    }
+
+    if (!projectName) {
+      console.error("Error: project-name is required")
+      console.error("Usage: create-quickdapp <project-name>")
+      process.exit(1)
+    }
+
     if (!checkPrerequisites()) {
       process.exit(1)
     }
@@ -231,12 +277,14 @@ program
     await createProject(projectName, {
       variant,
       skipInstall: options.skipInstall,
+      release: options.release,
     })
   })
 
 export {
   checkPrerequisites,
   getLatestRelease,
+  listReleases,
   downloadAndExtract,
   runBunInstall,
   cloneSampleContracts,
@@ -244,6 +292,7 @@ export {
   createProject,
   type Variant,
   type CreateOptions,
+  type Release,
 }
 
 const isDirectRun = import.meta.url === `file://${process.argv[1]}`
