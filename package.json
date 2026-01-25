@@ -1,7 +1,7 @@
 {
   "name": "quickdapp-monorepo",
   "private": true,
-  "description": "Vibe-code and deploy web apps quickly.",
+  "description": "Production-ready boilerplate for vibe-coded and hand-coded web apps.",
   "workspaces": ["packages/*"],
   "packageManager": "bun@1.3.0",
   "engines": {

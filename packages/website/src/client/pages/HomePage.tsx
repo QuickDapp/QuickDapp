@@ -1,3 +1,4 @@
+import Typewriter from "typewriter-effect"
 import { Button } from "../components/Button"
 import { FaqBlock } from "../components/FaqBlock"
 import { Footer } from "../components/Footer"
@@ -21,10 +22,22 @@ export const HomePage = () => {
       >
         <div className="py-4 px-8 h-full flex flex-col justify-center items-center text-center">
           <h1 className="font-heading text-4xl sm:text-5xl leading-snug sm:w-10/12">
-            Vibe-code and deploy web apps quickly
+            <Typewriter
+              onInit={(typewriter) => {
+                typewriter
+                  .typeString("Vibe it. C⚙️de it. Ship it.")
+                  .pauseFor(5000)
+                  .deleteAll(40)
+                  .start()
+              }}
+              options={{
+                delay: 40,
+                loop: true,
+              }}
+            />
           </h1>
           <sub className="font-body text-xl mt-4">
-            The ultimate web app starter template (with Web3 support!)
+            Production-ready boilerplate for vibe-coded and hand-coded web apps
           </sub>
           <div className="mt-20 flex sm:flex-row sm:justify-center flex-col justify-start items-center">
             <DocsLink className="no-anchor-hover-styles">
