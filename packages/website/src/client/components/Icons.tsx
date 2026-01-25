@@ -7,10 +7,13 @@ export {
   Info,
   Layers,
   Maximize2,
+  Monitor,
+  Moon,
   Network,
   Rocket,
   Square,
   Star,
+  Sun,
   Webhook,
   XCircle,
 } from "lucide-react"

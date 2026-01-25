@@ -53,6 +53,24 @@
     --header-height: 56px;
   }
 
+  html.light {
+    --color-background: #ffffff;
+    --color-foreground: #1f2937;
+    --color-muted: #6b7280;
+    --color-border: #e5e7eb;
+    --color-emphasis: #0284c7;
+    --color-alt: #64748b;
+    --color-gradcol1: #f9fafb;
+    --color-gradcol2: #f3f4f6;
+    --color-gradcol3: #e5e7eb;
+    --color-gradcol3b: #d1d5db;
+    --shadow-glow: 0 0 1rem
+      color-mix(in srgb, var(--color-anchor) 20%, transparent);
+    --shadow-strong: 0 0 2rem
+      color-mix(in srgb, var(--color-anchor) 30%, transparent);
+    --shadow-big: 0px 0px 26px 21px rgba(0, 0, 0, 0.1);
+  }
+
   * {
     box-sizing: border-box;
     transition-property: var(--transition-props);
@@ -82,13 +100,23 @@
     @apply text-anchor;
 
     &:hover {
-      @apply bg-anchor text-black;
+      @apply bg-anchor text-white;
     }
+  }
 
-    &.no-anchor-hover-styles {
-      &:hover {
-        @apply bg-transparent text-current;
-      }
+  html.light a,
+  html.light a:link,
+  html.light a:visited {
+    &:hover {
+      @apply bg-anchor text-white;
+    }
+  }
+
+  a.no-anchor-hover-styles,
+  a.no-anchor-hover-styles:link,
+  a.no-anchor-hover-styles:visited {
+    &:hover {
+      @apply bg-transparent text-current;
     }
   }
 }
