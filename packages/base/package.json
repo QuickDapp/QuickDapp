@@ -1,6 +1,6 @@
 {
   "name": "@quickdapp/base",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "description": "A highly opinionated framework that helps you quickly build and deploy web applications. Built with modern TypeScript, PostgreSQL, and comprehensive authentication.",
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
