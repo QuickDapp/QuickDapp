@@ -1,3 +1,7 @@
+---
+order: 80
+---
+
 # Docker Deployment
 
 QuickDapp can be deployed using Docker containers. The Dockerfile uses pre-built binaries for a minimal image size.

@@ -1,3 +1,7 @@
+---
+order: 80
+---
+
 # Background Jobs
 
 This page covers the internal implementation of the worker system. For adding custom jobs, see [Adding Jobs](./adding-jobs.md).

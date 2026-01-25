@@ -1,3 +1,7 @@
+---
+order: 97
+---
+
 # Architecture Layout
 
 QuickDapp follows a modern, clean architecture built around the **ServerApp dependency injection pattern**. This document provides an overview of how all the pieces fit together.

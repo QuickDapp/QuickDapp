@@ -1,3 +1,7 @@
+---
+order: 80
+---
+
 # Build
 
 The build command creates production-ready artifacts including optimized bundles and self-contained binaries.

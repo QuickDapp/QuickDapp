@@ -1,3 +1,9 @@
+---
+order: 93
+icon: checklist
+expanded: true
+---
+
 # Worker
 
 QuickDapp's worker system handles background jobs through child processes and a database-backed queue. Jobs run independently of HTTP requests, making them suitable for long-running tasks, scheduled maintenance, and blockchain monitoring.

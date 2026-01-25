@@ -1,3 +1,8 @@
+---
+order: 92
+expanded: true
+---
+
 # Users
 
 QuickDapp provides a simple user management system with flexible authentication. Users can sign in via SIWE (wallet), email verification, or OAuth providers. Each authentication method links to a single user record, allowing multiple sign-in options per account.

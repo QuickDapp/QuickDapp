@@ -1,3 +1,7 @@
+---
+order: 30
+---
+
 # Web3 (Optional)
 
 QuickDapp includes built-in blockchain integration through RainbowKit, Wagmi, and Viem. Set `WEB3_ENABLED=true` to enable wallet connections, smart contract interactions, and SIWE authentication.

@@ -1,3 +1,7 @@
+---
+order: 50
+---
+
 # Test
 
 The test command runs the integration test suite with database isolation and proper cleanup.

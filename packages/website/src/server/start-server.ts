@@ -149,6 +149,21 @@ export const createApp = async (
     }),
   )
 
+  app.get("/*", async ({ set, path: reqPath }) => {
+    if (reqPath.includes(".")) {
+      set.status = 404
+      return "Not found"
+    }
+    const indexPath = path.join(staticDir, "index.html")
+    const file = Bun.file(indexPath)
+    if (await file.exists()) {
+      set.headers["content-type"] = "text/html; charset=utf-8"
+      return file
+    }
+    set.status = 404
+    return "Not found"
+  })
+
   const server = app.listen(
     {
       port: serverConfig.PORT,

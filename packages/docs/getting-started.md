@@ -1,3 +1,7 @@
+---
+order: 98
+---
+
 # Getting started
 
 ## Step 0 - Pre-requisites
