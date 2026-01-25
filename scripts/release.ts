@@ -46,8 +46,9 @@ async function run() {
   await $`cd packages/base && tar -czf ../../base-${version}.tar.gz --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='bun.lock' .`
   await $`cd packages/variant-web3 && tar -czf ../../variant-web3-${version}.tar.gz --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='bun.lock' .`
 
-  console.log("Pushing tags...")
-  await $`git push --follow-tags origin main`
+  console.log("Pushing to remote...")
+  await $`git push origin main`
+  await $`git push origin ${version}`
 
   console.log("Release complete!")
 }
