@@ -4,6 +4,7 @@
 
 ## Status
 
+- [ ] **Restore frontmatter to docs package**
 - [ ] Fetch docs script
 - [ ] Build integration
 - [ ] Client-side routing
@@ -20,10 +21,102 @@
 ## Overview
 
 Implement a versioned documentation system for the QuickDapp website that:
-1. Fetches docs from each git version tag
-2. Processes markdown links to point to version-specific GitHub URLs
-3. Converts docs to JSON with markdown + plain text
-4. Renders docs at `/docs` with version selector and hierarchical sidebar
+1. **Restores YAML frontmatter** to docs package (ported from quickdapp-OLD)
+2. Fetches docs from each git version tag
+3. Processes markdown links to point to version-specific GitHub URLs
+4. Converts docs to JSON with markdown + plain text
+5. Renders docs at `/docs` with version selector and hierarchical sidebar
+
+---
+
+## Part 0: Restore Frontmatter to Docs Package
+
+The current `packages/docs/` markdown files are missing YAML frontmatter that was present in `quickdapp-OLD/docs/`. This frontmatter controls ordering and navigation display.
+
+### Frontmatter Format (Retype-compatible)
+
+```yaml
+---
+order: 98        # Higher number = earlier in navigation
+icon: cpu        # Optional icon name (Retype format, mapped to Lucide for website)
+label: Display   # Optional display label (overrides H1 title)
+expanded: true   # For folder index.md - expand section by default
+---
+```
+
+### Icon Mapping (Retype → Lucide React)
+
+The docs package uses Retype icon names. For the website, map to Lucide React equivalents:
+
+| Retype Icon | Lucide Icon | Usage |
+|-------------|-------------|-------|
+| `cpu` | `Cpu` | Backend |
+| `browser` | `Globe` | Frontend |
+| `checklist` | `ListChecks` | Worker |
+| `command-palette` | `Terminal` | Command-line |
+
+In `fetch-docs.ts`, transform icon names:
+```typescript
+const ICON_MAP: Record<string, string> = {
+  'cpu': 'Cpu',
+  'browser': 'Globe',
+  'checklist': 'ListChecks',
+  'command-palette': 'Terminal',
+}
+const lucideIcon = ICON_MAP[frontmatter.icon] ?? frontmatter.icon
+```
+
+In `DocsSidebar.tsx`, render icons dynamically:
+```typescript
+import { Cpu, Globe, ListChecks, Terminal } from 'lucide-react'
+
+const ICONS = { Cpu, Globe, ListChecks, Terminal }
+const IconComponent = icon ? ICONS[icon as keyof typeof ICONS] : null
+```
+
+### Files to Update with Frontmatter
+
+| File | order | icon | expanded | label |
+|------|-------|------|----------|-------|
+| `index.md` | 100 | | | |
+| `getting-started.md` | 98 | | | |
+| `architecture-layout.md` | 97 | | | |
+| `environment-variables.md` | 50 | | | |
+| **backend/** | | | | |
+| `backend/index.md` | 95 | cpu | true | |
+| `backend/bootstrap.md` | 90 | | | |
+| `backend/database.md` | 70 | | | |
+| `backend/graphql.md` | 60 | | | |
+| `backend/authentication.md` | 50 | | | |
+| `backend/websockets.md` | 40 | | | |
+| **frontend/** | | | | |
+| `frontend/index.md` | 94 | browser | true | |
+| `frontend/components.md` | 80 | | | |
+| `frontend/forms.md` | 70 | | | |
+| `frontend/global.md` | 60 | | | |
+| `frontend/graphql.md` | 50 | | | |
+| `frontend/static-assets.md` | 40 | | | |
+| `frontend/web3.md` | 30 | | | |
+| **worker/** | | | | |
+| `worker/index.md` | 93 | checklist | true | |
+| `worker/background-jobs.md` | 80 | | | |
+| `worker/adding-jobs.md` | 70 | | | |
+| **users/** | | | | |
+| `users/index.md` | 92 | | true | |
+| `users/authentication.md` | 80 | | | |
+| **smart-contracts/** | | | | |
+| `smart-contracts/index.md` | 91 | | true | |
+| **deployment/** | | | | |
+| `deployment/index.md` | 60 | | true | |
+| `deployment/docker.md` | 80 | | | |
+| `deployment/binary.md` | 70 | | | |
+| **command-line/** | | | | |
+| `command-line/index.md` | 96 | command-palette | true | Command-line |
+| `command-line/dev.md` | 90 | | | |
+| `command-line/build.md` | 80 | | | |
+| `command-line/prod.md` | 70 | | | |
+| `command-line/db.md` | 60 | | | |
+| `command-line/test.md` | 50 | | | |
 
 ---
 
@@ -155,7 +248,51 @@ packages/website/
 - Other files alphabetically by filename
 
 **Dependencies to add**:
-- `remove-markdown` - For markdown-to-text conversion
+- `unified` - Core processor
+- `remark-parse` - Parse markdown to AST
+- `strip-markdown` - Remark plugin for text extraction
+- `remark-stringify` - Stringify AST back to text
+
+**Markdown Processing (build-time)**:
+```typescript
+import { unified } from 'unified'
+import remarkParse from 'remark-parse'
+import stripMarkdown from 'strip-markdown'
+import remarkStringify from 'remark-stringify'
+
+const toPlainText = (markdown: string): string => {
+  const result = unified()
+    .use(remarkParse)
+    .use(stripMarkdown)
+    .use(remarkStringify)
+    .processSync(markdown)
+  return String(result).replace(/\s+/g, ' ').trim()
+}
+```
+
+**Frontmatter Parsing**:
+Docs use YAML frontmatter (restored from quickdapp-OLD). Parse with `gray-matter`:
+```typescript
+import matter from 'gray-matter'
+
+const { data: frontmatter, content: markdown } = matter(fileContent)
+// frontmatter.order, frontmatter.icon, frontmatter.label, frontmatter.expanded
+```
+
+Metadata extraction:
+- **order**: From frontmatter (higher = earlier in nav)
+- **title**: From frontmatter `label` OR first `# Heading` in markdown
+- **icon**: From frontmatter (optional, for Retype nav icons)
+- **expanded**: From frontmatter (optional, for folder expansion)
+
+**Retype `!!!` Callout Conversion**:
+Retype uses `!!!` blocks for callouts. These need conversion to styled `<aside>` or `<div>` elements:
+```markdown
+!!!
+This is an info callout
+!!!
+```
+Should become a styled callout component in the rendered output
 
 ### 2. Build Integration
 
@@ -178,10 +315,10 @@ docs-versions/
 /docs/latest/backend            → Backend index
 /docs/latest/backend/database   → Backend > Database
 /docs/latest/backend/graphql    → Backend > GraphQL
+/docs/latest/llm                → LLM-friendly plain text for latest version
 /docs/v3.5.3                    → Specific version intro
 /docs/v3.5.3/frontend/web3      → Specific version > Frontend > Web3
-/docs/llm                       → LLM-friendly plain text output page
-/docs/llm/v3.5.3                → LLM output for specific version
+/docs/v3.5.3/llm                → LLM-friendly plain text for v3.5.3
 ```
 
 **Modify `App.tsx`**:
@@ -194,9 +331,8 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/docs/llm" element={<DocsLlmPage />} />
-          <Route path="/docs/llm/:version" element={<DocsLlmPage />} />
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/docs/:version/llm" element={<DocsLlmPage />} />
           <Route path="/docs/:version/*" element={<DocsPage />} />
         </Routes>
       </BrowserRouter>
@@ -252,19 +388,13 @@ export function App() {
 ### 6. DocsContent Component
 
 **Features**:
-- Render markdown to HTML
-- Syntax highlighting for code blocks (use `shiki` or `prism`)
+- Render markdown to React using unified pipeline (see Dependencies section)
+- Syntax highlighting for code blocks via `rehype-highlight`
 - Handle Retype `!!!` info boxes → convert to styled callouts
-- Anchor links for headings
+- Anchor links for headings via `rehype-slug`
 - Table of contents (optional)
 
-**Dependencies to add**:
-- `react-markdown` - Markdown rendering
-- `remark-gfm` - GitHub Flavored Markdown
-- `rehype-highlight` or `shiki` - Syntax highlighting
-- `rehype-slug` - Heading IDs
-
-### 7. DocsLlmPage Component (`/docs/llm`)
+### 7. DocsLlmPage Component (`/docs/:version/llm`)
 
 **Purpose**: Provide all documentation as plain text for users to copy-paste into AI-assisted editors (Cursor, Copilot, Claude, etc).
 
@@ -348,28 +478,61 @@ Documentation follows:
 ```json
 {
   "dependencies": {
-    "react-markdown": "^9.0.0",
+    "unified": "^11.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.0.0",
     "remark-gfm": "^4.0.0",
+    "rehype-react": "^8.0.0",
     "rehype-highlight": "^7.0.0",
-    "rehype-slug": "^6.0.0"
+    "rehype-slug": "^6.0.0",
+    "gray-matter": "^4.0.3"
   },
   "devDependencies": {
-    "remove-markdown": "^0.5.0"
+    "strip-markdown": "^6.0.0",
+    "remark-stringify": "^11.0.0"
   }
 }
+```
+
+### Unified Pipeline Architecture
+
+**Build-time (fetch-docs.ts)** - Extract plain text:
+```
+Markdown String
+    ↓ remark-parse
+Markdown AST (mdast)
+    ↓ strip-markdown
+Plain Text AST
+    ↓ remark-stringify
+Plain Text String
+```
+
+**Client-side (DocsContent.tsx)** - Render to React:
+```
+Markdown String
+    ↓ remark-parse
+Markdown AST (mdast)
+    ↓ remark-gfm (tables, strikethrough, etc.)
+    ↓ remark-rehype
+HTML AST (hast)
+    ↓ rehype-slug (heading IDs)
+    ↓ rehype-highlight (syntax highlighting)
+    ↓ rehype-react (custom components)
+React Elements
 ```
 
 ---
 
 ## Implementation Order
 
-1. **Script**: Create `scripts/fetch-docs.ts` with git fetching and JSON generation
-2. **Build**: Integrate fetch-docs into build pipeline
-3. **Routing**: Add react-router-dom routes to App.tsx
-4. **Components**: Build DocsPage, DocsSidebar, DocsContent
-5. **Styling**: Style docs viewer with TailwindCSS (match existing site theme)
-6. **Workflow**: Update GitHub workflow trigger
-7. **Testing**: Manual verification of docs rendering
+1. **Frontmatter**: Add YAML frontmatter to all `packages/docs/*.md` files (see Part 0 table)
+2. **Script**: Create `scripts/fetch-docs.ts` with git fetching and JSON generation
+3. **Build**: Integrate fetch-docs into build pipeline
+4. **Routing**: Add react-router-dom routes to App.tsx
+5. **Components**: Build DocsPage, DocsSidebar, DocsContent
+6. **Styling**: Style docs viewer with TailwindCSS (match existing site theme)
+7. **Workflow**: Update GitHub workflow trigger
+8. **Testing**: Manual verification of docs rendering
 
 ---
 
@@ -377,6 +540,7 @@ Documentation follows:
 
 | File | Change |
 |------|--------|
+| `packages/docs/*.md` | Add YAML frontmatter (order, icon, expanded, label) |
 | `packages/website/scripts/fetch-docs.ts` | New file - fetch and process docs |
 | `packages/website/scripts/build.ts` | Add fetch-docs step |
 | `packages/website/package.json` | Add dependencies |
@@ -391,7 +555,13 @@ Documentation follows:
 
 ## Verification
 
-1. **Local testing**:
+1. **Retype frontmatter verification** (after Part 0):
+   - Run `cd packages/docs && bun run dev`
+   - Verify navigation order matches frontmatter `order` values
+   - Verify icons appear for sections with `icon` set
+   - Verify folder sections expand by default where `expanded: true`
+
+2. **Local testing**:
    - Run `bun run scripts/fetch-docs.ts` manually
    - Verify `docs-versions/` contains expected JSON files
    - Run `bun run dev` and navigate to `/docs`
@@ -399,10 +569,10 @@ Documentation follows:
    - Test navigation between pages
    - Verify GitHub links point to correct version tags
 
-2. **Build testing**:
+3. **Build testing**:
    - Run `bun run build`
    - Run `bun run prod`
    - Navigate to `/docs` and verify docs load correctly
 
-3. **E2E testing**:
+4. **E2E testing**:
    - Add Playwright tests for `/docs` routes
