@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Comfortaa:wght@400&family=Noto+Sans:wght@300;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;700&family=Prompt:wght@400;600&display=swap");
 
 @import "tailwindcss";
 
@@ -39,7 +39,7 @@
   --font-size-xl: 24px;
   --line-height-xl: 32px;
 
-  --font-heading: "Comfortaa", sans-serif;
+  --font-heading: "Prompt", sans-serif;
   --font-body: "Noto Sans", sans-serif;
 
   --header-height: 56px;
@@ -54,6 +54,7 @@
   }
 
   html.light {
+    --color-anchor: #06b6d4;
     --color-background: #ffffff;
     --color-foreground: #1f2937;
     --color-muted: #6b7280;
@@ -115,6 +116,14 @@
   a.no-anchor-hover-styles,
   a.no-anchor-hover-styles:link,
   a.no-anchor-hover-styles:visited {
+    &:hover {
+      @apply bg-transparent text-current;
+    }
+  }
+
+  html.light a.no-anchor-hover-styles,
+  html.light a.no-anchor-hover-styles:link,
+  html.light a.no-anchor-hover-styles:visited {
     &:hover {
       @apply bg-transparent text-current;
     }

@@ -12,7 +12,8 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-anchor/90 hover:bg-anchor text-white clickable hover:outline-1 hover:outline-offset-1 hover:outline-anchor",
-        outline: "text-white clickable border border-anchor",
+        outline:
+          "text-anchor clickable border border-anchor hover:bg-anchor hover:text-white",
         error: "bg-red-500 text-white clickable",
         ghost: "hover:bg-slate-100 hover:text-slate-900",
         link: "text-slate-900 underline-offset-4 hover:underline",

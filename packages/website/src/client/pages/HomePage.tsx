@@ -11,7 +11,8 @@ import {
   Rocket,
   Webhook,
 } from "../components/Icons"
-import { DemoLink, DocsLink, LicenseLink } from "../components/Links"
+import { DocsLink, LicenseLink } from "../components/Links"
+import { HERO_SLOGANS, TAGLINE } from "../constants"
 
 export const HomePage = () => {
   return (
@@ -21,14 +22,13 @@ export const HomePage = () => {
         style={{ minHeight: "auto" }}
       >
         <div className="py-4 px-8 h-full flex flex-col justify-center items-center text-center">
-          <h1 className="font-heading text-4xl sm:text-5xl leading-snug sm:w-10/12">
+          <h1 className="font-heading font-semibold text-4xl sm:text-5xl leading-snug sm:w-10/12">
             <Typewriter
               onInit={(typewriter) => {
-                typewriter
-                  .typeString("Vibe it. C⚙️de it. Ship it.")
-                  .pauseFor(5000)
-                  .deleteAll(40)
-                  .start()
+                for (const slogan of HERO_SLOGANS) {
+                  typewriter.typeString(slogan).pauseFor(5000).deleteAll(40)
+                }
+                typewriter.start()
               }}
               options={{
                 delay: 40,
@@ -36,26 +36,15 @@ export const HomePage = () => {
               }}
             />
           </h1>
-          <sub className="font-body text-xl mt-4">
-            Production-ready boilerplate for vibe-coded and hand-coded web apps
-          </sub>
-          <div className="mt-20 flex sm:flex-row sm:justify-center flex-col justify-start items-center">
+          <sub className="font-body text-2xl mt-4">{TAGLINE}</sub>
+          <div className="mt-16 flex sm:flex-row sm:justify-center flex-col justify-start items-center">
             <DocsLink className="no-anchor-hover-styles">
               <Button size="xl" className="w-72">
                 Get started
               </Button>
             </DocsLink>
-            <DemoLink className="no-anchor-hover-styles">
-              <Button
-                variant="outline"
-                size="xl"
-                className="mt-4 sm:mt-0 sm:ml-4"
-              >
-                Live demo
-              </Button>
-            </DemoLink>
           </div>
-          <div className="mt-12 font-body text-sm italic">
+          <div className="mt-6 font-body text-sm italic">
             Latest version: <LatestGitTag />
           </div>
         </div>

@@ -24,8 +24,14 @@ export function Header() {
       )}
     >
       <div className="container h-full flex items-center justify-between px-4">
-        <a href="/" className="no-anchor-hover-styles">
+        <a
+          href="/"
+          className="no-anchor-hover-styles text-foreground flex items-center gap-2"
+        >
           <img src={logo} alt="QuickDapp" className="h-8" />
+          <span className="hidden sm:inline font-heading font-semibold text-xl">
+            QuickDapp
+          </span>
         </a>
         <ThemeSwitcher />
       </div>
