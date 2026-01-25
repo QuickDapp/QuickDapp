@@ -1,6 +1,7 @@
 {
   "name": "quickdapp-monorepo",
   "private": true,
+  "description": "Vibe-code and deploy web apps quickly.",
   "workspaces": ["packages/*"],
   "packageManager": "bun@1.3.0",
   "engines": {

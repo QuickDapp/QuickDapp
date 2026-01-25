@@ -14,19 +14,13 @@ A highly opinionated framework for building modern web applications.
 ## Quick Start
 
 ```bash
-# Install dependencies
+# Terminal 1: Start PostgreSQL (keep running)
+docker-compose up postgres
+
+# Terminal 2: Run these commands
 bun install
-
-# Set up environment
 cp .env.example .env
-
-# Start PostgreSQL
-docker-compose up -d postgres
-
-# Push database schema
 bun run db push
-
-# Start development server
 bun run dev
 ```
 

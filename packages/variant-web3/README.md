@@ -17,22 +17,14 @@ A highly opinionated framework for building Web3 dapps with comprehensive blockc
 ## Quick Start
 
 ```bash
-# Install dependencies
+# Terminal 1: Start PostgreSQL (keep running)
+docker-compose up postgres
+
+# Terminal 2: Run these commands
 bun install
-
-# Set up environment
 cp .env.example .env
-
-# Start PostgreSQL
-docker-compose up -d postgres
-
-# Push database schema
 bun run db push
-
-# Generate types
 bun run gen
-
-# Start development server
 bun run dev
 ```
 
@@ -49,11 +41,11 @@ The project root `.env` has `WEB3_FACTORY_CONTRACT_ADDRESS` pre-configured with 
 Run these commands in separate terminals alongside your QuickDapp dev server:
 
 ```bash
-# Terminal 2: Start local blockchain (keep running)
+# Terminal 3: Start local blockchain (keep running)
 cd sample-contracts
 bun devnet.ts
 
-# Terminal 3: Deploy contracts (run once after devnet starts)
+# Terminal 4: Deploy contracts (run once after devnet starts)
 cd sample-contracts
 bun run deploy
 ```
