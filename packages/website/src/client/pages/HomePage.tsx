@@ -21,7 +21,7 @@ export const HomePage = () => {
       >
         <div className="py-4 px-8 h-full flex flex-col justify-center items-center text-center">
           <h1 className="font-heading text-4xl sm:text-5xl leading-snug sm:w-10/12">
-            Build and deploy web apps quickly
+            Vibe-code and deploy web apps quickly
           </h1>
           <sub className="font-body text-xl mt-4">
             The ultimate web app starter template (with Web3 support!)

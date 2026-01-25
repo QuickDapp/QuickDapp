@@ -6,6 +6,7 @@ out
 dist
 build
 *.tgz
+*.tar.gz
 
 # code coverage
 coverage

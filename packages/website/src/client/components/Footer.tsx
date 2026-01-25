@@ -6,7 +6,7 @@ export const Footer = () => {
       <div className="mt-12 sm:mt-0 sm:mr-24">
         <p className="font-heading text-white mb-4">QuickDapp</p>
         <p className="text-gray-300 mb-4">
-          Build and deploy web apps quickly.
+          Vibe-code and deploy web apps quickly.
           <br />
           ©️ 2026.
         </p>

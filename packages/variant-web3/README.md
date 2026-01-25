@@ -36,6 +36,58 @@ bun run gen
 bun run dev
 ```
 
+## Web3 Configuration
+
+After completing the Quick Start, configure Web3-specific settings:
+
+### 1. Deploy the Factory Contract
+
+The token management features require a deployed factory contract.
+
+The project root `.env` has `WEB3_FACTORY_CONTRACT_ADDRESS` pre-configured with the deterministic address that `sample-contracts` deploys to on a fresh local Anvil devnet.
+
+Run these commands in separate terminals alongside your QuickDapp dev server:
+
+```bash
+# Terminal 2: Start local blockchain (keep running)
+cd sample-contracts
+bun devnet.ts
+
+# Terminal 3: Deploy contracts (run once after devnet starts)
+cd sample-contracts
+bun run deploy
+```
+
+If you redeploy on the same devnet instance or deploy to a different address on-chain, create `.env.local` in the project root and set the correct address:
+
+```
+WEB3_FACTORY_CONTRACT_ADDRESS=0x... (your deployed address)
+```
+
+The deployed address is written to `sample-contracts/deployed.txt` after each deployment.
+
+### 2. Configure SIWE Origins
+
+For wallet authentication to work, add your frontend URL to allowed SIWE origins.
+
+For development (Vite runs on port 5173):
+```
+WEB3_ALLOWED_SIWE_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+For production, add your actual domain:
+```
+WEB3_ALLOWED_SIWE_ORIGINS=https://yourdomain.com
+```
+
+### 3. WalletConnect Project ID
+
+Get a free project ID from [WalletConnect Cloud](https://cloud.walletconnect.com):
+
+```
+WEB3_WALLETCONNECT_PROJECT_ID=your_project_id
+```
+
 ## Scripts
 
 | Command | Description |
