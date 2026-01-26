@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom"
 import { DocsContent } from "../components/docs/DocsContent"
+import { DocsErrorState } from "../components/docs/DocsErrorState"
+import { DocsLoadingState } from "../components/docs/DocsLoadingState"
 import { DocsSidebar } from "../components/docs/DocsSidebar"
 import { Footer } from "../components/Footer"
-import { Loading } from "../components/Loading"
 import { useDocs, useDocsManifest } from "../hooks/useDocs"
 
 export function DocsPage() {
@@ -22,34 +23,41 @@ export function DocsPage() {
     resolvedPath,
   )
 
-  const handleVersionChange = (newVersion: string) => {
+  const handleVersionChange = async (newVersion: string) => {
     const urlVersion =
       newVersion === manifestQuery.data?.latest ? "latest" : newVersion
-    const newPath = pagePath
+    const resolvedNewVersion =
+      newVersion === "latest" ? manifestQuery.data?.latest : newVersion
+
+    let pathExists = false
+    if (pagePath && resolvedNewVersion) {
+      try {
+        const index = await fetch(
+          `/docs-versions/${resolvedNewVersion}/index.json`,
+        )
+        const data = await index.json()
+        pathExists = !!data.pages[pagePath]
+      } catch {
+        pathExists = false
+      }
+    }
+
+    const newPath = pathExists
       ? `/docs/${urlVersion}/${pagePath}`
       : `/docs/${urlVersion}`
     navigate(newPath)
   }
 
   if (manifestQuery.isLoading || isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loading />
-      </div>
-    )
+    return <DocsLoadingState />
   }
 
   if (manifestQuery.error || error) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <h1 className="text-2xl font-bold">Error loading documentation</h1>
-        <p className="text-foreground/60">
-          {(manifestQuery.error as Error)?.message ||
-            (error as Error)?.message ||
-            "Unknown error"}
-        </p>
-      </div>
-    )
+    const message =
+      (manifestQuery.error as Error)?.message ||
+      (error as Error)?.message ||
+      "Unknown error"
+    return <DocsErrorState message={message} />
   }
 
   if (!manifestQuery.data?.versions.length) {
@@ -64,11 +72,7 @@ export function DocsPage() {
   }
 
   if (!resolvedVersion) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loading />
-      </div>
-    )
+    return <DocsLoadingState />
   }
 
   if (!page) {

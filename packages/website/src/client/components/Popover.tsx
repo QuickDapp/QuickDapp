@@ -11,6 +11,7 @@ export interface PopoverProps {
   disabled?: boolean
   closeOnClickOutside?: boolean
   closeOnEscape?: boolean
+  closeOnSelect?: boolean
 }
 
 export function Popover({
@@ -22,6 +23,7 @@ export function Popover({
   disabled = false,
   closeOnClickOutside = true,
   closeOnEscape = true,
+  closeOnSelect = false,
 }: PopoverProps) {
   const [isOpen, setIsOpen] = useState(false)
   const triggerRef = useRef<HTMLDivElement>(null)
@@ -84,6 +86,7 @@ export function Popover({
       {isOpen && (
         <div
           ref={contentRef}
+          onClick={closeOnSelect ? closePopover : undefined}
           className={cn(
             "absolute z-50 bg-gradcol2 border border-border rounded-lg shadow-lg",
             "animate-in fade-in-0 zoom-in-95 duration-150",

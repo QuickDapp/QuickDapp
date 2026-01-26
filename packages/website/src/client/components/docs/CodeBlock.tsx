@@ -1,5 +1,6 @@
 import { Check, Copy } from "lucide-react"
-import { type ReactNode, useCallback, useRef, useState } from "react"
+import { type ReactNode, useRef } from "react"
+import { useCopyToClipboard } from "../../hooks/useCopyToClipboard"
 import { Button } from "../Button"
 
 interface CodeBlockProps {
@@ -7,15 +8,13 @@ interface CodeBlockProps {
 }
 
 export function CodeBlock({ children }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopyToClipboard()
   const preRef = useRef<HTMLPreElement>(null)
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = () => {
     const text = preRef.current?.textContent || ""
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [])
+    copy(text)
+  }
 
   return (
     <div className="group relative my-4">

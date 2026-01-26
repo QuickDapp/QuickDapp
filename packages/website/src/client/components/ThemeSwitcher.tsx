@@ -22,6 +22,7 @@ export function ThemeSwitcher() {
   return (
     <Popover
       placement="bottom"
+      closeOnSelect
       contentClassName="right-0 left-auto min-w-[140px]"
       trigger={
         <Button

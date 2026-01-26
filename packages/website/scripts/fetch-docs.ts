@@ -349,6 +349,8 @@ function buildNavigationTree(
 
     const parts = pagePath.split("/")
     if (parts.length === 1) {
+      // Skip flat pages that have a corresponding folder (folder takes precedence)
+      if (folderNodes.has(pagePath)) continue
       root.push(item)
     } else {
       const parentPath = parts.slice(0, -1).join("/")
