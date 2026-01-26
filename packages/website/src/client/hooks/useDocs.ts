@@ -15,6 +15,7 @@ interface TreeItem {
   order: number
   icon?: string
   label?: string
+  expanded?: boolean
   children?: TreeItem[]
 }
 

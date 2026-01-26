@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { DocsContent } from "../components/docs/DocsContent"
 import { DocsSidebar } from "../components/docs/DocsSidebar"
@@ -23,19 +22,12 @@ export function DocsPage() {
     resolvedPath,
   )
 
-  useEffect(() => {
-    if (version === "latest" && manifestQuery.data?.latest) {
-      const newPath = pagePath
-        ? `/docs/${manifestQuery.data.latest}/${pagePath}`
-        : `/docs/${manifestQuery.data.latest}`
-      navigate(newPath, { replace: true })
-    }
-  }, [version, manifestQuery.data?.latest, pagePath, navigate])
-
   const handleVersionChange = (newVersion: string) => {
+    const urlVersion =
+      newVersion === manifestQuery.data?.latest ? "latest" : newVersion
     const newPath = pagePath
-      ? `/docs/${newVersion}/${pagePath}`
-      : `/docs/${newVersion}`
+      ? `/docs/${urlVersion}/${pagePath}`
+      : `/docs/${urlVersion}`
     navigate(newPath)
   }
 
@@ -95,8 +87,11 @@ export function DocsPage() {
       <div className="flex-1 container flex gap-8 pt-24 pb-16">
         <DocsSidebar
           tree={tree || []}
-          version={resolvedVersion}
+          version={version!}
           versions={manifestQuery.data.versions}
+          latestVersion={
+            manifestQuery.data.latest ?? manifestQuery.data.versions[0]!
+          }
           onVersionChange={handleVersionChange}
           currentPath={resolvedPath}
         />

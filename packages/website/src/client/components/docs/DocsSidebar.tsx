@@ -1,13 +1,16 @@
-import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
-import { useState } from "react"
+import { Check, ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import type { TreeItem } from "../../hooks/useDocs"
 import { cn } from "../../utils/cn"
+import { Collapsible, CollapsibleContent } from "../Collapsible"
+import { Popover } from "../Popover"
 
 interface DocsSidebarProps {
   tree: TreeItem[]
   version: string
   versions: string[]
+  latestVersion: string
   onVersionChange: (version: string) => void
   currentPath: string
 }
@@ -29,40 +32,50 @@ function SidebarItem({
     currentPath === `${item.path}/index` ||
     (item.path.endsWith("/index") &&
       currentPath === item.path.replace(/\/index$/, ""))
-  const [isExpanded, setIsExpanded] = useState(
+  const isChildActive =
     hasChildren &&
-      (isActive ||
-        item.children?.some(
-          (child) =>
-            currentPath === child.path ||
-            currentPath.startsWith(`${child.path}/`),
-        )),
-  )
+    item.children?.some(
+      (child) =>
+        currentPath === child.path || currentPath.startsWith(`${child.path}/`),
+    )
+  const [open, setOpen] = useState(item.expanded || isActive || isChildActive)
+
+  useEffect(() => {
+    if (isActive || isChildActive) {
+      setOpen(true)
+    }
+  }, [isActive, isChildActive])
 
   const linkPath =
     item.path === "index" ? "" : item.path.replace(/\/index$/, "")
   const href = `/docs/${version}${linkPath ? `/${linkPath}` : ""}`
 
-  return (
-    <div>
-      <div className={cn("flex items-center gap-1", level > 0 && "ml-4")}>
-        {hasChildren ? (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-foreground/10"
-            type="button"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </button>
-        ) : (
-          <span className="w-6" />
-        )}
+  if (!hasChildren) {
+    return (
+      <div className={cn(level > 0 && "ml-4")}>
         <Link
           to={href}
+          className={cn(
+            "block rounded px-2 py-1.5 text-sm transition-colors hover:bg-foreground/10",
+            isActive && "bg-anchor/20 font-medium text-anchor",
+          )}
+        >
+          {item.label || item.title}
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={item.expanded ? undefined : setOpen}
+      className={cn(level > 0 && "ml-4")}
+    >
+      <div className="flex items-center">
+        <Link
+          to={href}
+          onClick={item.expanded ? undefined : () => setOpen(!open)}
           className={cn(
             "flex-1 rounded px-2 py-1.5 text-sm transition-colors hover:bg-foreground/10",
             isActive && "bg-anchor/20 font-medium text-anchor",
@@ -70,21 +83,28 @@ function SidebarItem({
         >
           {item.label || item.title}
         </Link>
+        {!item.expanded && (
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center text-foreground/60">
+            {open ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </span>
+        )}
       </div>
-      {hasChildren && isExpanded && (
-        <div className="mt-1">
-          {item.children!.map((child) => (
-            <SidebarItem
-              key={child.path}
-              item={child}
-              version={version}
-              currentPath={currentPath}
-              level={level + 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      <CollapsibleContent className="mt-1">
+        {item.children!.map((child) => (
+          <SidebarItem
+            key={child.path}
+            item={child}
+            version={version}
+            currentPath={currentPath}
+            level={level + 1}
+          />
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 
@@ -92,30 +112,56 @@ export function DocsSidebar({
   tree,
   version,
   versions,
+  latestVersion,
   onVersionChange,
   currentPath,
 }: DocsSidebarProps) {
+  const isOnLatest = version === "latest" || version === latestVersion
+
   return (
     <aside className="sticky top-20 h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-foreground/10 pb-8 pr-4">
       <div className="mb-6">
-        <label
-          htmlFor="version-select"
-          className="mb-2 block text-xs font-medium uppercase tracking-wide text-foreground/60"
-        >
+        <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-foreground/60">
           Version
         </label>
-        <select
-          id="version-select"
-          value={version}
-          onChange={(e) => onVersionChange(e.target.value)}
-          className="w-full rounded-lg border border-foreground/20 bg-background px-3 py-2 text-sm focus:border-anchor focus:outline-none focus:ring-1 focus:ring-anchor"
+        <Popover
+          className="w-full"
+          trigger={
+            <button
+              type="button"
+              className="flex w-full items-center justify-between rounded-lg border border-foreground/20 bg-background px-3 py-2 text-sm hover:border-foreground/40"
+            >
+              <span>
+                {version === "latest" ? latestVersion : version}
+                {isOnLatest && " (latest)"}
+              </span>
+              <ChevronDown className="h-4 w-4 text-foreground/60" />
+            </button>
+          }
+          contentClassName="w-full min-w-[200px] p-1"
         >
           {versions.map((v) => (
-            <option key={v} value={v}>
-              {v} {v === versions[0] && "(latest)"}
-            </option>
+            <button
+              key={v}
+              type="button"
+              onClick={() => onVersionChange(v)}
+              className={cn(
+                "flex w-full items-center justify-between rounded px-3 py-2 text-sm hover:bg-foreground/10",
+                (v === version ||
+                  (version === "latest" && v === latestVersion)) &&
+                  "bg-foreground/5",
+              )}
+            >
+              <span>
+                {v} {v === latestVersion && "(latest)"}
+              </span>
+              {(v === version ||
+                (version === "latest" && v === latestVersion)) && (
+                <Check className="h-4 w-4 text-anchor" />
+              )}
+            </button>
           ))}
-        </select>
+        </Popover>
       </div>
 
       <nav className="space-y-1">

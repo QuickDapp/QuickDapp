@@ -29,6 +29,7 @@ interface DocPage {
   order: number
   icon?: string
   label?: string
+  expanded?: boolean
 }
 
 interface TreeItem {
@@ -37,6 +38,7 @@ interface TreeItem {
   order: number
   icon?: string
   label?: string
+  expanded?: boolean
   children?: TreeItem[]
 }
 
@@ -266,6 +268,7 @@ async function fetchDocsFromTag(
         order: frontmatter.order ?? 0,
         icon: frontmatter.icon,
         label: frontmatter.label,
+        expanded: frontmatter.expanded,
       }
     }
 
@@ -304,57 +307,88 @@ function buildNavigationTree(
   pages: Record<string, DocPage>,
   _docsDir: string,
 ): { items: TreeItem[] } {
-  const tree: TreeItem[] = []
-  const folders: Record<string, TreeItem> = {}
+  const root: TreeItem[] = []
+  const folderNodes = new Map<string, TreeItem>()
 
-  for (const [pagePath, page] of Object.entries(pages)) {
+  // Identify which paths are folders (have children)
+  const folderPaths = new Set<string>()
+  for (const pagePath of Object.keys(pages)) {
     const parts = pagePath.split("/")
+    for (let i = 1; i < parts.length; i++) {
+      folderPaths.add(parts.slice(0, i).join("/"))
+    }
+  }
 
-    if (parts.length === 1) {
-      tree.push({
+  // First pass: create folder nodes from index pages
+  for (const [pagePath, page] of Object.entries(pages)) {
+    if (folderPaths.has(pagePath)) {
+      folderNodes.set(pagePath, {
         title: page.title,
-        path: pagePath,
+        path: `${pagePath}/index`,
         order: page.order,
         icon: page.icon,
         label: page.label,
+        expanded: page.expanded,
+        children: [],
       })
+    }
+  }
+
+  // Second pass: create leaf nodes and assign to parent folders
+  for (const [pagePath, page] of Object.entries(pages)) {
+    if (folderPaths.has(pagePath)) continue
+
+    const item: TreeItem = {
+      title: page.title,
+      path: pagePath,
+      order: page.order,
+      icon: page.icon,
+      label: page.label,
+      expanded: page.expanded,
+    }
+
+    const parts = pagePath.split("/")
+    if (parts.length === 1) {
+      root.push(item)
     } else {
-      const folderPath = parts.slice(0, -1).join("/")
-      const isIndex =
-        parts[parts.length - 1] === "index" || pagePath.endsWith("/index")
-
-      if (!folders[folderPath]) {
-        const indexPage = pages[`${folderPath}/index`] || pages[folderPath]
-        folders[folderPath] = {
-          title: indexPage?.title || folderPath,
-          path: `${folderPath}/index`,
-          order: indexPage?.order || 0,
-          icon: indexPage?.icon,
-          label: indexPage?.label,
-          children: [],
-        }
-      }
-
-      if (!isIndex && !pagePath.endsWith("/index")) {
-        folders[folderPath].children!.push({
-          title: page.title,
-          path: pagePath,
-          order: page.order,
-          icon: page.icon,
-          label: page.label,
-        })
+      const parentPath = parts.slice(0, -1).join("/")
+      const parent = folderNodes.get(parentPath)
+      if (parent) {
+        parent.children!.push(item)
+      } else {
+        root.push(item)
       }
     }
   }
 
-  for (const folder of Object.values(folders)) {
-    folder.children!.sort((a, b) => b.order - a.order)
-    tree.push(folder)
+  // Third pass: nest folders within parent folders
+  for (const [folderPath, folder] of folderNodes) {
+    const parts = folderPath.split("/")
+    if (parts.length === 1) {
+      root.push(folder)
+    } else {
+      const parentPath = parts.slice(0, -1).join("/")
+      const parent = folderNodes.get(parentPath)
+      if (parent) {
+        parent.children!.push(folder)
+      } else {
+        root.push(folder)
+      }
+    }
   }
 
-  tree.sort((a, b) => b.order - a.order)
+  // Recursive sort by order (descending)
+  const sortItems = (items: TreeItem[]) => {
+    items.sort((a, b) => b.order - a.order)
+    for (const item of items) {
+      if (item.children?.length) {
+        sortItems(item.children)
+      }
+    }
+  }
+  sortItems(root)
 
-  return { items: tree }
+  return { items: root }
 }
 
 const setupCommand: CommandSetup = (program) => {

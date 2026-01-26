@@ -1,23 +1,15 @@
-import { useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { Loading } from "../components/Loading"
 import { useDocsLlm, useDocsManifest } from "../hooks/useDocs"
 
 export function DocsLlmPage() {
   const { version } = useParams<{ version: string }>()
-  const navigate = useNavigate()
 
   const manifestQuery = useDocsManifest()
   const resolvedVersion =
     version === "latest" ? (manifestQuery.data?.latest ?? undefined) : version
 
   const llmQuery = useDocsLlm(resolvedVersion)
-
-  useEffect(() => {
-    if (version === "latest" && manifestQuery.data?.latest) {
-      navigate(`/docs/${manifestQuery.data.latest}/llm`, { replace: true })
-    }
-  }, [version, manifestQuery.data?.latest, navigate])
 
   if (manifestQuery.isLoading || llmQuery.isLoading) {
     return (

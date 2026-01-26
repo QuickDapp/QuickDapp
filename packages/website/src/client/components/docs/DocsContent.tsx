@@ -1,15 +1,25 @@
+import { createCssVariablesTheme } from "@shikijs/core"
+import rehypeShiki from "@shikijs/rehype"
 import type { Root } from "hast"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
-import { Fragment, type JSX, useMemo } from "react"
-import { jsx, jsxs } from "react/jsx-runtime"
-import rehypeHighlight from "rehype-highlight"
+import { ExternalLink } from "lucide-react"
+import { Fragment, type JSX, type ReactNode, useEffect, useState } from "react"
+import { jsx as jsxFn, jsxs } from "react/jsx-runtime"
 import rehypeSlug from "rehype-slug"
 import remarkGfm from "remark-gfm"
 import remarkParse from "remark-parse"
 import remarkRehype from "remark-rehype"
 import { unified } from "unified"
 import { cn } from "../../utils/cn"
+import { CodeBlock } from "./CodeBlock"
 import { DocsCallout } from "./DocsCallout"
+
+const cssVarsTheme = createCssVariablesTheme({
+  name: "css-variables",
+  variablePrefix: "--shiki-",
+  variableDefaults: {},
+  fontStyle: true,
+})
 
 interface DocsContentProps {
   markdown: string
@@ -31,17 +41,21 @@ function createComponents(): Record<string, (props: any) => JSX.Element> {
     callout: ({ type, children }: { type?: string; children: any }) => (
       <DocsCallout type={type as any}>{children}</DocsCallout>
     ),
-    a: ({ href, children, ...props }: any) => (
-      <a
-        href={href}
-        target={href?.startsWith("http") ? "_blank" : undefined}
-        rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
-        className="text-anchor hover:underline"
-        {...props}
-      >
-        {children}
-      </a>
-    ),
+    a: ({ href, children, ...props }: any) => {
+      const isExternal = href?.startsWith("http")
+      return (
+        <a
+          href={href}
+          target={isExternal ? "_blank" : undefined}
+          rel={isExternal ? "noopener noreferrer" : undefined}
+          className="text-anchor hover:underline"
+          {...props}
+        >
+          {children}
+          {isExternal && <ExternalLink className="ml-1 inline h-3 w-3" />}
+        </a>
+      )
+    },
     code: ({ className, children, ...props }: any) => {
       const isInline = !className
       if (isInline) {
@@ -60,14 +74,7 @@ function createComponents(): Record<string, (props: any) => JSX.Element> {
         </code>
       )
     },
-    pre: ({ children, ...props }: any) => (
-      <pre
-        className="my-4 overflow-x-auto rounded-lg bg-foreground/5 p-4 text-sm"
-        {...props}
-      >
-        {children}
-      </pre>
-    ),
+    pre: ({ children }: any) => <CodeBlock>{children}</CodeBlock>,
     h1: ({ children, id, ...props }: any) => (
       <h1
         id={id}
@@ -173,32 +180,76 @@ function createComponents(): Record<string, (props: any) => JSX.Element> {
 }
 
 export function DocsContent({ markdown, className }: DocsContentProps) {
-  const content = useMemo(() => {
-    try {
-      const processedMarkdown = convertRetypeCallouts(markdown)
+  const [content, setContent] = useState<ReactNode>(null)
+  const [isProcessing, setIsProcessing] = useState(true)
 
-      const processor = unified()
-        .use(remarkParse)
-        .use(remarkGfm)
-        .use(remarkRehype, { allowDangerousHtml: true })
-        .use(rehypeSlug)
-        .use(rehypeHighlight, { detect: true, ignoreMissing: true })
+  useEffect(() => {
+    let cancelled = false
+    setIsProcessing(true)
+    setContent(null)
 
-      const mdast = processor.parse(processedMarkdown)
-      const hast = processor.runSync(mdast) as Root
+    async function processMarkdown() {
+      try {
+        const processedMarkdown = convertRetypeCallouts(markdown)
 
-      return toJsxRuntime(hast, {
-        Fragment,
-        jsx: jsx as any,
-        jsxs: jsxs as any,
-        components: createComponents(),
-        passNode: true,
-      })
-    } catch (error) {
-      console.error("Failed to render markdown:", error)
-      return <div className="text-red-500">Failed to render content</div>
+        const processor = unified()
+          .use(remarkParse)
+          .use(remarkGfm)
+          .use(remarkRehype, { allowDangerousHtml: true })
+          .use(rehypeSlug)
+          .use(rehypeShiki, {
+            theme: cssVarsTheme,
+          })
+
+        const mdast = processor.parse(processedMarkdown)
+        const hast = (await processor.run(mdast)) as Root
+
+        if (cancelled) return
+
+        const jsx = toJsxRuntime(hast, {
+          Fragment,
+          jsx: jsxFn as any,
+          jsxs: jsxs as any,
+          components: createComponents(),
+          passNode: true,
+        })
+
+        setContent(jsx)
+      } catch (error) {
+        console.error("Failed to render markdown:", error)
+        if (!cancelled) {
+          setContent(
+            <div className="text-red-500">Failed to render content</div>,
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProcessing(false)
+        }
+      }
+    }
+
+    processMarkdown()
+    return () => {
+      cancelled = true
     }
   }, [markdown])
+
+  if (isProcessing) {
+    return (
+      <div className={cn("docs-content", className)}>
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-3/4 rounded bg-foreground/10" />
+          <div className="h-4 w-full rounded bg-foreground/10" />
+          <div className="h-4 w-5/6 rounded bg-foreground/10" />
+          <div className="h-4 w-4/5 rounded bg-foreground/10" />
+          <div className="mt-8 h-6 w-1/2 rounded bg-foreground/10" />
+          <div className="h-4 w-full rounded bg-foreground/10" />
+          <div className="h-4 w-3/4 rounded bg-foreground/10" />
+        </div>
+      </div>
+    )
+  }
 
   return <div className={cn("docs-content", className)}>{content}</div>
 }

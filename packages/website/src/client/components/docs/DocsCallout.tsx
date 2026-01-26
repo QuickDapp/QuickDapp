@@ -1,3 +1,4 @@
+import { AlertTriangle, Info, Lightbulb, XCircle } from "lucide-react"
 import type { ReactNode } from "react"
 import { cn } from "../../utils/cn"
 
@@ -14,18 +15,19 @@ const calloutStyles = {
 }
 
 const calloutIcons = {
-  note: "i",
-  warning: "!",
-  danger: "X",
-  tip: "~",
+  note: Info,
+  warning: AlertTriangle,
+  danger: XCircle,
+  tip: Lightbulb,
 }
 
 export function DocsCallout({ type = "note", children }: DocsCalloutProps) {
+  const Icon = calloutIcons[type]
   return (
     <div className={cn("my-4 rounded-lg border-l-4 p-4", calloutStyles[type])}>
       <div className="flex items-start gap-3">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-sm font-bold">
-          {calloutIcons[type]}
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground/10">
+          <Icon className="h-4 w-4" />
         </span>
         <div className="flex-1">{children}</div>
       </div>
