@@ -103,7 +103,8 @@ async function fetchDocsHandler(
   const processedVersions: string[] = []
 
   for (const tag of tags) {
-    const versionDir = path.join(outputDir, tag)
+    const displayVersion = tag.replace(/^v/, "")
+    const versionDir = path.join(outputDir, displayVersion)
 
     if (existsSync(versionDir) && !force) {
       if (verbose) {
@@ -111,7 +112,7 @@ async function fetchDocsHandler(
           `⏭️  Skipping ${tag} (already exists, use --force to rebuild)`,
         )
       }
-      processedVersions.push(tag)
+      processedVersions.push(displayVersion)
       continue
     }
 
@@ -127,7 +128,7 @@ async function fetchDocsHandler(
         mkdirSync(versionDir, { recursive: true })
 
         const indexJson: DocsVersion = {
-          version: tag,
+          version: displayVersion,
           pages: docs.pages,
         }
         writeFileSync(
@@ -145,7 +146,7 @@ async function fetchDocsHandler(
           .join("\n\n---\n\n")
         writeFileSync(path.join(versionDir, "llm.md"), allMarkdown)
 
-        processedVersions.push(tag)
+        processedVersions.push(displayVersion)
         console.log(
           `✅ ${tag} processed (${Object.keys(docs.pages).length} pages)`,
         )
@@ -155,18 +156,19 @@ async function fetchDocsHandler(
     }
   }
 
-  const manifest = {
-    versions: processedVersions.sort((a, b) => {
-      const aNum = a.replace("v", "").split(".").map(Number)
-      const bNum = b.replace("v", "").split(".").map(Number)
-      for (let i = 0; i < 3; i++) {
-        if ((aNum[i] || 0) !== (bNum[i] || 0)) {
-          return (bNum[i] || 0) - (aNum[i] || 0)
-        }
+  const sortedVersions = processedVersions.sort((a, b) => {
+    const aNum = a.split(".").map(Number)
+    const bNum = b.split(".").map(Number)
+    for (let i = 0; i < 3; i++) {
+      if ((aNum[i] || 0) !== (bNum[i] || 0)) {
+        return (bNum[i] || 0) - (aNum[i] || 0)
       }
-      return 0
-    }),
-    latest: processedVersions[0] || null,
+    }
+    return 0
+  })
+  const manifest = {
+    versions: sortedVersions,
+    latest: sortedVersions[0] || null,
     generatedAt: new Date().toISOString(),
   }
   writeFileSync(
