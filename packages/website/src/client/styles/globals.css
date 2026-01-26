@@ -85,7 +85,7 @@
   }
 
   body {
-    @apply h-full m-0 p-0 box-border bg-background text-foreground;
+    @apply h-full m-0 px-4 box-border bg-background text-foreground;
     @apply font-body antialiased;
     font-feature-settings:
       "rlig" 1,

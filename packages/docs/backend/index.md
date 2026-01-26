@@ -1,6 +1,6 @@
 ---
 order: 95
-icon: cpu
+icon: Server
 expanded: true
 ---
 

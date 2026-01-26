@@ -50,6 +50,17 @@ bun run lint             # Run Biome linter
 
 ---
 
+## Docs Versioning
+
+The website fetches documentation for multiple versions from git tags. The `scripts/fetch-docs.ts` script uses a strict semver regex pattern (`/^v\d+\.\d+\.\d+$/`) to filter which tags are included:
+
+- **Included**: `v1.0.0`, `v2.1.3`, `v10.20.30`
+- **Excluded**: `v1.0.0-alpha`, `v1.0.0-rc.1`, `v1.0.0-beta.2`
+
+Only strict `vX.Y.Z` format tags appear in the docs version selector. Pre-release tags are intentionally excluded.
+
+---
+
 ## Environment Variables
 
 Required:

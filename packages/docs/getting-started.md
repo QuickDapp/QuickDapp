@@ -1,5 +1,6 @@
 ---
 order: 98
+icon: Rocket
 ---
 
 # Getting started

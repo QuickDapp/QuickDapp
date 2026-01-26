@@ -1,3 +1,4 @@
+import * as LucideIcons from "lucide-react"
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
@@ -50,6 +51,14 @@ function SidebarItem({
   const linkPath =
     item.path === "index" ? "" : item.path.replace(/\/index$/, "")
   const href = `/docs/${version}${linkPath ? `/${linkPath}` : ""}`
+  const IconComponent = item.icon
+    ? (
+        LucideIcons as unknown as Record<
+          string,
+          React.ComponentType<{ className?: string }>
+        >
+      )[item.icon]
+    : null
 
   return (
     <div className={cn(level > 0 && "ml-4")}>
@@ -57,11 +66,14 @@ function SidebarItem({
         <Link
           to={href}
           className={cn(
-            "flex-1 rounded px-2 py-1.5 text-sm transition-colors hover:bg-anchor hover:text-white",
+            "flex-1 flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-anchor hover:text-white",
             isActive && "bg-anchor/20 font-medium text-anchor",
           )}
         >
           {item.label || item.title}
+          {IconComponent && (
+            <IconComponent className="h-4 w-4 shrink-0 opacity-60" />
+          )}
         </Link>
         {hasChildren && (
           <button

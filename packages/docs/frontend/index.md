@@ -1,6 +1,6 @@
 ---
 order: 94
-icon: browser
+icon: Monitor
 expanded: true
 ---
 

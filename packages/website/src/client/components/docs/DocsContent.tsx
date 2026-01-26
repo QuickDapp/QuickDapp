@@ -188,6 +188,7 @@ function createComponents(): Record<string, (props: any) => JSX.Element> {
 
 export function DocsContent({ markdown, className }: DocsContentProps) {
   const [highlightedContent, setHighlightedContent] = useState<ReactNode>(null)
+  const [highlightingFailed, setHighlightingFailed] = useState(false)
 
   // Sync render without syntax highlighting - instant
   const syncContent = useMemo(() => {
@@ -219,6 +220,7 @@ export function DocsContent({ markdown, className }: DocsContentProps) {
   useEffect(() => {
     let cancelled = false
     setHighlightedContent(null)
+    setHighlightingFailed(false)
 
     async function processWithHighlighting() {
       try {
@@ -246,6 +248,9 @@ export function DocsContent({ markdown, className }: DocsContentProps) {
         )
       } catch (error) {
         console.error("Failed to render markdown with highlighting:", error)
+        if (!cancelled) {
+          setHighlightingFailed(true)
+        }
       }
     }
 
@@ -257,6 +262,11 @@ export function DocsContent({ markdown, className }: DocsContentProps) {
 
   return (
     <div className={cn("docs-content", className)}>
+      {highlightingFailed && !highlightedContent && (
+        <div className="mb-4 rounded border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-600 dark:text-yellow-400">
+          Syntax highlighting unavailable. Code blocks may appear unstyled.
+        </div>
+      )}
       {highlightedContent ?? syncContent}
     </div>
   )

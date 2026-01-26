@@ -1,6 +1,6 @@
 ---
 order: 96
-icon: command-palette
+icon: Terminal
 label: Command-line
 expanded: true
 ---

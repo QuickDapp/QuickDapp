@@ -5,9 +5,17 @@ export function useCopyToClipboard(timeout = 2000) {
 
   const copy = useCallback(
     async (text: string) => {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), timeout)
+      if (!navigator.clipboard) {
+        console.warn("Clipboard API not available")
+        return
+      }
+      try {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), timeout)
+      } catch (error) {
+        console.error("Failed to copy to clipboard:", error)
+      }
     },
     [timeout],
   )
