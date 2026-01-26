@@ -33,11 +33,7 @@ export const DocsLink: React.FC<PropsWithChildren<PropsWithClassName>> = ({
   children,
 }) => {
   return (
-    <Link
-      className={className}
-      aria-label="getting-started"
-      to="/docs/latest/getting-started"
-    >
+    <Link className={className} aria-label="documentation" to="/docs">
       {children || "Docs"}
     </Link>
   )
