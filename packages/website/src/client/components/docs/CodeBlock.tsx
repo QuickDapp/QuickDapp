@@ -21,7 +21,7 @@ export function CodeBlock({ children }: CodeBlockProps) {
     <div className="group relative my-4">
       <pre
         ref={preRef}
-        className="overflow-x-auto rounded-lg border border-foreground/10 p-4 text-sm"
+        className="shiki overflow-x-auto rounded-lg border border-foreground/10 p-4 text-sm"
       >
         {children}
       </pre>

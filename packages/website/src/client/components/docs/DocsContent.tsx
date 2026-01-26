@@ -3,7 +3,14 @@ import rehypeShiki from "@shikijs/rehype"
 import type { Root } from "hast"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
 import { ExternalLink } from "lucide-react"
-import { Fragment, type JSX, type ReactNode, useEffect, useState } from "react"
+import {
+  Fragment,
+  type JSX,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { jsx as jsxFn, jsxs } from "react/jsx-runtime"
 import rehypeSlug from "rehype-slug"
 import remarkGfm from "remark-gfm"
@@ -48,7 +55,7 @@ function createComponents(): Record<string, (props: any) => JSX.Element> {
           href={href}
           target={isExternal ? "_blank" : undefined}
           rel={isExternal ? "noopener noreferrer" : undefined}
-          className="text-anchor hover:underline"
+          className="text-anchor hover:bg-anchor hover:text-white"
           {...props}
         >
           {children}
@@ -180,76 +187,77 @@ function createComponents(): Record<string, (props: any) => JSX.Element> {
 }
 
 export function DocsContent({ markdown, className }: DocsContentProps) {
-  const [content, setContent] = useState<ReactNode>(null)
-  const [isProcessing, setIsProcessing] = useState(true)
+  const [highlightedContent, setHighlightedContent] = useState<ReactNode>(null)
 
+  // Sync render without syntax highlighting - instant
+  const syncContent = useMemo(() => {
+    try {
+      const processedMarkdown = convertRetypeCallouts(markdown)
+      const syncProcessor = unified()
+        .use(remarkParse)
+        .use(remarkGfm)
+        .use(remarkRehype, { allowDangerousHtml: true })
+        .use(rehypeSlug)
+
+      const mdast = syncProcessor.parse(processedMarkdown)
+      const hast = syncProcessor.runSync(mdast) as Root
+
+      return toJsxRuntime(hast, {
+        Fragment,
+        jsx: jsxFn as any,
+        jsxs: jsxs as any,
+        components: createComponents(),
+        passNode: true,
+      })
+    } catch (error) {
+      console.error("Failed to render markdown:", error)
+      return <div className="text-red-500">Failed to render content</div>
+    }
+  }, [markdown])
+
+  // Async render with Shiki - deferred
   useEffect(() => {
     let cancelled = false
-    setIsProcessing(true)
-    setContent(null)
+    setHighlightedContent(null)
 
-    async function processMarkdown() {
+    async function processWithHighlighting() {
       try {
         const processedMarkdown = convertRetypeCallouts(markdown)
-
         const processor = unified()
           .use(remarkParse)
           .use(remarkGfm)
           .use(remarkRehype, { allowDangerousHtml: true })
           .use(rehypeSlug)
-          .use(rehypeShiki, {
-            theme: cssVarsTheme,
-          })
+          .use(rehypeShiki, { theme: cssVarsTheme })
 
         const mdast = processor.parse(processedMarkdown)
         const hast = (await processor.run(mdast)) as Root
 
         if (cancelled) return
 
-        const jsx = toJsxRuntime(hast, {
-          Fragment,
-          jsx: jsxFn as any,
-          jsxs: jsxs as any,
-          components: createComponents(),
-          passNode: true,
-        })
-
-        setContent(jsx)
+        setHighlightedContent(
+          toJsxRuntime(hast, {
+            Fragment,
+            jsx: jsxFn as any,
+            jsxs: jsxs as any,
+            components: createComponents(),
+            passNode: true,
+          }),
+        )
       } catch (error) {
-        console.error("Failed to render markdown:", error)
-        if (!cancelled) {
-          setContent(
-            <div className="text-red-500">Failed to render content</div>,
-          )
-        }
-      } finally {
-        if (!cancelled) {
-          setIsProcessing(false)
-        }
+        console.error("Failed to render markdown with highlighting:", error)
       }
     }
 
-    processMarkdown()
+    processWithHighlighting()
     return () => {
       cancelled = true
     }
   }, [markdown])
 
-  if (isProcessing) {
-    return (
-      <div className={cn("docs-content", className)}>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-3/4 rounded bg-foreground/10" />
-          <div className="h-4 w-full rounded bg-foreground/10" />
-          <div className="h-4 w-5/6 rounded bg-foreground/10" />
-          <div className="h-4 w-4/5 rounded bg-foreground/10" />
-          <div className="mt-8 h-6 w-1/2 rounded bg-foreground/10" />
-          <div className="h-4 w-full rounded bg-foreground/10" />
-          <div className="h-4 w-3/4 rounded bg-foreground/10" />
-        </div>
-      </div>
-    )
-  }
-
-  return <div className={cn("docs-content", className)}>{content}</div>
+  return (
+    <div className={cn("docs-content", className)}>
+      {highlightedContent ?? syncContent}
+    </div>
+  )
 }

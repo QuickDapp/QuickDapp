@@ -56,7 +56,7 @@ function SidebarItem({
         <Link
           to={href}
           className={cn(
-            "block rounded px-2 py-1.5 text-sm transition-colors hover:bg-foreground/10",
+            "block rounded px-2 py-1.5 text-sm transition-colors hover:bg-anchor hover:text-white",
             isActive && "bg-anchor/20 font-medium text-anchor",
           )}
         >
@@ -77,7 +77,7 @@ function SidebarItem({
           to={href}
           onClick={item.expanded ? undefined : () => setOpen(!open)}
           className={cn(
-            "flex-1 rounded px-2 py-1.5 text-sm transition-colors hover:bg-foreground/10",
+            "flex-1 rounded px-2 py-1.5 text-sm transition-colors hover:bg-anchor hover:text-white",
             isActive && "bg-anchor/20 font-medium text-anchor",
           )}
         >
@@ -178,7 +178,7 @@ export function DocsSidebar({
       <div className="mt-8 border-t border-foreground/10 pt-4">
         <Link
           to={`/docs/${version}/llm`}
-          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground/60 transition-colors hover:bg-foreground/10 hover:text-foreground"
+          className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground/60 transition-colors hover:bg-anchor hover:text-white"
         >
           <ExternalLink className="h-4 w-4" />
           LLM-friendly view
