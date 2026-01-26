@@ -1,3 +1,9 @@
+---
+order: 91
+icon: FileCode
+expanded: true
+---
+
 # Smart Contracts (Optional)
 
 QuickDapp includes sample smart contracts for Web3 developers. If you're building a non-Web3 application, skip this section entirely.

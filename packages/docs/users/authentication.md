@@ -1,3 +1,7 @@
+---
+order: 80
+---
+
 # Authentication
 
 QuickDapp uses stateless JWT authentication with three provider options: SIWE (wallet signing), email verification, and OAuth. This page covers the authentication flows in detail.

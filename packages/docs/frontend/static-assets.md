@@ -1,3 +1,7 @@
+---
+order: 40
+---
+
 # Static Assets
 
 QuickDapp supports two types of static assets: files processed by Vite (images imported in React components) and passthrough files served directly (favicon, robots.txt, custom fonts).

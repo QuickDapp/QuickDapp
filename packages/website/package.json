@@ -1,6 +1,6 @@
 {
   "name": "@quickdapp/website",
-  "version": "3.5.3",
+  "version": "3.6.0",
   "description": "QuickDapp marketing website built with Bun, ElysiaJS, and React",
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
@@ -25,7 +25,8 @@
     "lint:fix": "bun run typecheck && biome check --write .",
     "format": "biome format --write .",
     "gen": "bun run scripts/gen.ts",
-    "db": "bun run scripts/db.ts"
+    "db": "bun run scripts/db.ts",
+    "fetch-docs": "bun run scripts/fetch-docs.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
@@ -42,7 +43,10 @@
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.0-alpha.19",
     "typescript": "^5.6.3",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "strip-markdown": "^6.0.0",
+    "remark-stringify": "^11.0.0",
+    "@types/hast": "^3.0.0"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.3.3",
@@ -55,6 +59,8 @@
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.4",
     "@sentry/node": "^10.19.0",
+    "@shikijs/core": "^3.21.0",
+    "@shikijs/rehype": "^3.21.0",
     "@tanstack/react-query": "^5.62.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -72,6 +78,8 @@
     "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "^5.15.1",
+    "gray-matter": "^4.0.3",
+    "hast-util-to-jsx-runtime": "^2.3.0",
     "jose": "^6.0.12",
     "json-bigint-patch": "^0.0.8",
     "lucide-react": "^0.460.0",
@@ -80,7 +88,13 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.28.0",
+    "rehype-react": "^8.0.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.0.0",
     "tailwind-merge": "^2.5.4",
-    "typewriter-effect": "^2.22.0"
+    "typewriter-effect": "^2.22.0",
+    "unified": "^11.0.0"
   }
 }

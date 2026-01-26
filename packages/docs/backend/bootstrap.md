@@ -1,3 +1,7 @@
+---
+order: 90
+---
+
 # Bootstrap
 
 The bootstrap process creates the `ServerApp` object that gets passed throughout the application. This happens once at startup and provides every component with access to shared services like the database, logger, and WebSocket manager.

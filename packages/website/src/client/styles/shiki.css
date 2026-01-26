@@ -1,0 +1,49 @@
+/* Shiki CSS Variables Theme */
+
+/* Dark mode (default) */
+:root {
+  --shiki-foreground: #e1e4e8;
+  --shiki-background: #1e293b;
+
+  --shiki-token-constant: #79b8ff;
+  --shiki-token-string: #9ecbff;
+  --shiki-token-comment: #6a737d;
+  --shiki-token-keyword: #f97583;
+  --shiki-token-parameter: #ffab70;
+  --shiki-token-function: #b392f0;
+  --shiki-token-string-expression: #85e89d;
+  --shiki-token-punctuation: #e1e4e8;
+  --shiki-token-link: #79b8ff;
+}
+
+/* Light mode */
+html.light {
+  --shiki-foreground: #24292e;
+  --shiki-background: #f6f8fa;
+
+  --shiki-token-constant: #005cc5;
+  --shiki-token-string: #032f62;
+  --shiki-token-comment: #6a737d;
+  --shiki-token-keyword: #d73a49;
+  --shiki-token-parameter: #e36209;
+  --shiki-token-function: #6f42c1;
+  --shiki-token-string-expression: #22863a;
+  --shiki-token-punctuation: #24292e;
+  --shiki-token-link: #005cc5;
+}
+
+/* Base shiki styles */
+.shiki,
+.shiki code {
+  color: var(--shiki-foreground);
+  background-color: var(--shiki-background);
+}
+
+.shiki span {
+  color: inherit;
+  background-color: transparent !important;
+}
+
+.shiki .line {
+  background-color: transparent !important;
+}

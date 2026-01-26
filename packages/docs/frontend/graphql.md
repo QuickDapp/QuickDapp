@@ -1,3 +1,7 @@
+---
+order: 50
+---
+
 # GraphQL Client
 
 The frontend communicates with the backend API using `graphql-request` paired with React Query for caching and state management. GraphQL handles authentication and notifications—blockchain interactions use Wagmi and Viem directly.

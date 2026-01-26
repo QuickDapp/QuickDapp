@@ -1,3 +1,7 @@
+---
+order: 60
+---
+
 # GraphQL
 
 QuickDapp exposes its API through GraphQL Yoga integrated with ElysiaJS. The schema uses a custom `@auth` directive to protect operations that require authentication.

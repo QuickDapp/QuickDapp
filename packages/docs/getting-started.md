@@ -1,3 +1,8 @@
+---
+order: 98
+icon: Rocket
+---
+
 # Getting started
 
 ## Step 0 - Pre-requisites

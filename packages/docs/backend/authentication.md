@@ -1,3 +1,7 @@
+---
+order: 50
+---
+
 # Authentication
 
 QuickDapp uses stateless JWT authentication with multiple provider options. Users can sign in with their Ethereum wallet (SIWE), email verification codes, or OAuth providers. All flows result in a JWT token that the client sends with subsequent requests.

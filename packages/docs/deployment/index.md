@@ -1,3 +1,9 @@
+---
+order: 60
+icon: Upload
+expanded: true
+---
+
 # Deployment
 
 QuickDapp supports two deployment strategies: self-contained binaries and Docker containers. Both provide simple, reliable deployment with minimal server requirements.

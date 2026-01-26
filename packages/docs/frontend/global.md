@@ -1,3 +1,7 @@
+---
+order: 60
+---
+
 # Global State
 
 QuickDapp uses React Context for global state management. The application separates concerns into focused providers: authentication, WebSocket connections, and toast notifications. Each handles one responsibility and exposes a hook for components to access its data.

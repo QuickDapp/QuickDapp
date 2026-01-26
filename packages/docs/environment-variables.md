@@ -1,3 +1,8 @@
+---
+order: 50
+icon: Settings
+---
+
 # Environment Variables
 
 QuickDapp uses environment variables for configuration, loaded from `.env` files based on `NODE_ENV`. The base `.env` file is loaded first, then environment-specific overrides (`.env.development`, `.env.test`, `.env.production`), and finally `.env.local` for developer overrides.

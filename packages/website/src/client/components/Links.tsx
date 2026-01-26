@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from "react"
+import { Link } from "react-router-dom"
 import type { PropsWithClassName } from "../utils/cn"
 
 export const HomeLink: React.FC<PropsWithChildren<PropsWithClassName>> = ({
@@ -6,9 +7,9 @@ export const HomeLink: React.FC<PropsWithChildren<PropsWithClassName>> = ({
   children,
 }) => {
   return (
-    <a className={className} aria-label="home page" href="/">
+    <Link className={className} aria-label="home page" to="/">
       {children || "Home"}
-    </a>
+    </Link>
   )
 }
 
@@ -32,13 +33,9 @@ export const DocsLink: React.FC<PropsWithChildren<PropsWithClassName>> = ({
   children,
 }) => {
   return (
-    <a
-      className={className}
-      aria-label="getting-started"
-      href="https://docs.quickdapp.xyz/getting-started/"
-    >
+    <Link className={className} aria-label="documentation" to="/docs">
       {children || "Docs"}
-    </a>
+    </Link>
   )
 }
 

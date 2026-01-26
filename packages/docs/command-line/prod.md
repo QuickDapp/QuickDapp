@@ -1,3 +1,7 @@
+---
+order: 70
+---
+
 # Prod
 
 The production command runs the built application. It requires `bun run build` first.
