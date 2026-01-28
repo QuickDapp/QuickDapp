@@ -5,53 +5,71 @@ icon: BookOpen
 
 # Introduction
 
-**QuickDapp** is a highly opinionated modern web application boilerplate with built-in Web3 support. It helps you quickly build _and_ deploy web applications, batteries included.
+**QuickDapp** is a "boilerplate" that serves as the foundation for any modern web app you want to build. Whether you're vibe coding or coding by hand, QuickDapp helps you quickly build _and_ deploy web applications, batteries included.
 
-It is designed to save you a massive amount of time and effort, freeing you up to focus on the parts of your application that actually matter.
+It is designed to save you a massive amount of time and effort, freeing you up to focus on the parts of your web app that actually matter.
 
-## Core Features
+!!!
+A _boilerplate_ is a standardized, reusable piece code that can be used to build multiple projects. Think of it as a design template or blueprint from which you build the actual specific web app you're interested in making.
+!!!
 
-* [Bun](https://bun.sh/) + [ElysiaJS](https://elysiajs.com/) + [React](https://react.dev/) as the foundation. **Bun is the only supported package manager.**
-* [TailwindCSS](https://tailwindcss.com/) + [Radix UI](https://www.radix-ui.com/) for components and styling.
-* [DrizzleORM](https://orm.drizzle.team/) + [PostgreSQL](https://www.postgresql.org/) for database storage.
-* [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server) + [React Query](https://tanstack.com/query/latest) for AJAX calls.
-* JWT token authentication with multiple providers (email, OAuth, and SIWE).
-* Background job scheduling _"worker"_ system with support for cron jobs, repeat-on-failure logic, etc.
-* [Commander](https://github.com/tj/commander.js) for powerful CLI scripts.
-* Binary distribution for self-contained deployments.
-* WebSocket integration for real-time communication.
-* Comprehensive test framework with integration testing.
+## Why do I need this? Can't I just vibe code?
 
-## Web3 Features (Optional)
+Vibe-coding is great. It saves time and gets the job done. A lot of vibe coding when into QuickDapp, trust us ;)
 
-* [RainbowKit](https://rainbowkit.com) + [Wagmi](https://wagmi.sh/) + [Viem](https://viem.sh/) for blockchain interaction.
-* [Sign-in-with-Ethereum](https://login.xyz/) for wallet-based authentication.
-* Sample factory-based smart contracts in `sample-contracts/` for local development and testing.
+But when you're vibe coding more than once you'll find that the AI is recreating the same stuff over and over again - like user account management, theming, mobile-friendly UI components, etc. It would get the job done even quicker if it didn't have to repeat previous work.
 
-As you can see above, QuickDapp does a lot for you out of the box.
+This is exactly where QuickDapp comes in.
 
-QuickDapp also comes with a built-in worker system that can handle background jobs, cron tasks, and optionally blockchain monitoring. You can deploy the worker processes separately or combine them into a single binary. All using the readily available build scripts.
+QuickDapp is a working web application out-of-the-box with user authentication, testing, database connectivity, email sending, real-time notifications, basically a whole bunch of stuff that the AI doesn't need to figure out. It's all there so you can straight away just build the stuff that makes your app unique.
 
-For Web3 developers, the base QuickDapp distribution includes a sample application that demonstrates deploying and interacting with ERC-20 contracts on [Sepolia](https://sepolia.etherscan.io), so you can see all the elements of a working Web3 application from the get-go.
+_"Don't repeat yourself" (DRY)_ is a principle of software development which dictates that stuff that doesn't need to change should be re-used. This is why, even when vibe coding, an AI will use common frameworks like React.js to build your app. 
 
-## Why does this exist?
+But that's not all. 
 
-If you've ever built multiple web applications you'll have found yourself reusing code and integrations from one project to the next to save time. Still, you'll need to spend time adapting the base layer to suit the new application.
+Vibe coding often doesn't (yet) have a neat solution for deployment. It's one thing to build your app. It's a whole other challenge to be able to deploy it to the cloud in a way that makes scaling easy. QuickDapp has got your back on this. 
 
-Now, imagine the reusable part of a web application was built to be generically usable for any project with some sensible defaults included. And imagine it had ready integrations for production deployment with baked-in support for useful features like background jobs, real-time updates, comprehensive testing, and optional blockchain integration. This would save you a tonne of time.
+Your entire web app gets built into a single executable binary (yes, you read that right) for multiple platforms, making it very easy to run your app. Additionally, QuickDapp can create a [Docker container](https://docker.com/), allowing for deployment to _any_ cloud provider. 
 
-This is exactly what QuickDapp is.
+## Ok, what do I get with QuickDapp?
+
+QuickDapp uses all of the following:
+
+* [Typepscript](https://www.typescriptlang.org/) as the programming language.
+* [Bun](https://bun.sh/) as the package manager for installing third-party dependencies, running the web app and building the production output.
+* Backend:
+  * [ElysiaJS](https://elysiajs.com/) as the backend framework.
+  * [PostgreSQL](https://www.postgresql.org/) as the databse database
+  * [DrizzleORM](https://orm.drizzle.team/) for structured database querying.
+  * [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server) for exposing a GraphQL API.
+* Frontend:
+  * [React](https://react.dev/) as the frontend framework.
+  * [TailwindCSS](https://tailwindcss.com/) for styling.
+  * [Radix UI](https://www.radix-ui.com/) for UI components
+  * [React Query](https://tanstack.com/query/latest) for calls to the GraphQL backend API.
+
+Additionall, QuickDapp provides the following features:
+
+* Authenticate users by email, OAuth (Google, Facebook, etc) without using cookies.
+* Background workers so that you can asynchronously schedule long-running tasks.
+* Websockets integration for real-time chat and notifications.
+* Parallelized testing framework for fast automated integration tests.
+* Single-executable binary builds of your entire app for easy distribution.
+
+As you can see it is a very opinionated design, meaning that we think all of the above together form a decent foundational layer for any kind of web app you want to build. Having said that, you can change _anything_ you don't like in QuickDapp to suit your own needs. 
 
 ## What if I don't like something?
 
-QuickDapp has been carefully designed to give you the flexibility to build whatever you want without having to change the core structure. However, you may wish to replace some of the peripheral components (e.g the logging provider or database) with your own choices.
+As a boilerplate QuickDapp is just a starting point. It comes with the entire source code. 
 
-In these cases it's easy to do so since QuickDapp is distributed as source code which you then modify/enhance to build your application. Meaning that any and every aspect of QuickDapp can be modified as you see fit. There are no limits or restrictions.
+You can choose to stick to the structure and design decisions QuickDapp comes with or you can rewrite it any way you want (and then you have your own custom boilerplate based on QuickDapp!). 
 
-Note that parts of the documentation will touch on how you can customize and/or replace certain components to your liking whilst still taking advantage of QuickDapp's other useful features.
+On the whole though, we don't think you will need to rewrite QuickDapp that much since we've used it build multiple apps ourselves. We've incorporated the lessons learnt from building those apps into QuickDapp's design choices. 
 
-## Where do I start?
+Moreover, QuickDapp has support for "variants". You can find out more about those in the [Variants documentation](./variants/index.md).
 
-The [Getting Started](./getting-started.md) section will get you up and running quickly. 
+## Ok, how do I get started?
 
-The remainder of this documentation gives you a thorough understanding of all the different parts of QuickDapp and how to get the most out of the framework as a whole.
+The next section - [Getting Started](./getting-started.md) -  will get you up and running quickly. 
+
+The remainder of this documentation gives you a thorough understanding of all the different parts of QuickDapp and how to get the most out of it.
