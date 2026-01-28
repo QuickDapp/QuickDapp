@@ -1,23 +1,7 @@
 /* Shiki CSS Variables Theme */
 
-/* Dark mode (default) */
+/* Light mode (default) */
 :root {
-  --shiki-foreground: #e1e4e8;
-  --shiki-background: #1e293b;
-
-  --shiki-token-constant: #79b8ff;
-  --shiki-token-string: #9ecbff;
-  --shiki-token-comment: #6a737d;
-  --shiki-token-keyword: #f97583;
-  --shiki-token-parameter: #ffab70;
-  --shiki-token-function: #b392f0;
-  --shiki-token-string-expression: #85e89d;
-  --shiki-token-punctuation: #e1e4e8;
-  --shiki-token-link: #79b8ff;
-}
-
-/* Light mode */
-html.light {
   --shiki-foreground: #24292e;
   --shiki-background: #f6f8fa;
 
@@ -30,6 +14,22 @@ html.light {
   --shiki-token-string-expression: #22863a;
   --shiki-token-punctuation: #24292e;
   --shiki-token-link: #005cc5;
+}
+
+/* Dark mode */
+html.dark {
+  --shiki-foreground: #e1e4e8;
+  --shiki-background: #1e293b;
+
+  --shiki-token-constant: #79b8ff;
+  --shiki-token-string: #9ecbff;
+  --shiki-token-comment: #6a737d;
+  --shiki-token-keyword: #f97583;
+  --shiki-token-parameter: #ffab70;
+  --shiki-token-function: #b392f0;
+  --shiki-token-string-expression: #85e89d;
+  --shiki-token-punctuation: #e1e4e8;
+  --shiki-token-link: #79b8ff;
 }
 
 /* Base shiki styles */

@@ -1,36 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;700&family=Prompt:wght@400;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;500;700&family=Prompt:wght@400;600&display=swap");
 @import "./shiki.css";
 
 @import "tailwindcss";
 
 @theme {
-  --color-anchor: #0ec8ff;
-  --color-background: #000000;
-  --color-foreground: #ffffff;
-  --color-muted: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-emphasis: #0ec8ff;
-  --color-alt: #94a3b8;
-
-  --color-gradcol1: #000000;
-  --color-gradcol2: #1a1a2e;
-  --color-gradcol3: #16213e;
-  --color-gradcol3b: #0f3460;
-
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
-
-  --shadow-glow: 0 0 1rem
-    color-mix(in srgb, var(--color-anchor) 30%, transparent);
-  --shadow-strong: 0 0 2rem
-    color-mix(in srgb, var(--color-anchor) 50%, transparent);
-  --shadow-big: 0px 0px 26px 21px rgba(0, 0, 0, 0.75);
-
   --font-size-sm: 14px;
   --line-height-sm: 20px;
   --font-size-base: 16px;
@@ -41,36 +14,63 @@
   --line-height-xl: 32px;
 
   --font-heading: "Prompt", sans-serif;
-  --font-body: "Noto Sans", sans-serif;
+  --font-body: "Open Sans", sans-serif;
 
   --header-height: 56px;
 
   --transition-props:
     height, width, opacity, background-color, color, border-color;
+
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  /* Light theme values as defaults for utility generation */
+  --color-anchor: #0891b2;
+  --color-background: #ffffff;
+  --color-foreground: #333333;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-emphasis: #0284c7;
+  --color-alt: #64748b;
+
+  --color-gradcol1: #ffffff;
+  --color-gradcol2: #f5f0e8;
+  --color-gradcol3: #e8e0d5;
+  --color-gradcol3b: #d4c9bb;
+
+  --shadow-glow: 0 0 1rem
+    color-mix(in srgb, var(--color-anchor) 20%, transparent);
+  --shadow-strong: 0 0 2rem
+    color-mix(in srgb, var(--color-anchor) 30%, transparent);
+  --shadow-big: 0px 0px 26px 21px rgba(0, 0, 0, 0.1);
 }
 
 @layer base {
-  :root {
-    --header-height: 56px;
-  }
+  /* Dark theme */
+  html.dark {
+    --color-anchor: #0ec8ff;
+    --color-background: #000000;
+    --color-foreground: #cccccc;
+    --color-muted: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-emphasis: #0ec8ff;
+    --color-alt: #94a3b8;
 
-  html.light {
-    --color-anchor: #0891b2;
-    --color-background: #ffffff;
-    --color-foreground: #1f2937;
-    --color-muted: #6b7280;
-    --color-border: #e5e7eb;
-    --color-emphasis: #0284c7;
-    --color-alt: #64748b;
-    --color-gradcol1: #ffffff;
-    --color-gradcol2: #f5f0e8;
-    --color-gradcol3: #e8e0d5;
-    --color-gradcol3b: #d4c9bb;
+    --color-gradcol1: #000000;
+    --color-gradcol2: #1a1a2e;
+    --color-gradcol3: #16213e;
+    --color-gradcol3b: #0f3460;
+
     --shadow-glow: 0 0 1rem
-      color-mix(in srgb, var(--color-anchor) 20%, transparent);
-    --shadow-strong: 0 0 2rem
       color-mix(in srgb, var(--color-anchor) 30%, transparent);
-    --shadow-big: 0px 0px 26px 21px rgba(0, 0, 0, 0.1);
+    --shadow-strong: 0 0 2rem
+      color-mix(in srgb, var(--color-anchor) 50%, transparent);
+    --shadow-big: 0px 0px 26px 21px rgba(0, 0, 0, 0.75);
   }
 
   * {
@@ -85,8 +85,8 @@
   }
 
   body {
-    @apply h-full m-0 px-4 box-border bg-background text-foreground;
-    @apply font-body antialiased;
+    @apply h-full m-0 box-border bg-background text-foreground;
+    @apply font-body font-medium antialiased;
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
@@ -106,25 +106,9 @@
     }
   }
 
-  html.light a,
-  html.light a:link,
-  html.light a:visited {
-    &:hover {
-      @apply bg-anchor text-white;
-    }
-  }
-
   a.no-anchor-hover-styles,
   a.no-anchor-hover-styles:link,
   a.no-anchor-hover-styles:visited {
-    &:hover {
-      @apply bg-transparent text-current;
-    }
-  }
-
-  html.light a.no-anchor-hover-styles,
-  html.light a.no-anchor-hover-styles:link,
-  html.light a.no-anchor-hover-styles:visited {
     &:hover {
       @apply bg-transparent text-current;
     }
@@ -205,7 +189,7 @@
 }
 
 @utility gradient-block {
-  @apply bg-gradient-to-b;
+  @apply bg-linear-to-b;
 }
 
 @utility gradient-block-1 {
@@ -225,5 +209,5 @@
 }
 
 @utility container {
-  @apply max-w-4xl mx-auto;
+  @apply max-w-4xl mx-auto px-4;
 }
