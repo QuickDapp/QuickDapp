@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.7.0](https://github.com/QuickDapp/QuickDapp/compare/v3.5.3...v3.7.0) (2026-01-28)
+
+
+### Features
+
+* **cli:** add version listing and specific version install ([e364ec6](https://github.com/QuickDapp/QuickDapp/commit/e364ec6b2e017a990e8f7219c1e711997a4c7e85))
+* docs architecture ([#9](https://github.com/QuickDapp/QuickDapp/issues/9)) ([4b7c209](https://github.com/QuickDapp/QuickDapp/commit/4b7c2091759581e56220b8554c2fcefe47c442d8))
+* **website:** add docs search and UI components ([5dd1240](https://github.com/QuickDapp/QuickDapp/commit/5dd12404e149ace8571a6b8cff89968fd105de88))
+* **website:** add header with logo and theme switcher ([080602d](https://github.com/QuickDapp/QuickDapp/commit/080602df8c0c750760fe80e4ca7a98f1b874b4f9))
+* **website:** add mobile sidebar and switch to light-mode-first theming ([ca018ff](https://github.com/QuickDapp/QuickDapp/commit/ca018ffc25014f07728564b1ff5832c8dacd8b3e))
+* **website:** add typewriter effect to homepage tagline ([aa2f78d](https://github.com/QuickDapp/QuickDapp/commit/aa2f78d607a995123201de2e1d68f4671bf47280))
+* **website:** redesign homepage and update branding ([a8d0df9](https://github.com/QuickDapp/QuickDapp/commit/a8d0df96e3b725220f10cfcabec81c77937c1884))
+
+
+### Performance
+
+* **website:** move search index building to build-time ([d65f3a1](https://github.com/QuickDapp/QuickDapp/commit/d65f3a1b69090bb4cc157b2ec9e2a65c68dfd079))
+
+
+### Documentation
+
+* clarify terminal usage in README quick start sections ([2c64e77](https://github.com/QuickDapp/QuickDapp/commit/2c64e7702764b053cdc7c48341f7b393ce773080))
+* **plan:** expand versioned docs plan with frontmatter restoration ([5256678](https://github.com/QuickDapp/QuickDapp/commit/52566784f633a75a8b3aacff688c84dfafaa4907))
+* revamp introduction and add tutorials/variants sections ([870ed54](https://github.com/QuickDapp/QuickDapp/commit/870ed5473f07053828084db56bbbcf0d6c580ebd))
+
 ## [3.6.0](https://github.com/QuickDapp/QuickDapp/compare/v3.5.3...v3.6.0) (2026-01-26)
 
 
