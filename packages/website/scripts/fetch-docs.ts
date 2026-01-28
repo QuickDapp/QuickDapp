@@ -483,12 +483,14 @@ export async function runFetchDocs(options: {
   )
 }
 
-createScriptRunner(
-  {
-    name: "fetch-docs",
-    description: "Fetch documentation from git version tags",
-    env: "production",
-  },
-  fetchDocsHandler,
-  setupCommand,
-)
+if (import.meta.main) {
+  createScriptRunner(
+    {
+      name: "fetch-docs",
+      description: "Fetch documentation from git version tags",
+      env: "production",
+    },
+    fetchDocsHandler,
+    setupCommand,
+  )
+}
