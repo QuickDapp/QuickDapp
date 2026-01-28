@@ -42,6 +42,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/graphql": "http://localhost:3000",
+      "/health": "http://localhost:3000",
+      "/version": "http://localhost:3000",
     },
   },
   build: {
