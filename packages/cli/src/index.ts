@@ -223,15 +223,16 @@ const program = new Command()
 
 program
   .name("create-quickdapp")
-  .description("Create a new QuickDapp project")
+  .description("CLI to scaffold QuickDapp projects")
   .version(CLI_VERSION)
 
 program
-  .argument("[project-name]", "Name of the project to create")
+  .command("create [project-name]", { isDefault: true })
+  .description("Create a new QuickDapp project")
   .option(
     "-v, --variant <variant>",
     "Project variant (base or web3)",
-    "web3",
+    "base",
   )
   .option("--skip-install", "Skip running bun install", false)
   .option("-r, --release <version>", "Use a specific release version")
@@ -260,7 +261,7 @@ program
 
     if (!projectName) {
       console.error("Error: project-name is required")
-      console.error("Usage: create-quickdapp <project-name>")
+      console.error("Usage: create-quickdapp create <project-name>")
       process.exit(1)
     }
 

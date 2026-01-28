@@ -6,22 +6,27 @@ CLI tool to scaffold new QuickDapp projects.
 
 ```bash
 # Using bunx (recommended)
-bunx create-quickdapp my-project
+bunx @quickdapp/cli create my-project
 
 # Using npx
-npx create-quickdapp my-project
+npx @quickdapp/cli create my-project
+
+# The 'create' command is the default, so this also works:
+bunx @quickdapp/cli my-project
 
 # With variant selection
-bunx create-quickdapp my-project --variant base   # Base package (no Web3)
-bunx create-quickdapp my-project --variant web3   # Web3 variant (default)
+bunx @quickdapp/cli create my-project --variant web3   # Web3 variant
+bunx @quickdapp/cli create my-project --variant base   # Base (default)
 ```
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `--variant <name>` | Choose package variant: `base` or `web3` (default: `web3`) |
+| `-v, --variant <name>` | Choose package variant: `base` or `web3` (default: `base`) |
 | `--skip-install` | Skip running `bun install` after scaffolding |
+| `-r, --release <version>` | Use a specific release version |
+| `--list-versions` | List available QuickDapp versions |
 | `--help` | Show help |
 
 ## Prerequisites

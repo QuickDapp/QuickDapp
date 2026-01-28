@@ -12,14 +12,17 @@ This is the **CLI tool** for scaffolding new QuickDapp projects. It downloads th
 
 ```bash
 # Using bunx (recommended)
-bunx create-quickdapp my-project
+bunx @quickdapp/cli create my-project
 
 # Using npx
-npx create-quickdapp my-project
+npx @quickdapp/cli create my-project
+
+# The 'create' command is the default, so this also works:
+bunx @quickdapp/cli my-project
 
 # With variant selection
-bunx create-quickdapp my-project --variant base
-bunx create-quickdapp my-project --variant web3  # default
+bunx @quickdapp/cli create my-project --variant web3   # Web3 variant
+bunx @quickdapp/cli create my-project --variant base   # Base (default)
 ```
 
 ---
@@ -31,7 +34,8 @@ bunx create-quickdapp my-project --variant web3  # default
 bun run build
 
 # Run locally during development
-bun run dev my-test-project
+bun run dev create my-test-project
+bun run dev my-test-project  # implicit create
 ```
 
 ---
