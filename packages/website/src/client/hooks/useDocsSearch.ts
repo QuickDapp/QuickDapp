@@ -1,30 +1,12 @@
 import lunr from "lunr"
 import { useMemo } from "react"
-import type { DocsIndex } from "./useDocs"
+import type { SearchIndexData } from "./useDocs"
 
 export interface SearchResult {
   path: string
   title: string
   snippet: string
   score: number
-}
-
-function stripMarkdown(markdown: string): string {
-  return markdown
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/`[^`]+`/g, "")
-    .replace(/!\[.*?\]\(.*?\)/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/#{1,6}\s+/g, "")
-    .replace(/[*_~]+/g, "")
-    .replace(/^\s*[-*+]\s+/gm, "")
-    .replace(/^\s*\d+\.\s+/gm, "")
-    .replace(/^\s*>\s+/gm, "")
-    .replace(/\|[^\n]+\|/g, "")
-    .replace(/[-:]+\|[-:|\s]+/g, "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\n{2,}/g, "\n")
-    .trim()
 }
 
 function extractSnippet(
@@ -59,38 +41,23 @@ function extractSnippet(
   return snippet
 }
 
-export function useDocsSearch(docsIndex: DocsIndex | undefined): {
+export function useDocsSearch(searchData: SearchIndexData | undefined): {
   search: (query: string) => SearchResult[]
   isIndexReady: boolean
 } {
   const { index, documents } = useMemo(() => {
-    if (!docsIndex) {
+    if (!searchData) {
       return {
         index: null,
         documents: new Map<string, { title: string; content: string }>(),
       }
     }
 
-    const docs = new Map<string, { title: string; content: string }>()
-
-    const idx = lunr(function () {
-      this.ref("path")
-      this.field("title", { boost: 10 })
-      this.field("content")
-
-      for (const [path, page] of Object.entries(docsIndex.pages)) {
-        const strippedContent = stripMarkdown(page.markdown)
-        docs.set(path, { title: page.title, content: strippedContent })
-        this.add({
-          path,
-          title: page.title,
-          content: strippedContent,
-        })
-      }
-    })
+    const idx = lunr.Index.load(searchData.serializedIndex)
+    const docs = new Map(Object.entries(searchData.docs))
 
     return { index: idx, documents: docs }
-  }, [docsIndex])
+  }, [searchData])
 
   const search = useMemo(() => {
     return (query: string): SearchResult[] => {

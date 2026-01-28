@@ -80,19 +80,7 @@ async function buildHandler(
     console.warn("⚠️  Failed to fetch documentation, continuing build...", error)
   }
 
-  // Step 4: Copy docs-versions to static-src for serving
-  const docsVersionsDir = path.join(config.rootFolder, "docs-versions")
-  const docsVersionsStaticDir = path.join(PATHS.STATIC_SRC, "docs-versions")
-  if (existsSync(docsVersionsDir)) {
-    console.log("📚 Copying documentation to static assets...")
-    if (existsSync(docsVersionsStaticDir)) {
-      rmSync(docsVersionsStaticDir, { recursive: true, force: true })
-    }
-    cpSync(docsVersionsDir, docsVersionsStaticDir, { recursive: true })
-    console.log("✅ Documentation copied to static assets")
-  }
-
-  // Step 5: Lint and type check
+  // Step 4: Lint and type check
   try {
     console.log("🔎 Linting and type checking...")
     await $`bun run lint`
@@ -101,16 +89,16 @@ async function buildHandler(
     console.warn("⚠️  Linting or type checking failed, continuing build...")
   }
 
-  // Step 6: Build frontend
+  // Step 5: Build frontend
   console.log("🎨 Building frontend...")
   await $`bun vite build`.cwd(PATHS.SRC_CLIENT)
   console.log("✅ Frontend built to dist/client")
 
-  // Step 7: Copy static-src to server static directory first (if bundling)
+  // Step 6: Copy static-src to server static directory first (if bundling)
   if (shouldBundle) {
     copyStaticSrc(config.rootFolder, true)
 
-    // Step 8: Copy frontend build to server static directory (overwrites static-src files as needed)
+    // Step 7: Copy frontend build to server static directory (overwrites static-src files as needed)
     console.log("📁 Copying frontend to server static directory...")
     cpSync(PATHS.DIST_CLIENT, PATHS.SERVER_STATIC, {
       recursive: true,
@@ -123,12 +111,12 @@ async function buildHandler(
     )
   }
 
-  // Step 9: Build server bundle
+  // Step 8: Build server bundle
   console.log("📦 Building server bundle...")
   await $`bun build ${PATHS.SERVER_INDEX} --outdir ${PATHS.DIST_SERVER} --target bun --minify --sourcemap`
   console.log("✅ Server built to dist/server")
 
-  // Step 10: Copy server static directory to dist/server (if bundling)
+  // Step 9: Copy server static directory to dist/server (if bundling)
   if (shouldBundle) {
     console.log("📁 Copying server static directry to dist/server...")
     cpSync(PATHS.SERVER_STATIC, PATHS.DIST_SERVER_STATIC, { recursive: true })
@@ -139,7 +127,7 @@ async function buildHandler(
     )
   }
 
-  // Step 11: Validation
+  // Step 10: Validation
   console.log("🔍 Validating build...")
   const SERVER_INDEX_JS = path.join(PATHS.DIST_SERVER, "index.js")
   if (!existsSync(SERVER_INDEX_JS)) {
@@ -174,7 +162,7 @@ async function buildHandler(
     }
   }
 
-  // Step 12: Binary build (always enabled)
+  // Step 11: Binary build (always enabled)
   console.log("🔧 Building binary distribution...")
   await buildBinaryDistribution(PATHS, config)
   console.log("✅ Binary distribution built")

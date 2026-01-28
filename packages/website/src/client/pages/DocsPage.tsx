@@ -6,7 +6,7 @@ import { DocsLoadingState } from "../components/docs/DocsLoadingState"
 import { DocsSidebar } from "../components/docs/DocsSidebar"
 import { SearchModal } from "../components/docs/SearchModal"
 import { Footer } from "../components/Footer"
-import { useDocs, useDocsIndex, useDocsManifest } from "../hooks/useDocs"
+import { useDocs, useDocsManifest, useDocsSearchData } from "../hooks/useDocs"
 
 export function DocsPage() {
   const { version, "*": pagePath } = useParams<{
@@ -25,7 +25,7 @@ export function DocsPage() {
     resolvedPath,
   )
 
-  const docsIndexQuery = useDocsIndex(resolvedVersion)
+  const searchDataQuery = useDocsSearchData(resolvedVersion)
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export function DocsPage() {
           open={searchOpen}
           onOpenChange={setSearchOpen}
           version={version!}
-          docsIndex={docsIndexQuery.data}
+          searchData={searchDataQuery.data}
         />
         <main className="min-w-0 flex-1">
           <DocsContent markdown={page.markdown} />

@@ -7,28 +7,28 @@ import {
   useState,
 } from "react"
 import { useNavigate } from "react-router-dom"
-import type { DocsIndex } from "../../hooks/useDocs"
+import type { SearchIndexData } from "../../hooks/useDocs"
 import { type SearchResult, useDocsSearch } from "../../hooks/useDocsSearch"
 import { cn } from "../../utils/cn"
-import { Dialog, DialogContent } from "../Dialog"
+import { Dialog, DialogContent, DialogTitle } from "../Dialog"
 
 interface SearchModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   version: string
-  docsIndex: DocsIndex | undefined
+  searchData: SearchIndexData | undefined
 }
 
 export function SearchModal({
   open,
   onOpenChange,
   version,
-  docsIndex,
+  searchData,
 }: SearchModalProps) {
   const navigate = useNavigate()
   const [query, setQuery] = useState("")
   const deferredQuery = useDeferredValue(query)
-  const { search, isIndexReady } = useDocsSearch(docsIndex)
+  const { search, isIndexReady } = useDocsSearch(searchData)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsContainerRef = useRef<HTMLDivElement>(null)
@@ -87,7 +87,11 @@ export function SearchModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl gap-0 p-0">
+      <DialogContent
+        className="max-w-xl gap-0 p-0"
+        aria-describedby={undefined}
+      >
+        <DialogTitle className="sr-only">Search documentation</DialogTitle>
         <div className="flex items-center border-b border-foreground/20 px-4">
           <Search className="h-4 w-4 text-foreground/60" />
           <input

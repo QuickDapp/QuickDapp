@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -11,6 +12,7 @@ import {
 import path from "node:path"
 import { $ } from "bun"
 import matter from "gray-matter"
+import lunr from "lunr"
 import {
   type CommandSetup,
   createScriptRunner,
@@ -56,6 +58,24 @@ async function extractTitleFromMarkdown(markdown: string): Promise<string> {
     }
   }
   return "Untitled"
+}
+
+function stripMarkdown(markdown: string): string {
+  return markdown
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`[^`]+`/g, "")
+    .replace(/!\[.*?\]\(.*?\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/[*_~]+/g, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/^\s*>\s+/gm, "")
+    .replace(/\|[^\n]+\|/g, "")
+    .replace(/[-:]+\|[-:|\s]+/g, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n{2,}/g, "\n")
+    .trim()
 }
 
 function processRetypeCallouts(markdown: string): string {
@@ -148,6 +168,29 @@ async function fetchDocsHandler(
           .join("\n\n---\n\n")
         writeFileSync(path.join(versionDir, "llm.md"), allMarkdown)
 
+        const searchDocs: Record<string, { title: string; content: string }> =
+          {}
+        const searchIndex = lunr(function () {
+          this.ref("path")
+          this.field("title", { boost: 10 })
+          this.field("content")
+
+          for (const [pagePath, page] of Object.entries(docs.pages)) {
+            const content = stripMarkdown(page.markdown)
+            searchDocs[pagePath] = { title: page.title, content }
+            this.add({ path: pagePath, title: page.title, content })
+          }
+        })
+
+        writeFileSync(
+          path.join(versionDir, "search-index.json"),
+          JSON.stringify(searchIndex),
+        )
+        writeFileSync(
+          path.join(versionDir, "search-docs.json"),
+          JSON.stringify(searchDocs),
+        )
+
         processedVersions.push(displayVersion)
         console.log(
           `✅ ${tag} processed (${Object.keys(docs.pages).length} pages)`,
@@ -178,11 +221,39 @@ async function fetchDocsHandler(
     JSON.stringify(manifest, null, 2),
   )
 
+  const staticSrcDocsDir = path.join(
+    config.rootFolder,
+    "src",
+    "server",
+    "static-src",
+    "docs-versions",
+  )
+  const staticDocsDir = path.join(
+    config.rootFolder,
+    "src",
+    "server",
+    "static",
+    "docs-versions",
+  )
+
+  if (existsSync(staticSrcDocsDir)) {
+    rmSync(staticSrcDocsDir, { recursive: true, force: true })
+  }
+  mkdirSync(staticSrcDocsDir, { recursive: true })
+  cpSync(outputDir, staticSrcDocsDir, { recursive: true })
+
+  if (existsSync(staticDocsDir)) {
+    rmSync(staticDocsDir, { recursive: true, force: true })
+  }
+  mkdirSync(staticDocsDir, { recursive: true })
+  cpSync(outputDir, staticDocsDir, { recursive: true })
+
   console.log("")
   console.log(
     `✨ Documentation fetched for ${processedVersions.length} version(s)`,
   )
   console.log(`📁 Output: ${outputDir}`)
+  console.log(`📁 Copied to: static-src/docs-versions, static/docs-versions`)
 }
 
 async function getVersionTags(rootFolder: string): Promise<string[]> {

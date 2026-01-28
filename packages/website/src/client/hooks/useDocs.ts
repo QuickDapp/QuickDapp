@@ -83,6 +83,36 @@ export function useDocsLlm(version: string | undefined) {
   })
 }
 
+interface SearchIndexData {
+  serializedIndex: object
+  docs: Record<string, { title: string; content: string }>
+}
+
+export function useDocsSearchData(version: string | undefined) {
+  return useQuery({
+    queryKey: ["docs-search", version],
+    queryFn: async (): Promise<SearchIndexData> => {
+      const [indexRes, docsRes] = await Promise.all([
+        fetch(`/docs-versions/${version}/search-index.json`),
+        fetch(`/docs-versions/${version}/search-docs.json`),
+      ])
+      if (!indexRes.ok) {
+        throw new Error(`Failed to fetch search index: ${indexRes.statusText}`)
+      }
+      if (!docsRes.ok) {
+        throw new Error(`Failed to fetch search docs: ${docsRes.statusText}`)
+      }
+      const [serializedIndex, docs] = await Promise.all([
+        indexRes.json(),
+        docsRes.json(),
+      ])
+      return { serializedIndex, docs }
+    },
+    enabled: !!version,
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
 export function useDocs(version: string | undefined, pagePath: string) {
   const indexQuery = useDocsIndex(version)
   const treeQuery = useDocsTree(version)
@@ -98,4 +128,11 @@ export function useDocs(version: string | undefined, pagePath: string) {
   }
 }
 
-export type { DocPage, TreeItem, DocsManifest, DocsIndex, DocsTree }
+export type {
+  DocPage,
+  TreeItem,
+  DocsManifest,
+  DocsIndex,
+  DocsTree,
+  SearchIndexData,
+}
