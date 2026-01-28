@@ -56,3 +56,7 @@ temp/
 
 # Claude local
 CLAUDE.local.md
+
+# Versioned docs content (generated)
+docs-versions/
+src/server/static-src/docs-versions/

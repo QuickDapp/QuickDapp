@@ -40,7 +40,7 @@ export const HomePage = () => {
           <div className="mt-16 flex sm:flex-row sm:justify-center flex-col justify-start items-center">
             <DocsLink className="no-anchor-hover-styles">
               <Button size="xl" className="w-72">
-                Get started
+                Start building
               </Button>
             </DocsLink>
           </div>
@@ -253,7 +253,7 @@ export const HomePage = () => {
         </div>
       </div>
 
-      <div className="gradient-block-1" style={{ minHeight: "auto" }}>
+      <div className="gradient-block-1 px-4" style={{ minHeight: "auto" }}>
         <Footer />
       </div>
     </div>

@@ -106,6 +106,13 @@ bun run format           # Format code with Biome
 - Use `cn()` utility for dynamic className content - no template string interpolation
 - Client code uses `clientConfig` from `src/shared/config/client.ts` - never access `globalThis.__CONFIG__` directly
 
+**Custom Components over Native HTML**
+- Use custom components from `src/client/components/` instead of native HTML elements
+- `Button` component instead of `<button>` - provides consistent styling and variants
+- `Dialog` component instead of `<dialog>` - accessible modal implementation
+- `Sheet` component for slide-out panels
+- Check existing components before using native HTML tags - consistency matters
+
 **Static Assets**
 - Static files (favicon.ico, robots.txt, fonts) go in `src/server/static-src/`
 - Vite serves these during dev (via publicDir) and copies to build output

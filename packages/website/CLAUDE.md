@@ -62,3 +62,14 @@ Optional:
 ```
 GITHUB_TOKEN=<for higher API rate limits>
 ```
+
+---
+
+## Coding Guidelines
+
+**Custom Components over Native HTML**
+- Use custom components from `src/client/components/` instead of native HTML elements
+- `Button` component instead of `<button>` - provides consistent styling and variants
+- `Dialog` component instead of `<dialog>` - accessible modal implementation
+- `Sheet` component for slide-out panels
+- Check existing components before using native HTML tags - consistency matters
