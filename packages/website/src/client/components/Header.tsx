@@ -30,7 +30,7 @@ export function Header({ showBackToHome }: HeaderProps) {
           : "bg-transparent",
       )}
     >
-      <div className="container h-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="container h-full flex items-center justify-between">
         <Link
           to="/"
           className="no-anchor-hover-styles text-foreground flex items-center gap-2"

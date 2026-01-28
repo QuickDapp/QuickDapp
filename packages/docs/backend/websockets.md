@@ -1,3 +1,7 @@
+---
+order: 40
+---
+
 # WebSockets
 
 QuickDapp uses WebSockets for real-time communication between the server and connected clients. When the application creates a notification, it gets saved to the database and immediately pushed to the user's browser sessions.

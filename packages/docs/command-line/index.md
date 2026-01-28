@@ -1,3 +1,10 @@
+---
+order: 96
+icon: Terminal
+label: Command-line
+expanded: true
+---
+
 # Command Line
 
 QuickDapp provides CLI commands for development, building, testing, and database management. All commands run through `bun run`.

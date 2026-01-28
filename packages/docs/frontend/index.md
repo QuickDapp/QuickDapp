@@ -1,3 +1,9 @@
+---
+order: 94
+icon: Monitor
+expanded: true
+---
+
 # Frontend
 
 The QuickDapp frontend is a React 19 application built with Vite, TypeScript, and TailwindCSS. Web3 integration through RainbowKit and Wagmi is optional—the same codebase works with or without blockchain features.

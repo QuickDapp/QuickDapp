@@ -61,6 +61,20 @@ export function DocsLlmPage() {
             onVersionChange={handleVersionChange}
           />
         </div>
+
+        <Button variant="outline" size="sm" onClick={handleCopy}>
+          {copied ? (
+            <>
+              <Check className="h-4 w-4 mr-2" />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy to clipboard
+            </>
+          )}
+        </Button>
       </div>
 
       <div className="mb-6">
@@ -72,23 +86,9 @@ export function DocsLlmPage() {
           context windows. Copy and paste into your AI assistant for reference.
         </p>
       </div>
-      <div className="relative">
-        <Button
-          variant="outline"
-          size="xs"
-          onClick={handleCopy}
-          className="absolute top-2 right-2 px-1.5"
-        >
-          {copied ? (
-            <Check className="h-3 w-3" />
-          ) : (
-            <Copy className="h-3 w-3" />
-          )}
-        </Button>
-        <pre className="whitespace-pre-wrap rounded-lg bg-foreground/5 p-6 pt-12 text-sm font-mono leading-relaxed overflow-x-auto">
-          {llmQuery.data}
-        </pre>
-      </div>
+      <pre className="whitespace-pre-wrap rounded-lg bg-foreground/5 p-6 text-sm font-mono leading-relaxed overflow-x-auto">
+        {llmQuery.data}
+      </pre>
     </div>
   )
 }

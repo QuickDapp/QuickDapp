@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;500;700&family=Prompt:wght@400;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;700&family=Prompt:wght@400;600&display=swap");
 @import "./shiki.css";
 
 @import "tailwindcss";
@@ -85,8 +85,8 @@
   }
 
   body {
-    @apply h-full m-0 box-border bg-background text-foreground;
-    @apply font-body font-medium antialiased;
+    @apply h-full m-0 px-4 box-border bg-background text-foreground;
+    @apply font-body antialiased;
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
@@ -225,5 +225,5 @@
 }
 
 @utility container {
-  @apply max-w-4xl mx-auto px-4;
+  @apply max-w-4xl mx-auto;
 }

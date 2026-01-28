@@ -46,6 +46,11 @@ src/server/static
 # Temporary folders
 tmp/
 temp/
+.temp-docs/
+
+# Generated docs
+docs-versions/
+src/server/static-src/docs-versions/
 
 # Editor files
 .vscode/*

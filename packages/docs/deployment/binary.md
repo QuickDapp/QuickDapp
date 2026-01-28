@@ -1,3 +1,7 @@
+---
+order: 70
+---
+
 # Binary Deployment
 
 QuickDapp builds self-contained executables that include the server, all dependencies, and static assets. Upload the single file to your server and run it—no Node.js or Bun runtime required.

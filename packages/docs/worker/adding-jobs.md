@@ -1,3 +1,7 @@
+---
+order: 70
+---
+
 # Adding Jobs
 
 To add a custom job type, create a job file, define its data type, and register it in the job registry.

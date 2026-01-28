@@ -1,3 +1,7 @@
+---
+order: 80
+---
+
 # Components
 
 QuickDapp includes a small set of UI components built on Radix UI primitives with TailwindCSS styling. The focus is on essential functionality rather than a comprehensive design system.

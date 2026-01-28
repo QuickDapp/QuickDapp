@@ -1,17 +1,9 @@
 import * as LucideIcons from "lucide-react"
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  Search,
-} from "lucide-react"
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import type { TreeItem } from "../../hooks/useDocs"
 import { cn } from "../../utils/cn"
-import { Button } from "../Button"
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "../Sheet"
 import { VersionSelector } from "./VersionSelector"
 
 interface DocsSidebarProps {
@@ -21,12 +13,7 @@ interface DocsSidebarProps {
   latestVersion: string
   onVersionChange: (version: string) => void
   currentPath: string
-  onSearchClick: () => void
 }
-
-const isMac =
-  typeof navigator !== "undefined" &&
-  navigator.platform.toUpperCase().includes("MAC")
 
 function SidebarItem({
   item,
@@ -119,51 +106,28 @@ function SidebarItem({
   )
 }
 
-interface SidebarContentProps {
-  tree: TreeItem[]
-  version: string
-  versions: string[]
-  latestVersion: string
-  onVersionChange: (version: string) => void
-  currentPath: string
-  onSearchClick: () => void
-}
-
-function SidebarContent({
+export function DocsSidebar({
   tree,
   version,
   versions,
   latestVersion,
   onVersionChange,
   currentPath,
-  onSearchClick,
-}: SidebarContentProps) {
+}: DocsSidebarProps) {
   return (
-    <>
-      <div className="mb-4 flex items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-foreground/60">
-          Version:
-        </span>
+    <aside className="sticky top-20 h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-foreground/10 pb-8 pr-4">
+      <div className="mb-6">
+        <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-foreground/60">
+          Version
+        </label>
         <VersionSelector
           version={version}
           versions={versions}
           latestVersion={latestVersion}
           onVersionChange={onVersionChange}
-          compact
+          fullWidth
         />
       </div>
-
-      <button
-        type="button"
-        onClick={onSearchClick}
-        className="mb-6 flex w-full items-center gap-2 rounded-lg border border-foreground/20 px-3 py-2 text-sm text-foreground/60 hover:border-foreground/40 hover:text-foreground"
-      >
-        <Search className="h-4 w-4" />
-        Search
-        <kbd className="ml-auto rounded bg-foreground/10 px-1.5 py-0.5 text-xs">
-          {isMac ? "⌘K" : "Ctrl+K"}
-        </kbd>
-      </button>
 
       <nav className="space-y-1">
         {tree.map((item) => (
@@ -185,60 +149,6 @@ function SidebarContent({
           LLM-friendly view
         </Link>
       </div>
-    </>
-  )
-}
-
-export function DocsSidebar({
-  tree,
-  version,
-  versions,
-  latestVersion,
-  onVersionChange,
-  currentPath,
-  onSearchClick,
-}: DocsSidebarProps) {
-  const [mobileOpen, setMobileOpen] = useState(false)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: close mobile menu on route change
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [currentPath])
-
-  const sidebarProps = {
-    tree,
-    version,
-    versions,
-    latestVersion,
-    onVersionChange,
-    currentPath,
-    onSearchClick,
-  }
-
-  return (
-    <>
-      {/* Mobile hamburger button */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            className="fixed right-4 top-[72px] z-40 gap-2 md:hidden"
-            aria-label="Open navigation menu"
-          >
-            <ChevronLeft className="h-5 w-5" />
-            <span>Menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-72 overflow-y-auto pt-12">
-          <SheetTitle className="sr-only">Documentation Navigation</SheetTitle>
-          <SidebarContent {...sidebarProps} />
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop sidebar */}
-      <aside className="sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r border-foreground/10 pb-8 pr-4 md:block">
-        <SidebarContent {...sidebarProps} />
-      </aside>
-    </>
+    </aside>
   )
 }

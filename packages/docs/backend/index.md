@@ -1,3 +1,9 @@
+---
+order: 95
+icon: Server
+expanded: true
+---
+
 # Backend
 
 The QuickDapp backend runs on Bun with ElysiaJS as the web framework. Everything flows through the ServerApp pattern, which provides clean access to the database, logger, WebSocket manager, worker system, and optional blockchain clients.

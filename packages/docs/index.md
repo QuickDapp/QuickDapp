@@ -1,3 +1,8 @@
+---
+order: 100
+icon: BookOpen
+---
+
 # Introduction
 
 **QuickDapp** is a highly opinionated modern web application boilerplate with built-in Web3 support. It helps you quickly build _and_ deploy web applications, batteries included.

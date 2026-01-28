@@ -1,3 +1,7 @@
+---
+order: 70
+---
+
 # Database
 
 QuickDapp uses DrizzleORM with PostgreSQL. DrizzleORM provides type-safe queries that compile to efficient SQL, with full TypeScript integration so your IDE catches errors before they reach production.

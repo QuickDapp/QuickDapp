@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { DocsContent } from "../components/docs/DocsContent"
 import { DocsErrorState } from "../components/docs/DocsErrorState"
 import { DocsLoadingState } from "../components/docs/DocsLoadingState"
 import { DocsSidebar } from "../components/docs/DocsSidebar"
-import { SearchModal } from "../components/docs/SearchModal"
 import { Footer } from "../components/Footer"
-import { useDocs, useDocsIndex, useDocsManifest } from "../hooks/useDocs"
+import { useDocs, useDocsManifest } from "../hooks/useDocs"
 
 export function DocsPage() {
   const { version, "*": pagePath } = useParams<{
@@ -24,20 +22,6 @@ export function DocsPage() {
     resolvedVersion,
     resolvedPath,
   )
-
-  const docsIndexQuery = useDocsIndex(resolvedVersion)
-  const [searchOpen, setSearchOpen] = useState(false)
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault()
-        setSearchOpen(true)
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [])
 
   const handleVersionChange = async (newVersion: string) => {
     const urlVersion =
@@ -114,13 +98,6 @@ export function DocsPage() {
           }
           onVersionChange={handleVersionChange}
           currentPath={resolvedPath}
-          onSearchClick={() => setSearchOpen(true)}
-        />
-        <SearchModal
-          open={searchOpen}
-          onOpenChange={setSearchOpen}
-          version={version!}
-          docsIndex={docsIndexQuery.data}
         />
         <main className="min-w-0 flex-1">
           <DocsContent markdown={page.markdown} />

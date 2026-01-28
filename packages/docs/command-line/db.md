@@ -1,3 +1,7 @@
+---
+order: 60
+---
+
 # Database
 
 Database commands manage schema changes through DrizzleORM. Use `push` for development and `migrate` for production.
