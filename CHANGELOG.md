@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.8.0](https://github.com/QuickDapp/QuickDapp/compare/v3.7.0...v3.8.0) (2026-01-28)
+
+
+### Features
+
+* **cli:** add create subcommand and change default variant to base ([9c705c0](https://github.com/QuickDapp/QuickDapp/commit/9c705c08b0e336aa91a5d5860b2c1ba3b090e88a))
+
+
+### Bug Fixes
+
+* **website:** guard fetch-docs CLI to prevent argv conflict on import ([cc46275](https://github.com/QuickDapp/QuickDapp/commit/cc46275a2fc8486d099a23111344b8c2326038ba))
+
 ## [3.7.0](https://github.com/QuickDapp/QuickDapp/compare/v3.5.3...v3.7.0) (2026-01-28)
 
 
