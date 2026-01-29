@@ -14,8 +14,28 @@ const TEST_PORT_BASE = 56000
 const TEST_PORT_FALLBACK_MIN = 57000
 const TEST_PORT_FALLBACK_MAX = 59000
 const TEST_DB_BASE = "quickdapp_website_test"
-const PG_HOST = "localhost"
-const PG_PORT = 55434
+
+/**
+ * Extract database host and port from DATABASE_URL if set,
+ * otherwise use local defaults (docker-compose test container)
+ */
+function getDatabaseConfig(): { host: string; port: number } {
+  const existingUrl = process.env.DATABASE_URL
+  if (existingUrl) {
+    try {
+      const url = new URL(existingUrl)
+      return {
+        host: url.hostname || "localhost",
+        port: parseInt(url.port, 10) || 55434,
+      }
+    } catch {
+      // Invalid URL, fall through to defaults
+    }
+  }
+  return { host: "localhost", port: 55434 }
+}
+
+const { host: PG_HOST, port: PG_PORT } = getDatabaseConfig()
 
 /**
  * Get the test file index from environment (synchronous)

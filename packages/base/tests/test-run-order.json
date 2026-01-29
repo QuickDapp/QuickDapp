@@ -2,80 +2,80 @@
   "tests": [
     {
       "file": "tests/server/graphql/db/transaction-retry.test.ts",
-      "duration": 33047
+      "duration": 33608
     },
     {
       "file": "tests/server/workers/error-handling.test.ts",
-      "duration": 4264
-    },
-    {
-      "file": "tests/server/workers/job-execution.test.ts",
-      "duration": 3160
+      "duration": 4106
     },
     {
       "file": "tests/server/auth/jwt.test.ts",
-      "duration": 2235
+      "duration": 2362
+    },
+    {
+      "file": "tests/server/workers/job-execution.test.ts",
+      "duration": 2133
     },
     {
       "file": "tests/server/workers/cron-jobs.test.ts",
-      "duration": 2187
+      "duration": 2130
     },
     {
       "file": "tests/server/websocket/connection-limits.test.ts",
-      "duration": 1597
+      "duration": 1667
     },
     {
       "file": "tests/server/workers/tag-based-cancellation.test.ts",
-      "duration": 1575
+      "duration": 1555
     },
     {
       "file": "tests/server/database/user-notification-integration.test.ts",
-      "duration": 1395
+      "duration": 1413
     },
     {
       "file": "tests/server/workers/job-scheduling.test.ts",
-      "duration": 1394
+      "duration": 1409
     },
     {
       "file": "tests/server/auth/oauth.test.ts",
-      "duration": 1345
+      "duration": 1361
     },
     {
       "file": "tests/server/workers/db-cleanup.test.ts",
-      "duration": 825
+      "duration": 771
     },
     {
       "file": "tests/server/graphql/email-auth.test.ts",
-      "duration": 613
+      "duration": 569
     },
     {
       "file": "tests/server/graphql/me.test.ts",
-      "duration": 573
+      "duration": 559
     },
     {
       "file": "tests/server/graphql/auth-directive.test.ts",
-      "duration": 552
-    },
-    {
-      "file": "tests/server/graphql/auth.test.ts",
-      "duration": 480
+      "duration": 540
     },
     {
       "file": "tests/server/server.test.ts",
-      "duration": 428
+      "duration": 458
+    },
+    {
+      "file": "tests/server/graphql/auth.test.ts",
+      "duration": 445
     },
     {
       "file": "tests/server/graphql/queries.test.ts",
-      "duration": 422
+      "duration": 428
     },
     {
       "file": "tests/server/graphql/mutations.test.ts",
-      "duration": 412
+      "duration": 382
     },
     {
       "file": "tests/shared/config/server-config.test.ts",
       "duration": 19
     }
   ],
-  "lastUpdated": "2026-01-29T06:15:36.878Z"
+  "lastUpdated": "2026-01-29T10:06:20.023Z"
 }

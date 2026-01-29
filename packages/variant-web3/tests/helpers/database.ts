@@ -24,7 +24,11 @@ import {
 import { sql } from "drizzle-orm"
 import postgres from "postgres"
 
-const ADMIN_DATABASE_URL = "postgresql://postgres@localhost:55433/postgres"
+function getAdminDatabaseUrl(): string {
+  const testDbUrl = getTestDatabaseUrl()
+  const url = new URL(testDbUrl)
+  return `postgresql://postgres@${url.hostname}:${url.port}/postgres`
+}
 
 /**
  * Initialize the shared test database connection
@@ -358,7 +362,7 @@ export async function createTestDatabaseFromTemplate(): Promise<void> {
   testLogger.info(`📦 Creating test database from template: ${dbName}`)
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+    const adminClient = postgres(getAdminDatabaseUrl(), { max: 1 })
 
     try {
       // Drop database if it exists (from previous failed run)
@@ -410,7 +414,7 @@ export async function dropTestDatabase(): Promise<void> {
   // First disconnect from the database
   await closeTestDb()
 
-  const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+  const adminClient = postgres(getAdminDatabaseUrl(), { max: 1 })
 
   try {
     // Terminate any remaining connections to the database
@@ -437,7 +441,7 @@ export async function dropTestDatabase(): Promise<void> {
 export async function markDatabaseAsTemplate(): Promise<void> {
   testLogger.info("📋 Marking quickdapp_test as template database...")
 
-  const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+  const adminClient = postgres(getAdminDatabaseUrl(), { max: 1 })
 
   try {
     // Terminate any connections to the template database
@@ -466,7 +470,7 @@ export async function markDatabaseAsTemplate(): Promise<void> {
 export async function unmarkDatabaseAsTemplate(): Promise<void> {
   testLogger.info("📋 Unmarking quickdapp_test as template database...")
 
-  const adminClient = postgres(ADMIN_DATABASE_URL, { max: 1 })
+  const adminClient = postgres(getAdminDatabaseUrl(), { max: 1 })
 
   try {
     await adminClient.unsafe(
