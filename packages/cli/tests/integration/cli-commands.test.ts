@@ -40,6 +40,26 @@ function runCli(
   }
 }
 
+async function runCliAsync(
+  args: string[],
+  options: { cwd?: string; env?: Record<string, string> } = {},
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const proc = Bun.spawn(["bun", "run", CLI_PATH, ...args], {
+    cwd: options.cwd,
+    env: { ...process.env, ...options.env },
+    stdout: "pipe",
+    stderr: "pipe",
+  })
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ])
+
+  return { stdout, stderr, exitCode }
+}
+
 describe("CLI commands", () => {
   describe("help and version", () => {
     it("shows help with --help flag", () => {
@@ -114,20 +134,14 @@ describe("CLI commands", () => {
 
     it(
       "uses base variant by default",
-      () => {
+      async () => {
         const projectName = "test-default-variant"
         const projectDir = join(workDir.path, projectName)
 
         try {
-          const result = spawnSync(
-            "bun",
-            ["run", CLI_PATH, "create", projectName, "--skip-install"],
-            {
-              encoding: "utf-8",
-              cwd: workDir.path,
-              env: { ...process.env, ...getEnv() },
-              timeout: 60000,
-            },
+          const result = await runCliAsync(
+            ["create", projectName, "--skip-install"],
+            { cwd: workDir.path, env: getEnv() },
           )
 
           expect(result.stdout).toContain("Variant: base")
@@ -142,23 +156,17 @@ describe("CLI commands", () => {
 
     it(
       "explicit create command works",
-      () => {
+      async () => {
         const projectName = "test-explicit-create"
         const projectDir = join(workDir.path, projectName)
 
         try {
-          const result = spawnSync(
-            "bun",
-            ["run", CLI_PATH, "create", projectName, "--skip-install"],
-            {
-              encoding: "utf-8",
-              cwd: workDir.path,
-              env: { ...process.env, ...getEnv() },
-              timeout: 60000,
-            },
+          const result = await runCliAsync(
+            ["create", projectName, "--skip-install"],
+            { cwd: workDir.path, env: getEnv() },
           )
 
-          expect(result.status).toBe(0)
+          expect(result.exitCode).toBe(0)
           expect(result.stdout).toContain("Project created successfully")
         } finally {
           rmSync(projectDir, { recursive: true, force: true })
@@ -169,23 +177,17 @@ describe("CLI commands", () => {
 
     it(
       "implicit create command works (default subcommand)",
-      () => {
+      async () => {
         const projectName = "test-implicit-create"
         const projectDir = join(workDir.path, projectName)
 
         try {
-          const result = spawnSync(
-            "bun",
-            ["run", CLI_PATH, projectName, "--skip-install"],
-            {
-              encoding: "utf-8",
-              cwd: workDir.path,
-              env: { ...process.env, ...getEnv() },
-              timeout: 60000,
-            },
-          )
+          const result = await runCliAsync([projectName, "--skip-install"], {
+            cwd: workDir.path,
+            env: getEnv(),
+          })
 
-          expect(result.status).toBe(0)
+          expect(result.exitCode).toBe(0)
           expect(result.stdout).toContain("Project created successfully")
         } finally {
           rmSync(projectDir, { recursive: true, force: true })
@@ -196,28 +198,14 @@ describe("CLI commands", () => {
 
     it(
       "--variant web3 creates web3 project with sample-contracts",
-      () => {
+      async () => {
         const projectName = "test-web3-variant"
         const projectDir = join(workDir.path, projectName)
 
         try {
-          const result = spawnSync(
-            "bun",
-            [
-              "run",
-              CLI_PATH,
-              "create",
-              projectName,
-              "--variant",
-              "web3",
-              "--skip-install",
-            ],
-            {
-              encoding: "utf-8",
-              cwd: workDir.path,
-              env: { ...process.env, ...getEnv() },
-              timeout: 60000,
-            },
+          const result = await runCliAsync(
+            ["create", projectName, "--variant", "web3", "--skip-install"],
+            { cwd: workDir.path, env: getEnv() },
           )
 
           expect(result.stdout).toContain("Variant: web3")
@@ -231,28 +219,14 @@ describe("CLI commands", () => {
 
     it(
       "--variant base creates base project without sample-contracts",
-      () => {
+      async () => {
         const projectName = "test-base-variant"
         const projectDir = join(workDir.path, projectName)
 
         try {
-          const result = spawnSync(
-            "bun",
-            [
-              "run",
-              CLI_PATH,
-              "create",
-              projectName,
-              "--variant",
-              "base",
-              "--skip-install",
-            ],
-            {
-              encoding: "utf-8",
-              cwd: workDir.path,
-              env: { ...process.env, ...getEnv() },
-              timeout: 60000,
-            },
+          const result = await runCliAsync(
+            ["create", projectName, "--variant", "base", "--skip-install"],
+            { cwd: workDir.path, env: getEnv() },
           )
 
           expect(result.stdout).toContain("Variant: base")
@@ -275,28 +249,14 @@ describe("CLI commands", () => {
 
     it(
       "-v is shorthand for --variant",
-      () => {
+      async () => {
         const projectName = "test-shorthand-variant"
         const projectDir = join(workDir.path, projectName)
 
         try {
-          const result = spawnSync(
-            "bun",
-            [
-              "run",
-              CLI_PATH,
-              "create",
-              projectName,
-              "-v",
-              "web3",
-              "--skip-install",
-            ],
-            {
-              encoding: "utf-8",
-              cwd: workDir.path,
-              env: { ...process.env, ...getEnv() },
-              timeout: 60000,
-            },
+          const result = await runCliAsync(
+            ["create", projectName, "-v", "web3", "--skip-install"],
+            { cwd: workDir.path, env: getEnv() },
           )
 
           expect(result.stdout).toContain("Variant: web3")
@@ -337,9 +297,9 @@ describe("CLI commands", () => {
 
     it(
       "lists available versions with create --list-versions",
-      () => {
-        const result = runCli(["create", "--list-versions"], {
-          QUICKDAPP_GITHUB_API_BASE: server.url,
+      async () => {
+        const result = await runCliAsync(["create", "--list-versions"], {
+          env: { QUICKDAPP_GITHUB_API_BASE: server.url },
         })
         expect(result.exitCode).toBe(0)
         expect(result.stdout).toContain(gitTags[0])
@@ -351,9 +311,9 @@ describe("CLI commands", () => {
 
     it(
       "lists versions via implicit create --list-versions",
-      () => {
-        const result = runCli(["--list-versions"], {
-          QUICKDAPP_GITHUB_API_BASE: server.url,
+      async () => {
+        const result = await runCliAsync(["--list-versions"], {
+          env: { QUICKDAPP_GITHUB_API_BASE: server.url },
         })
         expect(result.exitCode).toBe(0)
         expect(result.stdout).toContain("Available versions")
