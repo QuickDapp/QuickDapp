@@ -95,6 +95,27 @@ function processGitHubLinks(markdown: string, version: string): string {
   )
 }
 
+function processImagePaths(markdown: string, version: string): string {
+  return markdown.replace(
+    /!\[([^\]]*)\]\(\/images\/([^)]+)\)/g,
+    (_, alt, imagePath) =>
+      `![${alt}](/docs-versions/${version}/images/${imagePath})`,
+  )
+}
+
+function processInternalLinks(markdown: string): string {
+  return markdown.replace(
+    /\]\(([^)]+\.md)(#[^)]*)?\)/g,
+    (match, url: string, anchor = "") => {
+      if (url.startsWith("http://") || url.startsWith("https://")) {
+        return match
+      }
+      const newUrl = url.replace(/\.md$/, "").replace(/\/index$/, "")
+      return `](${newUrl}${anchor})`
+    },
+  )
+}
+
 async function fetchDocsHandler(
   options: FetchDocsOptions,
   config: { rootFolder: string; env: string },
@@ -190,6 +211,15 @@ async function fetchDocsHandler(
           path.join(versionDir, "search-docs.json"),
           JSON.stringify(searchDocs),
         )
+
+        if (docs.imagesDir) {
+          const destImagesDir = path.join(versionDir, "images")
+          cpSync(docs.imagesDir, destImagesDir, { recursive: true })
+          const tempDocsDir = path.join(config.rootFolder, ".temp-docs", tag)
+          if (existsSync(tempDocsDir)) {
+            rmSync(tempDocsDir, { recursive: true, force: true })
+          }
+        }
 
         processedVersions.push(displayVersion)
         console.log(
@@ -287,6 +317,7 @@ async function fetchDocsFromTag(
 ): Promise<{
   pages: Record<string, DocPage>
   tree: { items: TreeItem[] }
+  imagesDir: string | null
 } | null> {
   const repoRoot = await findGitRoot(rootFolder)
   const tempDir = path.join(rootFolder, ".temp-docs", tag)
@@ -324,9 +355,12 @@ async function fetchDocsFromTag(
       const content = await Bun.file(filePath).text()
       const { data: frontmatter, content: markdown } = matter(content)
 
-      const processedMarkdown = processGitHubLinks(
-        processRetypeCallouts(markdown),
-        tag,
+      const displayVersion = tag.replace(/^v/, "")
+      const processedMarkdown = processInternalLinks(
+        processImagePaths(
+          processGitHubLinks(processRetypeCallouts(markdown), tag),
+          displayVersion,
+        ),
       )
 
       const title =
@@ -345,9 +379,14 @@ async function fetchDocsFromTag(
 
     const tree = buildNavigationTree(pages, docsDir)
 
-    rmSync(tempDir, { recursive: true, force: true })
+    const imagesDir = path.join(docsDir, "images")
+    const hasImages = existsSync(imagesDir)
 
-    return { pages, tree }
+    if (!hasImages) {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+
+    return { pages, tree, imagesDir: hasImages ? imagesDir : null }
   } catch (error) {
     if (existsSync(tempDir)) {
       rmSync(tempDir, { recursive: true, force: true })

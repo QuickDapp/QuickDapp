@@ -100,7 +100,7 @@ describe("Server Integration Tests", () => {
   })
 
   describe("Basic Routing", () => {
-    it("should respond to health check endpoint", async () => {
+    it("should respond to health check endpoint with all fields", async () => {
       if (!testServer) throw new Error("Test server not initialized")
 
       const response = await makeRequest(`${testServer.url}/health`)
@@ -110,17 +110,6 @@ describe("Server Integration Tests", () => {
       const data = await response.json()
       expect(data.status).toBe("ok")
       expect(data.timestamp).toBeDefined()
-      expect(data.version).toBeDefined()
-    })
-
-    it("should respond to version endpoint", async () => {
-      if (!testServer) throw new Error("Test server not initialized")
-
-      const response = await makeRequest(`${testServer.url}/version`)
-
-      expect(response.status).toBe(200)
-
-      const data = await response.json()
       expect(data.version).toBeDefined()
       expect(data.name).toBe("QuickDapp")
       expect(data.environment).toBeDefined()

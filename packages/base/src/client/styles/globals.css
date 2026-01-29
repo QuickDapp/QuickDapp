@@ -101,6 +101,14 @@
   [aria-label="Switch Networks"] {
     @apply !hidden;
   }
+
+  html.dark {
+    --color-anchor: #0ec8ff;
+    --color-background: #0f172a;
+    --color-foreground: #f8fafc;
+    --color-muted: #94a3b8;
+    --color-border: #334155;
+  }
 }
 
 /* Custom utility classes */

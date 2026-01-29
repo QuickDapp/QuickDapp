@@ -46,7 +46,6 @@ export default defineConfig({
     proxy: {
       "/graphql": "http://localhost:3000",
       "/health": "http://localhost:3000",
-      "/version": "http://localhost:3000",
       "/ws": {
         target: "ws://localhost:3000",
         ws: true,

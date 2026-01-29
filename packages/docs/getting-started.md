@@ -9,94 +9,126 @@ icon: Rocket
 
 Ensure you have the following pre-requisites installed and ready:
 
-* [Bun](https://bun.sh/) v1.0+ (required - only supported runtime and package manager)
-* [PostgreSQL](https://www.postgresql.org/) 11+ running locally on port 5432, with a default admin user called `postgres`.
-* [Git](https://git-scm.com/) for version control.
-* [Foundry](https://book.getfoundry.sh/getting-started/installation) (optional - for Web3/smart contract development)
+* [Bun](https://bun.sh/)
+* [Docker](http://docker.com/)
+* [Git](https://git-scm.com/)
 
-!!!
-QuickDapp exclusively uses Bun as its runtime and package manager. npm/yarn/pnpm are not supported. This design choice ensures optimal performance and consistency across all development, testing, and deployment workflows.
-!!!
+This guide assumes you have some knowledge of the basics of web application development (e.g backend, frontend, database, CLI, etc). However, if you follow the instructions properly you should still be able to get things up and running even if you don't understand everything immediately.
 
-## Step 1 - Source code
+## Step 1 - Create a new project
 
-Clone or fork the QuickDapp repository from GitHub:
+Open a terminal window and type in:
 
 ```shell
-git clone https://github.com/QuickDapp/quickdapp.git
-cd quickdapp
+bunx @quickdapp/cli create my-project
 ```
 
-## Step 2 - Dependencies
+The above command will get the QuickDapp CLI and use it to create a new project in a folder called `my-project`. 
 
-In the project folder, let's install the dependencies:
+You can now enter the `my-project` folder using:
 
 ```shell
-bun install
+cd my-project
 ```
 
-## Step 3 - PostgreSQL database
+_Note: The following steps must be be executed within the `my-project` project folder._
 
-By default, QuickDapp assumes the existence of a [PostgreSQL](https://www.postgresql.org/) database. The default connection parameters (defined in the `.env` file) are:
+## Step 2 - Run the database server
 
-* host: `localhost`
-* port: `5432`
-* user: `postgres`
-* db: `quickdapp_dev`
-
-If you haven't already, create the `quickdapp_dev` database, ensuring the `postgres` user has full system-level privileged access to it:
+Now we'll use [Docker compose]() to install and run a temporary Postgres database. This will be the database that QuickDapp will use when run locally:
 
 ```shell
-psql -U postgres -c 'CREATE DATABASE quickdapp_dev'
+docker compose up -d
 ```
 
-Let's get the dev database setup:
+You should see output which looks like this:
+
+```
+[+] up 2/2
+ ✔ Network my-project_default   Created                                               0.0s 
+ ✔ Container quickdapp-postgres Created                                               0.1s 
+```
+
+From this point on the database is running in the background. To shutdown the database at any time run:
+
+```shell
+docker compose down
+```
+
+You can now connect to the database yourself through a third-party client (e.g [DBeaver](https://dbeaver.io/)). 
+
+You can see the full database connection parameters by looking at the [`.env`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/.env) file in the project. This file defines the [environment variables](./environment-variables.md) used by the web app._
+
+## Step 3 - Setup database tables
+
+With the database server running we need to create our database tables, ready for use by the QuickDapp backend. Run:
 
 ```shell
 bun run db push
 ```
 
-This command uses DrizzleORM to set up your database schema based on the definitions in `src/server/db/schema.ts`.
+You may be prompted to confirm the execution of SQL statements against the database.
 
-## Step 4 - Start development server
+## Step 4 - Run dev server
 
-Now start the QuickDapp development server:
+Now we're ready to run the dev server and see the demo web page in a browser. Run:
 
 ```shell
 bun run dev
 ```
 
-This will:
-* Start the backend server on http://localhost:3000
-* GraphQL endpoint at http://localhost:3000/graphql and health at http://localhost:3000/health
-* Start the Vite frontend development server on http://localhost:5173
-* Generate contract ABIs and copy static assets
-* Enable hot reload for both frontend and backend changes
+You will see output like the following:
 
-The development server provides live reloading for an optimal development experience.
+```
+VITE v6.4.1  ready in 1803 ms
 
-## Step 5 - Interact with the application
+➜  Local:   http://localhost:5173/
+➜  Network: use --host to expose
 
-Open http://localhost:5173 in your browser to interact with the application.
-
-The development setup includes:
-* GraphQL API with authentication
-* Real-time WebSocket connections
-* Background job processing
-* Comprehensive logging
-* Optional Web3 wallet integration via RainbowKit (if enabled)
-
-## Step 6 - Run tests
-
-QuickDapp includes a basic test framework. Run tests with:
-
-```shell
-bun run test
+2026-01-29T05:08:33.934Z [info] <server> 🚀 QuickDapp server v3.4.0 started in 50.77ms
+2026-01-29T05:08:33.934Z [info] <server> ➜ Running at: http://localhost:3000/
+2026-01-29T05:08:33.934Z [info] <server> ➜ GraphQL endpoint: http://localhost:3000/graphql
+2026-01-29T05:08:33.934Z [info] <server> ➜ Environment: development
 ```
 
-You can add your own tests to the `tests/` directory. The test framework includes database isolation, server lifecycle management, and GraphQL testing utilities.
+You can now access the server in your browser at two URLs:
 
-## Step 7 - Deploying to production
+* [http://localhost:5173/](http://localhost:5173/)
+  * This is a server which bundles and serves up your frontend code as a web app.
+* [http://localhost:3000/](http://localhost:3000/)
+  * This is the backend server which the above web app talks to.
+
+If you access [http://localhost:5173/](http://localhost:5173/) you will see something which looks like this:
+
+![](/images/serverpage.png)
+
+The two links shown on this page are:
+
+* `/graphql` - A web interface for accessing and querying the backend [GraphQL API](./backend/graphql.md).
+* `/health` - A simple API which returns a basic health-check for the server.
+
+!!!
+If you want to monitor your QuickDapp app's uptime you would typically monitor the `/health` endpoint.
+!!!
+
+## Step 5 - Hot reloading
+
+You can now edit the code of your app and immediately see the changes reflected in the browser.
+
+Go ahead and change the text in `HomePage.tsx` to be something different and you should see the page in the browser immediately update.
+
+The same goes for if you change any of the backend server code - you will see the dev server running in the terminal auto-reload any code changes.
+
+It is only if you change the `.env` file settings that you will need to manually restart the dev server. 
+
+## Step 6 - Ready!
+
+At this point everything is ready for you to actually develop your app. The remainder of this guide helps you get this basic app deployed to production in the cloud.
+
+## Step 7 - Setup Github repo
+
+
+## Step 8 - Deploying to production
 
 The following steps cover deploying your application to production.
 
@@ -111,7 +143,7 @@ We will do the following:
 QuickDapp supports multiple deployment strategies: Docker containers, self-contained binaries, or separate frontend/backend deployments. The choice depends on your infrastructure preferences.
 !!!
 
-## Step 8 - Setup production database
+## Step 9 - Setup production database
 
 We will setup a PostgreSQL database for production use. You can use any PostgreSQL hosting service such as:
 
@@ -132,7 +164,7 @@ Now setup the production database schema:
 bun run db migrate
 ```
 
-## Step 9 - Test-run production build locally
+## Step 10 - Test-run production build locally
 
 _Note: This step is optional, and is useful if you want to debug some production issues locally_
 
@@ -152,7 +184,7 @@ bun run prod
 
 Open http://localhost:3000 in your browser to test the production build locally.
 
-## Step 10 - Deploy to production
+## Step 11 - Deploy to production
 
 QuickDapp supports several deployment options:
 

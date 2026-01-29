@@ -11,7 +11,7 @@ import {
   Rocket,
   Webhook,
 } from "../components/Icons"
-import { DocsLink, LicenseLink } from "../components/Links"
+import { GettingStartedLink, LicenseLink } from "../components/Links"
 import { HERO_SLOGANS, TAGLINE } from "../constants"
 
 export const HomePage = () => {
@@ -38,11 +38,11 @@ export const HomePage = () => {
           </h1>
           <sub className="font-body text-2xl mt-4">{TAGLINE}</sub>
           <div className="mt-16 flex sm:flex-row sm:justify-center flex-col justify-start items-center">
-            <DocsLink className="no-anchor-hover-styles">
+            <GettingStartedLink className="no-anchor-hover-styles">
               <Button size="xl" className="w-72">
                 Start building
               </Button>
-            </DocsLink>
+            </GettingStartedLink>
           </div>
           <div className="mt-6 font-body text-sm italic">
             Latest version: <LatestGitTag />

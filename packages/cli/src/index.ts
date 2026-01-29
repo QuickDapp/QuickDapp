@@ -31,6 +31,10 @@ function getSampleContractsUrl(): string {
   return process.env.QUICKDAPP_SAMPLE_CONTRACTS_URL ?? "https://github.com/QuickDapp/sample-contracts.git"
 }
 
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  return fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
+}
+
 type Variant = keyof typeof VARIANTS
 
 interface CreateOptions {
@@ -47,7 +51,7 @@ interface Release {
 
 function checkCommand(command: string, displayName: string): boolean {
   try {
-    execSync(`which ${command}`, { stdio: "ignore" })
+    execSync(`which ${command}`, { stdio: "ignore", timeout: 5000 })
     return true
   } catch {
     console.error(`Error: ${displayName} is not installed.`)
@@ -63,8 +67,9 @@ function checkPrerequisites(): boolean {
 }
 
 async function getLatestRelease(): Promise<string> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${getGithubApiBase()}/repos/${GITHUB_REPO}/releases/latest`,
+    10000,
   )
   if (!response.ok) {
     throw new Error(`Failed to fetch latest release: ${response.statusText}`)
@@ -74,8 +79,9 @@ async function getLatestRelease(): Promise<string> {
 }
 
 async function listReleases(): Promise<Release[]> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${getGithubApiBase()}/repos/${GITHUB_REPO}/releases`,
+    10000,
   )
   if (!response.ok) {
     throw new Error(`Failed to fetch releases: ${response.statusText}`)
@@ -94,7 +100,7 @@ async function downloadAndExtract(
 
   console.log(`Downloading ${assetName}...`)
 
-  const response = await fetch(downloadUrl)
+  const response = await fetchWithTimeout(downloadUrl, 60000)
   if (!response.ok) {
     throw new Error(`Failed to download: ${response.statusText}`)
   }
@@ -144,6 +150,7 @@ async function cloneSampleContracts(targetDir: string): Promise<void> {
   const cloneResult = spawnSync("git", ["clone", getSampleContractsUrl(), "sample-contracts"], {
     cwd: targetDir,
     stdio: "inherit",
+    timeout: 120000,
   })
   if (cloneResult.status !== 0) {
     throw new Error(`git clone failed with code ${cloneResult.status}`)
@@ -151,6 +158,7 @@ async function cloneSampleContracts(targetDir: string): Promise<void> {
   const submoduleResult = spawnSync("git", ["submodule", "update", "--init", "--recursive"], {
     cwd: join(targetDir, "sample-contracts"),
     stdio: "inherit",
+    timeout: 120000,
   })
   if (submoduleResult.status !== 0) {
     throw new Error(`git submodule update failed with code ${submoduleResult.status}`)
@@ -159,11 +167,12 @@ async function cloneSampleContracts(targetDir: string): Promise<void> {
 
 async function initGit(targetDir: string): Promise<void> {
   console.log("\nInitializing git repository...")
-  execSync("git init", { cwd: targetDir, stdio: "inherit" })
-  execSync("git add .", { cwd: targetDir, stdio: "inherit" })
+  execSync("git init", { cwd: targetDir, stdio: "inherit", timeout: 10000 })
+  execSync("git add .", { cwd: targetDir, stdio: "inherit", timeout: 30000 })
   execSync('git commit -m "Initial commit from create-quickdapp"', {
     cwd: targetDir,
     stdio: "inherit",
+    timeout: 30000,
   })
 }
 

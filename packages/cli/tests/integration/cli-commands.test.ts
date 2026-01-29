@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
-import { spawnSync } from "node:child_process"
+import { execSync, spawnSync } from "node:child_process"
 import { existsSync, rmSync } from "node:fs"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { createMockSampleContractsRepo } from "../helpers/mock-git-repo"
 import { createTestTarball } from "../helpers/tarball"
 import { createTempDir } from "../helpers/temp-dir"
@@ -9,6 +9,20 @@ import { createTestServer } from "../helpers/test-server"
 
 const CLI_PATH = join(import.meta.dir, "../../src/index.ts")
 const TEST_VERSION = "v1.0.0-test"
+const MONOREPO_ROOT = resolve(import.meta.dir, "../../../../")
+
+function getGitTags(): string[] {
+  const output = execSync("git tag --sort=-v:refname", {
+    cwd: MONOREPO_ROOT,
+    encoding: "utf-8",
+    timeout: 5000,
+  })
+  return output
+    .split("\n")
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.startsWith("v"))
+    .slice(0, 10)
+}
 
 function runCli(
   args: string[],
@@ -17,6 +31,7 @@ function runCli(
   const result = spawnSync("bun", ["run", CLI_PATH, ...args], {
     encoding: "utf-8",
     env: { ...process.env, ...env },
+    timeout: 30000,
   })
   return {
     stdout: result.stdout || "",
@@ -111,6 +126,7 @@ describe("CLI commands", () => {
               encoding: "utf-8",
               cwd: workDir.path,
               env: { ...process.env, ...getEnv() },
+              timeout: 60000,
             },
           )
 
@@ -138,6 +154,7 @@ describe("CLI commands", () => {
               encoding: "utf-8",
               cwd: workDir.path,
               env: { ...process.env, ...getEnv() },
+              timeout: 60000,
             },
           )
 
@@ -164,6 +181,7 @@ describe("CLI commands", () => {
               encoding: "utf-8",
               cwd: workDir.path,
               env: { ...process.env, ...getEnv() },
+              timeout: 60000,
             },
           )
 
@@ -198,6 +216,7 @@ describe("CLI commands", () => {
               encoding: "utf-8",
               cwd: workDir.path,
               env: { ...process.env, ...getEnv() },
+              timeout: 60000,
             },
           )
 
@@ -232,6 +251,7 @@ describe("CLI commands", () => {
               encoding: "utf-8",
               cwd: workDir.path,
               env: { ...process.env, ...getEnv() },
+              timeout: 60000,
             },
           )
 
@@ -275,6 +295,7 @@ describe("CLI commands", () => {
               encoding: "utf-8",
               cwd: workDir.path,
               env: { ...process.env, ...getEnv() },
+              timeout: 60000,
             },
           )
 
@@ -289,23 +310,24 @@ describe("CLI commands", () => {
 
   describe("--list-versions", () => {
     let server: ReturnType<typeof createTestServer>
+    let gitTags: string[]
 
     beforeAll(() => {
+      gitTags = getGitTags()
+      if (gitTags.length < 2) {
+        throw new Error("Need at least 2 git tags to run --list-versions tests")
+      }
+
+      const releases = gitTags.map((tag, index) => ({
+        tag_name: tag,
+        published_at: new Date(Date.now() - index * 86400000).toISOString(),
+        prerelease: false,
+      }))
+
       server = createTestServer()
-      server.addJsonResponse("/repos/QuickDapp/QuickDapp/releases", [
-        {
-          tag_name: "v3.7.0",
-          published_at: "2024-01-15T00:00:00Z",
-          prerelease: false,
-        },
-        {
-          tag_name: "v3.6.0",
-          published_at: "2024-01-10T00:00:00Z",
-          prerelease: false,
-        },
-      ])
+      server.addJsonResponse("/repos/QuickDapp/QuickDapp/releases", releases)
       server.addJsonResponse("/repos/QuickDapp/QuickDapp/releases/latest", {
-        tag_name: "v3.7.0",
+        tag_name: gitTags[0],
       })
     })
 
@@ -313,22 +335,30 @@ describe("CLI commands", () => {
       server.close()
     })
 
-    it("lists available versions with create --list-versions", () => {
-      const result = runCli(["create", "--list-versions"], {
-        QUICKDAPP_GITHUB_API_BASE: server.url,
-      })
-      expect(result.exitCode).toBe(0)
-      expect(result.stdout).toContain("v3.7.0")
-      expect(result.stdout).toContain("v3.6.0")
-      expect(result.stdout).toContain("(latest)")
-    })
+    it(
+      "lists available versions with create --list-versions",
+      () => {
+        const result = runCli(["create", "--list-versions"], {
+          QUICKDAPP_GITHUB_API_BASE: server.url,
+        })
+        expect(result.exitCode).toBe(0)
+        expect(result.stdout).toContain(gitTags[0])
+        expect(result.stdout).toContain(gitTags[1])
+        expect(result.stdout).toContain("(latest)")
+      },
+      { timeout: 30000 },
+    )
 
-    it("lists versions via implicit create --list-versions", () => {
-      const result = runCli(["--list-versions"], {
-        QUICKDAPP_GITHUB_API_BASE: server.url,
-      })
-      expect(result.exitCode).toBe(0)
-      expect(result.stdout).toContain("Available versions")
-    })
+    it(
+      "lists versions via implicit create --list-versions",
+      () => {
+        const result = runCli(["--list-versions"], {
+          QUICKDAPP_GITHUB_API_BASE: server.url,
+        })
+        expect(result.exitCode).toBe(0)
+        expect(result.stdout).toContain("Available versions")
+      },
+      { timeout: 30000 },
+    )
   })
 })

@@ -134,11 +134,7 @@ export const createApp = async (
       status: "ok",
       timestamp: new Date().toISOString(),
       version: serverConfig.APP_VERSION,
-    }))
-    // Version endpoint
-    .get("/version", () => ({
-      version: serverConfig.APP_VERSION,
-      name: "QuickDapp",
+      name: serverConfig.APP_NAME,
       environment: serverConfig.NODE_ENV,
     }))
     // Chrome DevTools integration for development

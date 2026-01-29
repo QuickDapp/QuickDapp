@@ -24,7 +24,7 @@ export function createTestTarball(
 
   execSync(
     `tar -czf "${tarballPath}" --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='bun.lock' --exclude='sample-contracts' -C "${sourceDir}" .`,
-    { stdio: "pipe" },
+    { stdio: "pipe", timeout: 30000 },
   )
 
   return {

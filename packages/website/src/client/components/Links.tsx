@@ -39,6 +39,20 @@ export const DocsLink: React.FC<PropsWithChildren<PropsWithClassName>> = ({
   )
 }
 
+export const GettingStartedLink: React.FC<
+  PropsWithChildren<PropsWithClassName>
+> = ({ className, children }) => {
+  return (
+    <Link
+      className={className}
+      aria-label="start-building"
+      to="/docs/getting-started"
+    >
+      {children || "Getting started"}
+    </Link>
+  )
+}
+
 export const LicenseLink: React.FC<PropsWithChildren<PropsWithClassName>> = ({
   className,
   children,

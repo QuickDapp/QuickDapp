@@ -5,7 +5,7 @@ icon: BookOpen
 
 # Introduction
 
-**QuickDapp** is a "boilerplate" that serves as the foundation for any modern web app you want to build. Whether you're vibe coding or coding by hand, QuickDapp helps you quickly build _and_ deploy web applications, batteries included.
+**QuickDapp** is a "boilerplate" that serves as the foundation for any modern web app you want to build. Whether you're vibe coding or coding by hand, QuickDapp helps you quickly build _and_ deploy web applications - _"batteries included"_.
 
 It is designed to save you a massive amount of time and effort, freeing you up to focus on the parts of your web app that actually matter.
 

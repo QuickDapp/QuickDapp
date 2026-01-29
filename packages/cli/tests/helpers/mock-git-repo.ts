@@ -47,14 +47,15 @@ contract Counter {
     "// Mock Test.sol",
   )
 
-  execSync("git init", { cwd: repoDir, stdio: "pipe" })
+  execSync("git init", { cwd: repoDir, stdio: "pipe", timeout: 10000 })
   execSync("git config user.email 'test@test.com'", {
     cwd: repoDir,
     stdio: "pipe",
+    timeout: 10000,
   })
-  execSync("git config user.name 'Test'", { cwd: repoDir, stdio: "pipe" })
-  execSync("git add .", { cwd: repoDir, stdio: "pipe" })
-  execSync('git commit -m "Initial commit"', { cwd: repoDir, stdio: "pipe" })
+  execSync("git config user.name 'Test'", { cwd: repoDir, stdio: "pipe", timeout: 10000 })
+  execSync("git add .", { cwd: repoDir, stdio: "pipe", timeout: 10000 })
+  execSync('git commit -m "Initial commit"', { cwd: repoDir, stdio: "pipe", timeout: 10000 })
 
   return { repoPath: repoDir, cleanup }
 }

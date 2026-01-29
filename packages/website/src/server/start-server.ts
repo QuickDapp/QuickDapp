@@ -105,10 +105,7 @@ export const createApp = async (
       status: "ok",
       timestamp: new Date().toISOString(),
       version: serverConfig.APP_VERSION,
-    }))
-    .get("/version", () => ({
-      version: serverConfig.APP_VERSION,
-      name: "QuickDapp Website",
+      name: serverConfig.APP_NAME,
       environment: serverConfig.NODE_ENV,
     }))
     .get("/.well-known/appspecific/com.chrome.devtools.json", () => {
