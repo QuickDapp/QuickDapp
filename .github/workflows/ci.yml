@@ -62,7 +62,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
-          - 5433:5432
+          - 55433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -76,17 +76,15 @@ jobs:
       - run: bun install
       - name: Create test database
         run: |
-          PGPASSWORD='' psql -h localhost -p 5433 -U postgres -c "CREATE DATABASE quickdapp_test;"
+          PGPASSWORD='' psql -h localhost -p 55433 -U postgres -c "CREATE DATABASE quickdapp_test;"
       - run: bun run test
         env:
           NODE_ENV: test
-          DATABASE_URL: postgres://postgres@localhost:5433/quickdapp_test
       # playwright e2e tests
-      - run: bunx playwright install --with-deps chromium                      
-      - run: bun run test:e2e                                                  
-        env:                                                                   
-          NODE_ENV: test                                                       
-          DATABASE_URL: postgres://postgres@localhost:5433/quickdapp_test   
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run test:e2e
+        env:
+          NODE_ENV: test   
 
   test-web3:
     name: Test Web3 Package
@@ -101,7 +99,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
-          - 5433:5432
+          - 55433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -125,11 +123,10 @@ jobs:
       - run: bun install
       - name: Create test database
         run: |
-          PGPASSWORD='' psql -h localhost -p 5433 -U postgres -c "CREATE DATABASE quickdapp_test;"
+          PGPASSWORD='' psql -h localhost -p 55433 -U postgres -c "CREATE DATABASE quickdapp_test;"
       - run: bun run gen && bun run test
         env:
           NODE_ENV: test
-          DATABASE_URL: postgres://postgres@localhost:5433/quickdapp_test
 
   build-cli:
     name: Build CLI Package
