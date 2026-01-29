@@ -5,7 +5,7 @@ import { useAuthContext } from "../contexts/AuthContext"
 import logoSvg from "../images/logo.svg"
 
 export function HomePage() {
-  const { isAuthenticated, email, logout } = useAuthContext()
+  const { isAuthenticated, email } = useAuthContext()
   const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   return (
@@ -17,12 +17,9 @@ export function HomePage() {
         QuickDapp demo page!
       </h1>
       {isAuthenticated ? (
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-foreground">
-            Email: <span className="font-medium">{email}</span>
-          </p>
-          <Button onClick={logout}>Logout</Button>
-        </div>
+        <p className="text-foreground">
+          Email: <span className="font-medium">{email}</span>
+        </p>
       ) : (
         <>
           <Button onClick={() => setLoginModalOpen(true)}>Login</Button>
