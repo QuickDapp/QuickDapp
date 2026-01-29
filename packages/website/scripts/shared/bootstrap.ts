@@ -114,16 +114,6 @@ export async function bootstrap(
     env = env || process.env.NODE_ENV || "development"
     process.env.NODE_ENV = env
 
-    // Capture CI-provided environment variables before loading env files
-    // These should not be overwritten by .env files
-    const ciProvidedVars: Record<string, string> = {}
-    const preserveKeys = ["DATABASE_URL", "CI"]
-    for (const key of preserveKeys) {
-      if (process.env[key]) {
-        ciProvidedVars[key] = process.env[key]!
-      }
-    }
-
     const rootFolder = resolve(import.meta.dir, "..", "..")
 
     if (verbose) {
@@ -169,12 +159,6 @@ export async function bootstrap(
       const fileEnv = loadEnvFile(fileInfo, verbose)
       Object.assign(parsedEnv, fileEnv)
     })
-
-    // Restore CI-provided environment variables (they take precedence over .env files)
-    for (const [key, value] of Object.entries(ciProvidedVars)) {
-      process.env[key] = value
-      parsedEnv[key] = value
-    }
 
     parsedEnv.NODE_ENV = env
 
