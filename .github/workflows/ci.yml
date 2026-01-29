@@ -154,6 +154,9 @@ jobs:
         working-directory: packages/cli
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
