@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.9.1](https://github.com/QuickDapp/QuickDapp/compare/v3.9.0...v3.9.1) (2026-01-29)
+
+
+### Bug Fixes
+
+* **base:** remove duplicate logout button from HomePage ([9ae95c3](https://github.com/QuickDapp/QuickDapp/commit/9ae95c3d59f48756e3db0d769d658431cf7abdbb))
+* **ci:** preserve CI-provided env vars and fetch git tags for CLI tests ([ab85b29](https://github.com/QuickDapp/QuickDapp/commit/ab85b297e0762d296fb9db685c19d8318f97f2fa))
+* **cli:** use async spawn for tests requiring server responses ([f0ef1b2](https://github.com/QuickDapp/QuickDapp/commit/f0ef1b2384675bece50f9f71ec83900ed93cceb5))
+* **test:** derive admin database URL from test config for CI compatibility ([de6d336](https://github.com/QuickDapp/QuickDapp/commit/de6d336615fce7b904c4b135bbdadeead896de8f))
+
 ## [3.9.0](https://github.com/QuickDapp/QuickDapp/compare/v3.8.0...v3.9.0) (2026-01-29)
 
 
