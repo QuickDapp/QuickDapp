@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.9.0](https://github.com/QuickDapp/QuickDapp/compare/v3.8.0...v3.9.0) (2026-01-29)
+
+
+### Features
+
+* add dark mode support with theme switcher ([8f8499c](https://github.com/QuickDapp/QuickDapp/commit/8f8499cf5138692e5f058497f61c95d199e508e9))
+* add pre-build steps to docker workflows and improve CI test setup ([8180422](https://github.com/QuickDapp/QuickDapp/commit/818042204d10c8c9179935272879a5079ca518fb))
+
+
+### Bug Fixes
+
+* add health and version endpoint proxies to vite dev server ([28f1149](https://github.com/QuickDapp/QuickDapp/commit/28f11492490983016a21fbf51571c9712db45f38))
+* add schemaFilter to drizzle config to target public schema only ([ddfc074](https://github.com/QuickDapp/QuickDapp/commit/ddfc0741c67dd456fa0e47a8fcb13873394c8745))
+* **website:** fetch git tags in docker workflow for docs versioning ([e090435](https://github.com/QuickDapp/QuickDapp/commit/e0904357d317c0055384706bb72dd9f4da84ac84))
+
 ## [3.8.0](https://github.com/QuickDapp/QuickDapp/compare/v3.7.0...v3.8.0) (2026-01-28)
 
 
