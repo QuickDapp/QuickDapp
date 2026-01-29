@@ -100,6 +100,10 @@ You can now access the server in your browser at two URLs:
 
 If you access [http://localhost:5173/](http://localhost:5173/) you will see something which looks like this:
 
+![](/images/demopage.png)
+
+Whereas if you access [http://localhost:3000/](http://localhost:3000/) you will see:
+
 ![](/images/serverpage.png)
 
 The two links shown on this page are:
@@ -121,27 +125,103 @@ The same goes for if you change any of the backend server code - you will see th
 
 It is only if you change the `.env` file settings that you will need to manually restart the dev server. 
 
-## Step 6 - Ready!
+## Step 6 - Ready!
 
-At this point everything is ready for you to actually develop your app. The remainder of this guide helps you get this basic app deployed to production in the cloud.
+At this point everything is ready for you to actually develop your app. You may wish to follow one of our [tutorials](./tutorials/index.md).
 
-## Step 7 - Setup Github repo
+The remainder of this guide helps you get this basic app deployed to production in the cloud.
 
+## Step 7 - Setup Github
 
-## Step 8 - Deploying to production
+QuickDapp comes with [Github workflows](./deployment/github-workflows.md) that make it easy to test your web app as well as build it as a Docker container for easy cloud deployment.
 
-The following steps cover deploying your application to production.
+Let's get this setup:
 
-We will do the following:
+First, get a [Github.com](https://github.com) account (it's free!).
 
-* Build the application for production.
-* Deploy using Docker containers or binary builds.
-* Use a hosted PostgreSQL database as the production database.
-* (Optional) Deploy smart contracts for Web3 applications.
+Once you're logged in, create a new repository on Github called `my-project`:
 
-!!!
-QuickDapp supports multiple deployment strategies: Docker containers, self-contained binaries, or separate frontend/backend deployments. The choice depends on your infrastructure preferences.
-!!!
+![](/images/github-new-repo.png)
+
+You can set its visibility to _Private_:
+
+![](/images/github-repo-private.png)
+
+Now copy the SSH repository URL for your repo:
+
+![](/images/github-ssh-url.png)
+
+Now run the following locally in your project folder (replace `<...>` with the right values):
+
+```shell
+git add .
+git commit -am "chore: initial version"
+git remote add origin <the github ssh url you copied>
+git push --set-upstream origin main
+```
+
+Now you should see the QuickDapp code show up in your new Github repository:
+
+![](/images/github-initial-commit.png)
+
+## Step 9 - Run Github workflow
+
+Now we're ready to run the Github workflow to build the production-ready version of our web app.
+
+Goto your Github repository's _Actions_ tab and select the _Docker Build and Push_ worfklow from the left. 
+
+Then choose to run the workflow against the `main` branch:
+
+![](/images/github-run-docker-workflow.png)
+
+Refresh the page and you should see the workflow running.
+
+Once it has completed successfully a Docker image should have been created. To see this package goto your Github's repository homepage and look at the right-hand side:
+
+![](/images/github-package-list.png)
+
+If you click into the package generated in the previous step you will see something like this, with the package marked as _Private_:
+
+![](/images/github-package-overview.png)
+
+## Step 10 - Generate Github access token
+
+In order to deploy your newly built Docker image you will need to authenticate access to it. 
+
+To do this goto https://github.com/settings/tokens/new. Create a new token with the `read:packages` permission set:
+
+![](/images/github-new-pat.png)
+
+Copy and paste the generated token value somewhere (you will only be shown in once!).
+
+## Step 11 - Setup production database
+
+TODO
+
+## Step 12 - Deploy the production app
+
+Although we can technically deploy the built Docker image to any cloud, for the purposes of this guide we will opt for [DigitalOcean](https://digitalocean.com/) as it's cheap and quite simple to use.
+
+First, sign up for [DigitalOcean](https://digitalocean.com/).
+
+Next, got the _App Platform_ menu item and you should see the _Apps_ page:
+
+![](/images/do-apps-page.png)
+
+Add a new app and select _Container Image_ as the source, and then select _Github Container Registry_ and enter the details of your Docker image _(replace `<...>` with the right values)_:
+
+* _Repository_: `<github username>/<github repository name>`
+* _Image Tag_: `latest` along with your username and the token you created earlier
+  * _Note: using `latest` ensures that DigitalOcean will automatically re-deploy your app when the Docker image gets rebuilt on Github!_
+* _Credentials_: `<github username>:<previously created access token>`
+
+It will look something like this:
+
+![](/images/do-create-app.png)
+
+Now goto the next page. we need to fill in some _Environment Variables_ before we can finish the deployment.
+
+We are going to deploy the built web app to DigitalOcean, though you 
 
 ## Step 9 - Setup production database
 

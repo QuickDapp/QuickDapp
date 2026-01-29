@@ -134,18 +134,23 @@ WORKER_LOG_LEVEL=debug
     process.exit(0)
   })
 
+  const isCI = !!process.env.CI
+
   try {
-    // Start test database container
-    console.log("🐳 Starting test database container...")
-    try {
-      await $`docker compose -f docker-compose.test.yaml up -d --wait`
-      console.log("✅ Test database container started")
-    } catch (error) {
-      console.error("❌ Failed to start test database container:", error)
-      cleanup()
-      process.exit(1)
+    // In CI, database is provided by service container
+    // Locally, start test database container via docker compose
+    if (!isCI) {
+      console.log("🐳 Starting test database container...")
+      try {
+        await $`docker compose -f docker-compose.test.yaml up -d --wait`
+        console.log("✅ Test database container started")
+      } catch (error) {
+        console.error("❌ Failed to start test database container:", error)
+        cleanup()
+        process.exit(1)
+      }
+      console.log("")
     }
-    console.log("")
 
     // Set up test database schema
     console.log("📦 Setting up test database...")
