@@ -178,7 +178,7 @@ function createComponents(): Record<string, (props: any) => JSX.Element> {
       <img
         src={src}
         alt={alt}
-        className="my-4 max-w-full rounded-lg border border-foreground/20 shadow-xl"
+        className="my-4 max-w-full rounded-lg border border-foreground/10 shadow-xl"
         loading="lazy"
         {...props}
       />

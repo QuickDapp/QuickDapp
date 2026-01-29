@@ -16,8 +16,14 @@ export function DocsPage() {
   const navigate = useNavigate()
 
   const manifestQuery = useDocsManifest()
+  const isValidVersion =
+    version === "latest" || manifestQuery.data?.versions.includes(version!)
   const resolvedVersion =
-    version === "latest" ? (manifestQuery.data?.latest ?? undefined) : version
+    version === "latest"
+      ? (manifestQuery.data?.latest ?? undefined)
+      : isValidVersion
+        ? version
+        : undefined
   const resolvedPath = pagePath || "index"
 
   const { page, tree, isLoading, error } = useDocs(
@@ -82,6 +88,17 @@ export function DocsPage() {
         <h1 className="text-2xl font-bold">No documentation available</h1>
         <p className="text-foreground/60">
           Documentation has not been generated yet.
+        </p>
+      </div>
+    )
+  }
+
+  if (!isValidVersion) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <h1 className="text-2xl font-bold">Page not found</h1>
+        <p className="text-foreground/60">
+          The documentation version "{version}" does not exist.
         </p>
       </div>
     )

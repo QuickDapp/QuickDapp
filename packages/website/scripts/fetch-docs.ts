@@ -103,15 +103,16 @@ function processImagePaths(markdown: string, version: string): string {
   )
 }
 
-function processInternalLinks(markdown: string): string {
+function processInternalLinks(markdown: string, version: string): string {
   return markdown.replace(
     /\]\(([^)]+\.md)(#[^)]*)?\)/g,
     (match, url: string, anchor = "") => {
       if (url.startsWith("http://") || url.startsWith("https://")) {
         return match
       }
-      const newUrl = url.replace(/\.md$/, "").replace(/\/index$/, "")
-      return `](${newUrl}${anchor})`
+      let cleanUrl = url.replace(/\.md$/, "").replace(/\/index$/, "")
+      cleanUrl = cleanUrl.replace(/^\.\//, "").replace(/^\//, "")
+      return `](/docs/${version}/${cleanUrl}${anchor})`
     },
   )
 }
@@ -361,6 +362,7 @@ async function fetchDocsFromTag(
           processGitHubLinks(processRetypeCallouts(markdown), tag),
           displayVersion,
         ),
+        displayVersion,
       )
 
       const title =

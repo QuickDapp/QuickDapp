@@ -46,7 +46,7 @@ export const GettingStartedLink: React.FC<
     <Link
       className={className}
       aria-label="start-building"
-      to="/docs/getting-started"
+      to="/docs/latest/getting-started"
     >
       {children || "Getting started"}
     </Link>
