@@ -117,6 +117,71 @@ function processInternalLinks(markdown: string, version: string): string {
   )
 }
 
+function transformImagesForLlm(markdown: string, tag: string): string {
+  return markdown.replace(
+    /!\[([^\]]*)\]\(\/docs-versions\/[^/]+\/images\/([^)]+)\)/g,
+    (_, alt, imagePath) => {
+      const url = `https://raw.githubusercontent.com/quickdapp/quickdapp/${tag}/packages/docs/images/${imagePath}`
+      return alt ? `(image: ${alt} - ${url})` : `(image: ${url})`
+    },
+  )
+}
+
+function generateLlmTxt(pages: Record<string, DocPage>, tag: string): string {
+  const lines: string[] = [
+    "# QuickDapp Documentation",
+    "",
+    `Version: ${tag.replace(/^v/, "")}`,
+    "",
+    "This is the complete QuickDapp documentation in a plain text format optimized for LLM context windows.",
+    "",
+    "---",
+    "",
+  ]
+
+  for (const page of Object.values(pages)) {
+    const llmMarkdown = transformImagesForLlm(page.markdown, tag)
+    lines.push(llmMarkdown)
+    lines.push("")
+    lines.push("---")
+    lines.push("")
+  }
+
+  return lines.join("\n")
+}
+
+function generateRootLlmsTxt(versions: string[]): string {
+  const latest = versions[0] || null
+  const lines: string[] = [
+    "# QuickDapp Documentation - LLM-friendly Format",
+    "",
+    "This directory contains LLM-optimized documentation for QuickDapp.",
+    "",
+    "Each version has its own llms.txt file containing the full documentation",
+    "in plain text format, suitable for use as context in LLM conversations.",
+    "",
+    "## Available Versions",
+    "",
+  ]
+
+  for (const version of versions) {
+    const isLatest = version === latest
+    const suffix = isLatest ? " (latest)" : ""
+    lines.push(`- ${version}${suffix}: /docs-versions/${version}/llms.txt`)
+  }
+
+  lines.push("")
+  lines.push("## Usage")
+  lines.push("")
+  lines.push("To use this documentation with an LLM:")
+  lines.push("1. Fetch the llms.txt file for the version you need")
+  lines.push("2. Include the content in your LLM context/prompt")
+  lines.push("3. Ask questions about QuickDapp development")
+  lines.push("")
+
+  return lines.join("\n")
+}
+
 async function fetchDocsHandler(
   options: FetchDocsOptions,
   config: { rootFolder: string; env: string },
@@ -185,10 +250,8 @@ async function fetchDocsHandler(
           JSON.stringify(docs.tree, null, 2),
         )
 
-        const allMarkdown = Object.values(docs.pages)
-          .map((p) => p.markdown)
-          .join("\n\n---\n\n")
-        writeFileSync(path.join(versionDir, "llm.md"), allMarkdown)
+        const llmContent = generateLlmTxt(docs.pages, tag)
+        writeFileSync(path.join(versionDir, "llms.txt"), llmContent)
 
         const searchDocs: Record<string, { title: string; content: string }> =
           {}
@@ -251,6 +314,9 @@ async function fetchDocsHandler(
     path.join(outputDir, "manifest.json"),
     JSON.stringify(manifest, null, 2),
   )
+
+  const rootLlmsTxt = generateRootLlmsTxt(sortedVersions)
+  writeFileSync(path.join(outputDir, "llms.txt"), rootLlmsTxt)
 
   const staticSrcDocsDir = path.join(
     config.rootFolder,

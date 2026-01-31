@@ -68,21 +68,6 @@ export function useDocsTree(version: string | undefined) {
   })
 }
 
-export function useDocsLlm(version: string | undefined) {
-  return useQuery({
-    queryKey: ["docs-llm", version],
-    queryFn: async () => {
-      const response = await fetch(`/docs-versions/${version}/llm.md`)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch LLM markdown: ${response.statusText}`)
-      }
-      return response.text()
-    },
-    enabled: !!version,
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
 interface SearchIndexData {
   serializedIndex: object
   docs: Record<string, { title: string; content: string }>

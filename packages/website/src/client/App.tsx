@@ -12,7 +12,6 @@ import { validateClientConfig } from "../shared/config/client"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { Header } from "./components/Header"
 import { ThemeProvider } from "./contexts/ThemeContext"
-import { DocsLlmPage } from "./pages/DocsLlmPage"
 import { DocsPage } from "./pages/DocsPage"
 import { HomePage } from "./pages/HomePage"
 
@@ -42,7 +41,6 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/docs" element={<Navigate to="/docs/latest" replace />} />
-      <Route path="/docs/:version/llm" element={<DocsLlmPage />} />
       <Route path="/docs/:version/*" element={<DocsPage />} />
       <Route path="/docs/:version" element={<DocsPage />} />
     </Routes>
