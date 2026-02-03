@@ -128,12 +128,14 @@ describe("Worker Job Scheduling", () => {
 
   test("should cancel existing pending jobs with same tag when scheduling new job", async () => {
     const tag = "unique-tag-for-cancellation-test"
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000)
 
-    // Schedule first job
+    // Schedule first job with future due date so worker won't execute it
     const job1 = await scheduleJob(serverContext.serverApp, {
       tag,
       type: "removeOldWorkerJobs",
       userId: 1,
+      due: futureDate,
     })
 
     // Schedule second job with same tag (this should cancel job1)
@@ -141,6 +143,7 @@ describe("Worker Job Scheduling", () => {
       tag,
       type: "removeOldWorkerJobs",
       userId: 1,
+      due: futureDate,
     })
 
     expect(job2.id).not.toBe(job1.id)
