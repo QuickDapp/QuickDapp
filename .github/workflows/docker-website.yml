@@ -1,6 +1,8 @@
 name: Docker Build & Push (Website)
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
