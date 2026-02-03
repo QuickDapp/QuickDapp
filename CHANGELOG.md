@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.10.0](https://github.com/QuickDapp/QuickDapp/compare/v3.9.1...v3.10.0) (2026-02-03)
+
+
+### Features
+
+* **website:** add visible border and shadow to docs images ([857faf6](https://github.com/QuickDapp/QuickDapp/commit/857faf6ca410b83948b7bc0e8cba6d935ead0b6b))
+
+
+### Bug Fixes
+
+* **tests:** prevent race condition in job cancellation test ([b6ba34f](https://github.com/QuickDapp/QuickDapp/commit/b6ba34f88c38c9f33da5fc311972cf8aea7f63d0))
+* **website:** improve docs navigation and internal link handling ([83266c6](https://github.com/QuickDapp/QuickDapp/commit/83266c62553af42c6d3f0714ff702d3f58195d9b))
+
 ## [3.9.1](https://github.com/QuickDapp/QuickDapp/compare/v3.9.0...v3.9.1) (2026-01-29)
 
 
