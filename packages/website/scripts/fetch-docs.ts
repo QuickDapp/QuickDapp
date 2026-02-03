@@ -345,12 +345,24 @@ async function fetchDocsHandler(
   mkdirSync(staticDocsDir, { recursive: true })
   cpSync(outputDir, staticDocsDir, { recursive: true })
 
+  const staticRoot = path.join(config.rootFolder, "src", "server", "static")
+  const staticSrcRoot = path.join(
+    config.rootFolder,
+    "src",
+    "server",
+    "static-src",
+  )
+  writeFileSync(path.join(staticRoot, "llms.txt"), rootLlmsTxt)
+  writeFileSync(path.join(staticSrcRoot, "llms.txt"), rootLlmsTxt)
+
   console.log("")
   console.log(
     `✨ Documentation fetched for ${processedVersions.length} version(s)`,
   )
   console.log(`📁 Output: ${outputDir}`)
-  console.log(`📁 Copied to: static-src/docs-versions, static/docs-versions`)
+  console.log(
+    `📁 Copied to: static/llms.txt, static-src/, static/docs-versions`,
+  )
 }
 
 async function getVersionTags(rootFolder: string): Promise<string[]> {

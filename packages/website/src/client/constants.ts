@@ -1,5 +1,4 @@
-export const TAGLINE =
-  "Production-ready boilerplate for vibe-coded and hand-coded web apps."
+export const TAGLINE = "Production-ready boilerplate for web apps."
 
 export const HERO_SLOGAN = "Vibe it. Code it. Ship it."
 
