@@ -1,20 +1,29 @@
 # QuickDapp Web3
 
-A highly opinionated framework for building Web3 dapps with comprehensive blockchain integration.
+Production-ready boilerplate for vibe coders building onchain.
+
+QuickDapp Web3 gives you a batteries-included full-stack TypeScript foundation with comprehensive blockchain integration — wallet authentication, smart contract tooling, and chain monitoring — on top of the same auth, database, GraphQL API, background workers, and polished React frontend as the base package.
 
 ## Features
 
-- **Wallet Auth**: Sign-In with Ethereum (SIWE)
-- **Wallet Connect**: RainbowKit + WalletConnect integration
-- **Smart Contracts**: Viem + Wagmi for contract interactions
-- **Chain Support**: Multi-chain with configurable networks
-- **Database**: PostgreSQL with DrizzleORM
-- **API**: GraphQL Yoga with schema-first approach
-- **Frontend**: React 19 with TailwindCSS
-- **Server**: ElysiaJS with Bun runtime
-- **Background Jobs**: Chain watchers and workers
+**Backend:** TypeScript, Bun, ElysiaJS, PostgreSQL + Drizzle ORM, GraphQL Yoga, WebSockets
+**Frontend:** React 19, TailwindCSS, Radix UI, React Query, dark/light theme
+**Auth:** Sign-In with Ethereum (SIWE), email/password, OAuth (Google, GitHub, etc.)
+**Web3:** RainbowKit + WalletConnect, Viem + Wagmi, multi-chain support, chain watchers
+**Infrastructure:** Background workers with cron, Docker deployment, single-executable binary builds
 
-## Quick Start
+## Getting Started
+
+### CLI (recommended)
+
+```bash
+bunx @quickdapp/cli create my-project --variant web3
+
+# npx works too
+npx @quickdapp/cli create my-project --variant web3
+```
+
+### Manual setup
 
 ```bash
 # Terminal 1: Start PostgreSQL (keep running)
@@ -98,8 +107,15 @@ See [sample-contracts/](./sample-contracts/) for example Solidity contracts and 
 
 ## Documentation
 
-See [quickdapp.xyz](https://quickdapp.xyz) for full documentation.
+- [Full documentation](https://docs.quickdapp.xyz)
+- [Website](https://quickdapp.xyz)
+- [Live demo](https://demo.quickdapp.xyz)
+- [GitHub Discussions](https://github.com/QuickDapp/quickdapp/discussions)
+
+### LLM-Friendly Docs
+
+Machine-readable documentation is available at [quickdapp.xyz/llms.txt](https://quickdapp.xyz/llms.txt).
 
 ## License
 
-MIT
+MIT — see [LICENSE.md](./LICENSE.md)

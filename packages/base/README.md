@@ -1,17 +1,28 @@
-# QuickDapp Base
+# QuickDapp
 
-A highly opinionated framework for building modern web applications.
+Production-ready boilerplate for vibe coders.
+
+QuickDapp gives you a batteries-included full-stack TypeScript foundation — authentication, database, GraphQL API, background workers, and a polished React frontend — so you can skip the setup and start building.
 
 ## Features
 
-- **Authentication**: Email/password + OAuth (Google, GitHub, etc.)
-- **Database**: PostgreSQL with DrizzleORM
-- **API**: GraphQL Yoga with schema-first approach
-- **Frontend**: React 19 with TailwindCSS
-- **Server**: ElysiaJS with Bun runtime
-- **Background Jobs**: Built-in worker system
+**Backend:** TypeScript, Bun, ElysiaJS, PostgreSQL + Drizzle ORM, GraphQL Yoga, WebSockets
+**Frontend:** React 19, TailwindCSS, Radix UI, React Query, dark/light theme
+**Auth:** Email/password, OAuth (Google, GitHub, etc.)
+**Infrastructure:** Background workers with cron, Docker deployment, single-executable binary builds
 
-## Quick Start
+## Getting Started
+
+### CLI (recommended)
+
+```bash
+bunx @quickdapp/cli create my-project
+
+# npx works too
+npx @quickdapp/cli create my-project
+```
+
+### Manual setup
 
 ```bash
 # Terminal 1: Start PostgreSQL (keep running)
@@ -38,8 +49,15 @@ bun run dev
 
 ## Documentation
 
-See [quickdapp.xyz](https://quickdapp.xyz) for full documentation.
+- [Full documentation](https://docs.quickdapp.xyz)
+- [Website](https://quickdapp.xyz)
+- [Live demo](https://demo.quickdapp.xyz)
+- [GitHub Discussions](https://github.com/QuickDapp/quickdapp/discussions)
+
+### LLM-Friendly Docs
+
+Machine-readable documentation is available at [quickdapp.xyz/llms.txt](https://quickdapp.xyz/llms.txt).
 
 ## License
 
-MIT
+MIT — see [LICENSE.md](./LICENSE.md)

@@ -1,8 +1,6 @@
 # QuickDapp Website
 
-[![Docker Build & Push](https://github.com/QuickDapp/website/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/QuickDapp/website/actions/workflows/docker.yml)
-
-https://quickdapp.xyz
+Marketing website for QuickDapp at [quickdapp.xyz](https://quickdapp.xyz). Includes landing page, feature overview, versioned docs hosting, and live GitHub stats.
 
 ## Development
 
@@ -31,4 +29,4 @@ Images are automatically published to GitHub Container Registry on push to main.
 
 ## License
 
-MIT
+MIT — see [LICENSE.md](./LICENSE.md)
