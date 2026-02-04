@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.10.1](https://github.com/QuickDapp/QuickDapp/compare/v3.10.0...v3.10.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* **website:** resolve llms.txt link to actual version number when on latest ([797de08](https://github.com/QuickDapp/QuickDapp/commit/797de08fd29f4b7eda3541c64d72e7a0afa005bb))
+
+
+### Documentation
+
+* add root README and rewrite package READMEs ([5569d9f](https://github.com/QuickDapp/QuickDapp/commit/5569d9fbb76af78b74375be38f3b17ed55d57d85))
+* **cli:** fix README title to @quickdapp/cli ([7bab5e8](https://github.com/QuickDapp/QuickDapp/commit/7bab5e83cb41fc0ed6a7360dabd06e185ec906d7))
+* **cli:** rewrite README with QuickDapp intro and accurate options ([8ada8bc](https://github.com/QuickDapp/QuickDapp/commit/8ada8bc3a0a422dc5db6d28d8dbdabb166b89429))
+* update CLAUDE.md files with llms.txt links and accurate CLI commands ([e86090c](https://github.com/QuickDapp/QuickDapp/commit/e86090c64dab8c7ac70fdfa4ca5471f6bb3a0d50))
+* update README links and descriptions ([a54a0ab](https://github.com/QuickDapp/QuickDapp/commit/a54a0abe3a14b24c0aa3523b7846fa07edcc900f))
+
 ## [3.10.0](https://github.com/QuickDapp/QuickDapp/compare/v3.9.1...v3.10.0) (2026-02-03)
 
 
