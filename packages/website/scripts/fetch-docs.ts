@@ -49,6 +49,8 @@ interface DocsVersion {
   pages: Record<string, DocPage>
 }
 
+const EXCLUDED_FILES = new Set(["CLAUDE.MD", "README.MD", "LICENSE.MD"])
+
 async function extractTitleFromMarkdown(markdown: string): Promise<string> {
   const lines = markdown.split("\n")
   for (const line of lines) {
@@ -427,7 +429,7 @@ async function fetchDocsFromTag(
       const relativePath = path.relative(docsDir, filePath)
       const pagePath = relativePath.replace(/\.md$/, "").replace(/\/index$/, "")
 
-      if (relativePath === "CLAUDE.md") {
+      if (EXCLUDED_FILES.has(path.basename(relativePath).toUpperCase())) {
         continue
       }
 
@@ -485,7 +487,10 @@ function findMarkdownFiles(dir: string): string[] {
 
     if (stat.isDirectory()) {
       files.push(...findMarkdownFiles(fullPath))
-    } else if (entry.endsWith(".md") && entry !== "CLAUDE.md") {
+    } else if (
+      entry.endsWith(".md") &&
+      !EXCLUDED_FILES.has(entry.toUpperCase())
+    ) {
       files.push(fullPath)
     }
   }
