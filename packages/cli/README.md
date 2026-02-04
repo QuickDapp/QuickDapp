@@ -1,4 +1,4 @@
-# create-quickdapp
+# @quickdapp/cli
 
 CLI tool to scaffold new [QuickDapp](https://quickdapp.xyz) projects.
 
