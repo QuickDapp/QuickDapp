@@ -36,7 +36,7 @@ Each worker runs as a forked child process with its own `ServerApp` instance. Th
 3. Starting the job polling loop
 4. Graceful shutdown on SIGTERM
 
-Workers poll the database every second for jobs where `due <= now` and `started IS NULL`. They use `FOR UPDATE SKIP LOCKED` to claim jobs without blocking other workers.
+Workers poll the database for jobs where `due <= now` and `started IS NULL`, using the `getNextPendingJob()` function to claim jobs atomically.
 
 ## IPC Communication
 
@@ -66,7 +66,7 @@ Jobs with a `cronSchedule` field automatically reschedule after completion. The 
 * * * * * *
 ```
 
-The [`removeOldWorkerJobs`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/removeOldWorkerJobs.ts) job runs hourly. The [`watchChain`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/watchChain.ts) job runs every few seconds when Web3 is enabled.
+The [`removeOldWorkerJobs`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/removeOldWorkerJobs.ts) job runs hourly to clean up completed job records.
 
 ## Error Handling
 

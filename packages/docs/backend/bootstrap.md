@@ -22,7 +22,7 @@ Worker processes follow a simpler path. They create a `ServerApp` without the wo
 
 ## The createServerApp Function
 
-The core bootstrap logic lives in [`src/server/bootstrap.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/bootstrap.ts). It connects to the database, creates blockchain clients if Web3 is enabled, and assembles everything into the `ServerApp` object:
+The core bootstrap logic lives in [`src/server/bootstrap.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/bootstrap.ts). It connects to the database and assembles everything into the `ServerApp` object:
 
 ```typescript
 export async function createServerApp(options: {
@@ -32,9 +32,6 @@ export async function createServerApp(options: {
   rootLogger: Logger
 }): Promise<ServerApp> {
   const db = await dbManager.connect()
-
-  // Web3 clients only when enabled
-  const { publicClient, walletClient } = createBlockchainClients(rootLogger)
 
   // Notification helper that persists to DB and sends via WebSocket
   const createNotification = async (userId: number, data: NotificationData) => {
@@ -81,7 +78,7 @@ Worker jobs receive `ServerApp` as their first parameter along with job data:
 
 ```typescript
 export const run: JobRunner = async ({ serverApp, log, job }) => {
-  // Full access to database, blockchain clients, etc.
+  // Full access to database, notifications, etc.
   const result = await serverApp.db.select().from(settings)
   log.info("Job completed", { result })
 }

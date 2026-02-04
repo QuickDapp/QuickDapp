@@ -19,34 +19,6 @@ API_URL=http://localhost:3000
 
 The `SESSION_ENCRYPTION_KEY` must be at least 32 characters and is validated on startup.
 
-## Web3 Variables (Optional)
-
-When `WEB3_ENABLED=true` (the default), these variables are required:
-
-```bash
-WEB3_ENABLED=true
-WEB3_SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
-WEB3_SUPPORTED_CHAINS=anvil
-WEB3_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-WEB3_ALLOWED_SIWE_ORIGINS=http://localhost:3000
-WEB3_FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
-```
-
-Set `WEB3_ENABLED=false` to disable all Web3 functionality, making the Web3 variables optional.
-
-### Per-Chain RPC Endpoints
-
-Server-side blockchain operations use chain-specific RPC variables:
-
-```bash
-WEB3_ANVIL_RPC=http://localhost:8545
-WEB3_MAINNET_RPC=https://eth.llamarpc.com
-WEB3_SEPOLIA_RPC=https://rpc.sepolia.org
-WEB3_BASE_RPC=https://mainnet.base.org
-```
-
-Client-side uses viem's built-in public RPCs for each chain.
-
 ## Server Variables
 
 ```bash
@@ -104,7 +76,42 @@ These variables are safe to expose in the frontend bundle:
 
 - `APP_NAME`, `APP_VERSION`, `NODE_ENV`
 - `API_URL`
-- `WEB3_ENABLED`, `WEB3_SUPPORTED_CHAINS`, `WEB3_WALLETCONNECT_PROJECT_ID`, `WEB3_FACTORY_CONTRACT_ADDRESS`
 - `SENTRY_DSN`
 
 Server-side secrets like database credentials, private keys, and OAuth secrets remain server-only. See [`src/shared/config/client.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/config/client.ts) for the client configuration and [`src/shared/config/server.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/config/server.ts) for the full server configuration.
+
+---
+
+## Web3 Variant Variables
+
+!!!
+The following variables are only relevant when using the [Web3 variant](./variants/web3/index.md). They are not present in the base package.
+!!!
+
+```bash
+WEB3_ENABLED=true
+WEB3_SERVER_WALLET_PRIVATE_KEY=0xYourWalletPrivateKey
+WEB3_SUPPORTED_CHAINS=anvil
+WEB3_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+WEB3_ALLOWED_SIWE_ORIGINS=http://localhost:3000
+WEB3_FACTORY_CONTRACT_ADDRESS=0xYourContractAddress
+```
+
+### Per-Chain RPC Endpoints
+
+Server-side blockchain operations use chain-specific RPC variables:
+
+```bash
+WEB3_ANVIL_RPC=http://localhost:8545
+WEB3_MAINNET_RPC=https://eth.llamarpc.com
+WEB3_SEPOLIA_RPC=https://rpc.sepolia.org
+WEB3_BASE_RPC=https://mainnet.base.org
+```
+
+Client-side uses viem's built-in public RPCs for each chain.
+
+### Web3 Client-Visible Variables
+
+These Web3 variables are also exposed to the frontend bundle:
+
+- `WEB3_ENABLED`, `WEB3_SUPPORTED_CHAINS`, `WEB3_WALLETCONNECT_PROJECT_ID`, `WEB3_FACTORY_CONTRACT_ADDRESS`

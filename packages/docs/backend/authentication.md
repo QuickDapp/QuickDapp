@@ -4,67 +4,126 @@ order: 50
 
 # Authentication
 
-QuickDapp uses stateless JWT authentication with multiple provider options. Users can sign in with their Ethereum wallet (SIWE), email verification codes, or OAuth providers. All flows result in a JWT token that the client sends with subsequent requests.
+QuickDapp uses stateless JWT authentication on the backend. This page covers the server-side implementation: how tokens work, how the `@auth` directive protects operations, and how to add new authentication methods. For user-facing authentication flows (email, OAuth), see [Users > Authentication](../users/authentication.md).
 
-## How It Works
+## JWT Implementation
 
-Authentication state lives entirely in the JWT—there's no session table. When a request arrives with an Authorization header, the server verifies the token signature and extracts the user ID. Tokens expire after 24 hours.
+Tokens are signed with HS256 using the `SESSION_ENCRYPTION_KEY` environment variable. The auth service in [`src/server/auth/index.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/auth/index.ts) provides three core functions:
 
-The `userAuth` table links authentication methods to users. A single user can have multiple auth methods (wallet address, email, OAuth accounts), all pointing to the same user record. This separation allows adding new sign-in options without changing the user model.
+- `generateToken(payload)` — Creates a signed JWT with a 24-hour expiration
+- `verifyToken(token)` — Validates signature and expiration, returns the payload
+- `extractBearerToken(header)` — Extracts the token from an `Authorization: Bearer ...` header
 
-## SIWE Authentication (Web3)
+The token payload includes:
 
-Sign-In With Ethereum lets users authenticate by signing a message with their wallet. The flow:
+```typescript
+{
+  type: "auth",        // Token type identifier
+  userId: number,      // Database user ID
+  iat: number,         // Issued-at timestamp (seconds)
+  iatMs: number,       // Issued-at timestamp (milliseconds)
+  jti: string          // Unique token ID
+}
+```
 
-1. Client calls `generateSiweMessage` with the wallet address, chain ID, and domain
-2. Server creates a SIWE message containing a random nonce and returns it
-3. User signs the message in their wallet
-4. Client calls `authenticateWithSiwe` with the message and signature
-5. Server verifies the signature using the `siwe` library, creates or finds the user, and returns a JWT
+## The @auth Directive
 
-The server validates that the domain matches `WEB3_ALLOWED_SIWE_ORIGINS` to prevent phishing attacks where a malicious site tries to use a signature meant for another domain.
+GraphQL operations marked with `@auth` require a valid JWT in the Authorization header. The GraphQL handler extracts auth requirements at startup by parsing the schema and checks them before running resolvers.
 
-## Email Authentication
+The validation pipeline runs in order:
 
-Email verification uses time-limited codes sent to the user's address:
+1. **Extract** — Pull the Bearer token from the Authorization header
+2. **Verify** — Check the JWT signature and expiration
+3. **Load user** — Fetch the user record from the database by ID
+4. **Check disabled** — Verify the user's `disabled` flag is false
+5. **Attach to context** — Make the user available to resolvers
 
-1. Client calls `sendEmailVerificationCode` with the email address
-2. Server generates a random code, encrypts it into a blob, and emails the code
-3. User enters the code they received
-4. Client calls `authenticateWithEmail` with the email, code, and blob
-5. Server decrypts and verifies the code, creates or finds the user, and returns a JWT
+When an unauthenticated request tries to access a protected operation, it returns a GraphQL error with `extensions.code = "UNAUTHORIZED"`. Mixed queries containing both public and protected fields fail entirely when unauthenticated—no partial data is returned.
 
-The blob contains the encrypted code and expiration time. This stateless approach avoids storing verification codes in the database.
+## Error Codes
 
-## OAuth Authentication
+The authentication system uses specific error codes defined in [`src/shared/graphql/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/errors.ts):
 
-QuickDapp supports six OAuth providers: Google, Facebook, GitHub, X (Twitter), TikTok, and LinkedIn. The flow:
+| Code | When |
+|------|------|
+| `UNAUTHORIZED` | No token provided, or token is invalid/expired |
+| `AUTHENTICATION_FAILED` | Credentials are incorrect (wrong code, bad signature) |
+| `ACCOUNT_DISABLED` | Token is valid but the user account is disabled |
 
-1. Client calls `getOAuthLoginUrl` with the provider name and redirect URL
-2. Server generates an encrypted state containing PKCE challenge and redirect info
-3. User is redirected to the OAuth provider
-4. After authorization, provider redirects to `/auth/callback/:provider`
-5. Server exchanges the code for tokens, fetches user info, creates or finds the user
-6. Server returns an HTML page that stores the JWT and redirects back to the app
+## Adding a New Authentication Method
 
-Each provider requires client ID and secret configured in environment variables. Some providers (Google, X, TikTok) use PKCE for additional security.
+To add a custom authentication method (e.g. phone number, passkey):
 
-## JWT Structure
+**1. Add the auth type constant** in `src/shared/constants.ts`:
 
-Tokens are signed with HS256 using `SESSION_ENCRYPTION_KEY`. The payload includes:
+```typescript
+export const AUTH_METHOD = {
+  EMAIL: "email",
+  PHONE: "phone",  // new
+  // ... OAuth providers
+} as const
+```
 
-- `type: "auth"` — Token type identifier
-- `userId` — Database user ID
-- `web3_wallet` — Wallet address if authenticated via SIWE
-- `iat`, `iatMs` — Issue timestamp
-- `jti` — Unique token ID
+**2. Create user lookup/creation** in `src/server/db/users.ts`:
 
-The auth service provides `generateToken()`, `verifyToken()`, and `extractBearerToken()` functions for working with tokens.
+```typescript
+export async function findOrCreateUserByPhone(
+  db: Database,
+  phoneNumber: string,
+) {
+  return withTransaction(db, async (tx) => {
+    const existing = await tx.select()
+      .from(userAuth)
+      .where(and(
+        eq(userAuth.authType, AUTH_METHOD.PHONE),
+        eq(userAuth.authIdentifier, phoneNumber),
+      ))
+      .then(rows => rows[0])
 
-## Protected Operations
+    if (existing) {
+      return tx.select().from(users)
+        .where(eq(users.id, existing.userId))
+        .then(rows => rows[0])
+    }
 
-GraphQL operations marked with `@auth` require a valid token. The GraphQL handler checks for the directive and validates the token before running resolvers. Unauthenticated requests receive an error with `extensions.code = "UNAUTHORIZED"`.
+    const [user] = await tx.insert(users).values({}).returning()
+    await tx.insert(userAuth).values({
+      userId: user.id,
+      authType: AUTH_METHOD.PHONE,
+      authIdentifier: phoneNumber,
+    })
+    return user
+  })
+}
+```
 
-Users can be disabled by setting `users.disabled = true`. Disabled users receive `"ACCOUNT_DISABLED"` errors when trying to access protected operations.
+**3. Add the GraphQL mutation** in `src/shared/graphql/schema.ts`:
 
-See [`src/server/auth/index.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/auth/index.ts) for the core authentication logic, [`src/server/auth/oauth.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/auth/oauth.ts) for OAuth implementation, and [`src/server/auth/oauth-routes.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/auth/oauth-routes.ts) for the callback handler.
+```graphql
+type Mutation {
+  authenticateWithPhone(phone: String!, code: String!): AuthResult!
+}
+```
+
+**4. Implement the resolver** in `src/server/graphql/resolvers.ts`:
+
+```typescript
+authenticateWithPhone: async (_, { phone, code }, context) => {
+  // Verify the code, find or create user, generate JWT
+  const user = await findOrCreateUserByPhone(context.serverApp.db, phone)
+  const token = await generateToken({ userId: user.id })
+  return { success: true, token }
+}
+```
+
+**5. Update the frontend** to call the new mutation from a login form.
+
+## Security
+
+**Encryption Key**: The `SESSION_ENCRYPTION_KEY` must be at least 32 characters and kept secret. It signs JWTs and encrypts OAuth state. The server validates this on startup.
+
+**HTTPS**: Always use HTTPS in production. Tokens sent over HTTP can be intercepted.
+
+**Token Storage**: The frontend stores tokens in localStorage. For higher security requirements, consider httpOnly cookies with CSRF protection.
+
+See [`src/server/auth/`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/auth/) for the complete authentication implementation.

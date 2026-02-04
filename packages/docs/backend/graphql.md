@@ -10,9 +10,9 @@ QuickDapp exposes its API through GraphQL Yoga integrated with ElysiaJS. The sch
 
 The API provides authentication and notification management. There are no GraphQL subscriptions—real-time updates happen through WebSockets instead.
 
-**Queries** include token validation (public), fetching notifications (authenticated), and getting unread counts (authenticated).
+**Queries** include token validation (public), fetching the current user profile (authenticated), fetching notifications (authenticated), and getting unread counts (authenticated).
 
-**Mutations** handle SIWE authentication flow (generating messages, verifying signatures), email verification, OAuth login URLs, and notification management.
+**Mutations** handle email verification, OAuth login URLs, and notification management.
 
 The full schema is defined in [`src/shared/graphql/schema.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/schema.ts). Key types:
 
@@ -28,26 +28,29 @@ type Notification {
 type AuthResult {
   success: Boolean!
   token: String
-  web3Wallet: String
+  profile: UserProfile
   error: String
 }
 
 type Query {
   validateToken: ValidateTokenResult!
+  me: UserProfile! @auth
   getMyNotifications(pageParam: PageParam!): NotificationsResponse! @auth
   getMyUnreadNotificationsCount: Int! @auth
 }
 
 type Mutation {
-  generateSiweMessage(address: String!, chainId: Int!, domain: String!): SiweMessageResult!
-  authenticateWithSiwe(message: String!, signature: String!): AuthResult!
   sendEmailVerificationCode(email: String!): EmailVerificationResult!
   authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!
-  getOAuthLoginUrl(provider: String!, redirectUrl: String!): OAuthLoginUrlResult!
+  getOAuthLoginUrl(provider: OAuthProvider!, redirectUrl: String): OAuthLoginUrlResult!
   markNotificationAsRead(id: PositiveInt!): Success! @auth
   markAllNotificationsAsRead: Success! @auth
 }
 ```
+
+!!!
+Variants may extend the schema with additional operations. For example, the [Web3 variant](../variants/web3/index.md) adds `generateSiweMessage` and `authenticateWithSiwe` mutations.
+!!!
 
 ## The @auth Directive
 

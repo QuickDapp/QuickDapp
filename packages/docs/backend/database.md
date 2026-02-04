@@ -10,9 +10,9 @@ QuickDapp uses DrizzleORM with PostgreSQL. DrizzleORM provides type-safe queries
 
 The schema is defined in TypeScript at [`src/server/db/schema.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/db/schema.ts). QuickDapp includes four core tables:
 
-**users** stores user accounts. Authentication methods are stored separately in the `userAuth` table, so a single user can have multiple ways to sign in (wallet, email, OAuth).
+**users** stores user accounts. Authentication methods are stored separately in the `userAuth` table, so a single user can have multiple ways to sign in (email, OAuth).
 
-**userAuth** links authentication methods to users. Each row represents one auth method with its type (like "web3_wallet" or "email") and identifier (the wallet address or email). The unique constraint on `authIdentifier` prevents duplicate registrations.
+**userAuth** links authentication methods to users. Each row represents one auth method with its type (like "email" or "google") and identifier (the email address or provider user ID). The unique constraint on `authIdentifier` prevents duplicate registrations. Variants may add additional auth types (e.g. the Web3 variant adds wallet-based authentication).
 
 **notifications** stores user notifications with JSON data and read status. The application creates notifications through `ServerApp` and delivers them in real-time via WebSocket.
 
@@ -47,7 +47,7 @@ Access the database through `serverApp.db`. DrizzleORM queries read like SQL but
 const authRecord = await serverApp.db
   .select()
   .from(userAuth)
-  .where(eq(userAuth.authIdentifier, walletAddress))
+  .where(eq(userAuth.authIdentifier, emailAddress))
   .then(rows => rows[0])
 
 // Get notifications for a user with pagination
@@ -83,8 +83,8 @@ await withTransaction(serverApp.db, async (tx) => {
   // Create auth record
   await tx.insert(userAuth).values({
     userId: user.id,
-    authType: "web3_wallet",
-    authIdentifier: walletAddress.toLowerCase()
+    authType: "email",
+    authIdentifier: emailAddress.toLowerCase()
   })
 
   // If anything fails, entire transaction rolls back

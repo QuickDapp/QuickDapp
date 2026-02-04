@@ -4,7 +4,7 @@ order: 50
 
 # GraphQL Client
 
-The frontend communicates with the backend API using `graphql-request` paired with React Query for caching and state management. GraphQL handles authentication and notifications—blockchain interactions use Wagmi and Viem directly.
+The frontend communicates with the backend API using `graphql-request` paired with React Query for caching and state management.
 
 ## Client Setup
 
@@ -16,7 +16,7 @@ The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/
 
 Queries and mutations are defined in the shared folder so both client and server can reference them. The main operations include:
 
-**Authentication**: [`VALIDATE_TOKEN`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) checks if the current JWT is valid on app initialization. The SIWE mutations handle wallet-based sign-in.
+**Authentication**: [`VALIDATE_TOKEN`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) checks if the current JWT is valid on app initialization. The email and OAuth mutations handle sign-in flows.
 
 **Notifications**: [`GET_MY_NOTIFICATIONS`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) fetches paginated notifications, [`GET_MY_UNREAD_NOTIFICATIONS_COUNT`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) returns the badge count, and mutations mark notifications as read.
 
@@ -29,7 +29,3 @@ GraphQL doesn't handle real-time updates. Instead, WebSockets push notifications
 ## Error Handling
 
 When the server returns an `UNAUTHORIZED` error code, the [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) clears the token and prompts re-authentication. Other GraphQL errors surface through React Query's error handling.
-
-## On-chain Operations
-
-Blockchain interactions bypass GraphQL entirely. Use Wagmi hooks and Viem for reading contract state, sending transactions, and handling wallet connections. See the [Web3 documentation](./web3.md) for details.

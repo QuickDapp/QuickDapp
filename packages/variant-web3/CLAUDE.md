@@ -8,7 +8,9 @@ This is the **Web3 variant** of QuickDapp - a full-featured web application fram
 
 **Web3 Stack**: Viem, Wagmi, RainbowKit, SIWE (Sign-In with Ethereum)
 
-See the root monorepo `CLAUDE.md` and `docs/` for full documentation.
+## Documentation
+
+For comprehensive framework documentation, fetch the LLM-friendly docs from https://quickdapp.xyz/llms.txt — this page lists `llms.txt` files for each QuickDapp version. To get documentation matching this codebase, check the `version` field in `package.json` and fetch `https://quickdapp.xyz/docs-versions/{version}/llms.txt`. If unable to determine the version, use the latest version listed.
 
 ---
 
@@ -47,15 +49,18 @@ WEB3_ALLOWED_SIWE_ORIGINS=http://localhost:3000
 ### Development
 ```bash
 bun run dev              # Start development server with hot reload
+bun run dev --verbose    # Detailed startup logging
 bun run build            # Build for production
 bun run prod             # Run production server (serves API and client)
-bun run prod client      # Run production client preview server only
+bun run prod server      # Server only
+bun run prod client      # Client preview only
 ```
 
 ### Database
 ```bash
 bun run gen              # Generate types (GraphQL, ABI) and database migrations
 bun run db push          # Push schema changes to database (development/test)
+bun run db push --force  # Force push (destructive)
 bun run db migrate       # Run migrations (production)
 ```
 
@@ -64,12 +69,16 @@ bun run db migrate       # Run migrations (production)
 bun run test                    # Run all tests
 bun run test --pattern <name>   # Run specific test pattern
 bun run test --watch            # Run tests in watch mode
+bun run test:e2e                # Run Playwright E2E tests
+bun run test:e2e --headed       # E2E with visible browser
+bun run test:e2e --ui           # E2E with Playwright UI mode
 ```
 
 ### Code Quality
 ```bash
-bun run lint             # Run Biome linter
-bun run lint:fix         # Fix linting issues automatically
+bun run typecheck        # TypeScript type checking only
+bun run lint             # Type check + Biome linting
+bun run lint:fix         # Auto-fix lint issues
 bun run format           # Format code with Biome
 ```
 

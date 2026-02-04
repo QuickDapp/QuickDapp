@@ -1,10 +1,10 @@
 ---
-order: 30
+order: 60
 ---
 
-# Web3 (Optional)
+# Frontend
 
-QuickDapp includes built-in blockchain integration through RainbowKit, Wagmi, and Viem. Set `WEB3_ENABLED=true` to enable wallet connections, smart contract interactions, and SIWE authentication.
+The Web3 variant adds blockchain-specific frontend components, hooks, and configuration on top of the base package's React setup.
 
 ## Configuration
 
@@ -12,7 +12,29 @@ The [`createWeb3Config()`](https://github.com/QuickDapp/QuickDapp/blob/main/src/
 
 Chain configuration lives in [`src/shared/contracts/chain.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/contracts/chain.ts). The `WEB3_SUPPORTED_CHAINS` environment variable specifies which networks to enable. Supported chains include `anvil` (local development), `mainnet`, `sepolia`, and `base`. The first chain in the list becomes the primary chain.
 
-When Web3 is enabled, [`App.tsx`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx) wraps the application with `WagmiProvider` and `RainbowKitProvider`. Components work identically with or without Web3—the provider structure adapts based on configuration.
+## Provider Structure
+
+The Web3 variant wraps the base provider stack with `WagmiProvider` and `RainbowKitProvider`:
+
+```tsx
+<ThemeProvider>
+  <WagmiProvider config={web3Config}>
+    <QueryClientProvider client={queryClient}>
+      <RainbowKitProvider theme={rainbowKitTheme}>
+        <AuthProvider>
+          <SocketProvider>
+            <ToastProvider>
+              {/* App content */}
+            </ToastProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </RainbowKitProvider>
+    </QueryClientProvider>
+  </WagmiProvider>
+</ThemeProvider>
+```
+
+RainbowKit's theme automatically adapts to the app's light/dark mode via the `useTheme()` hook.
 
 ## Wallet Connection
 
@@ -61,9 +83,9 @@ Several components handle token display and management:
 
 ## Multicall
 
-Token operations use Viem's multicall support to batch multiple contract reads into a single RPC request. The [`fetchMultipleTokensWithBalances()`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/contracts/tokens.ts) function demonstrates this—it fetches name, symbol, decimals, and balance for multiple tokens in one call.
+Token operations use Viem's multicall support to batch multiple contract reads into a single RPC request. The [`fetchMultipleTokensWithBalances()`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/contracts/tokens.ts) function demonstrates this — it fetches name, symbol, decimals, and balance for multiple tokens in one call.
 
-For development on Anvil, QuickDapp automatically deploys Multicall3 if it doesn't exist. The [`deployMulticall3`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/workers/jobs/deployMulticall3.ts) worker job handles this during server startup.
+For development on Anvil, QuickDapp automatically deploys Multicall3 if it doesn't exist. See [Chain Monitoring](chain-monitoring.md) for details on the `deployMulticall3` worker job.
 
 ## Error Handling
 
@@ -73,7 +95,3 @@ Transaction errors are caught and displayed through the toast system. Common err
 - Contract reverted (with the revert reason if available)
 
 The hooks return `error` and `isError` states so components can display appropriate feedback.
-
-## Disabling Web3
-
-Set `WEB3_ENABLED=false` to build without blockchain features. The application continues to work with email and OAuth authentication instead of SIWE. Web3-specific components don't render, and the provider tree excludes Wagmi and RainbowKit.

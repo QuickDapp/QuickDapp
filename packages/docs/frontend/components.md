@@ -18,9 +18,9 @@ QuickDapp includes a small set of UI components built on Radix UI primitives wit
 
 ## Layout
 
-The application uses a simple layout with a fixed header and main content area. The [`Header`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/Header.tsx) component shows the logo, wallet connection button (when Web3 enabled), and notification indicator (when authenticated).
+The application uses a simple layout with a fixed header and main content area. The [`Header`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/Header.tsx) component shows the logo and notification indicator (when authenticated).
 
-There's no sidebar—the application focuses on the main token management interface. Routing uses React Router with a single page currently ([`HomePage`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/pages/HomePage.tsx)).
+There's no sidebar—the application focuses on the main content area. Routing uses React Router with a single page currently ([`HomePage`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/pages/HomePage.tsx)).
 
 ```
 ┌─────────────────────────────────────┐
@@ -34,17 +34,10 @@ There's no sidebar—the application focuses on the main token management interf
 └─────────────────────────────────────┘
 ```
 
-## Application Components
+## Notification Components
 
-[`ConnectWallet`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/ConnectWallet.tsx) uses RainbowKit's custom button API to render wallet connection UI. It shows a connect button when disconnected, account info when connected, and optionally a network selector.
+Real-time notification display:
 
-**Token components** handle Web3 token operations:
-- [`CreateTokenDialog`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/CreateTokenDialog.tsx) — Modal for deploying new ERC-20 tokens via the factory contract
-- [`SendTokenDialog`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/SendTokenDialog.tsx) — Modal for transferring tokens to another address
-- [`TokenList`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/TokenList.tsx) — Displays the user's tokens with balances
-- [`ContractValue`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/ContractValue.tsx) — Shows values read from contracts
-
-**Notification components** display real-time updates:
 - [`NotificationsIndicator`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/notifications/NotificationsIndicator.tsx) — Bell icon in header with unread count badge
 - [`NotificationsDialog`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/notifications/NotificationsDialog.tsx) — Full list of notifications with mark-as-read functionality
 - [`NotificationComponents`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/notifications/NotificationComponents.tsx) — Individual renderers for different notification types
@@ -55,7 +48,17 @@ There's no sidebar—the application focuses on the main token management interf
 
 [`ErrorBoundary`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/ErrorBoundary.tsx) catches component errors and displays a fallback UI instead of crashing the application.
 
-[`IfWalletConnected`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/IfWalletConnected.tsx) conditionally renders children only when a wallet is connected—useful for gating Web3-specific UI.
+[`ErrorMessageBox`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/ErrorMessageBox.tsx) displays styled error messages.
+
+[`Popover`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/Popover.tsx) wraps Radix UI's popover for dropdown content.
+
+[`Tooltip`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/Tooltip.tsx) wraps Radix UI's tooltip for hover hints.
+
+[`ThemeSwitcher`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/ThemeSwitcher.tsx) provides a popover with system/light/dark theme options. See [Theming](./theming.md) for details.
+
+[`OnceVisibleInViewport`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/OnceVisibleInViewport.tsx) renders children only when the component scrolls into view, useful for lazy loading.
+
+[`CookieConsentBanner`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/components/CookieConsentBanner.tsx) displays a GDPR-compliant cookie consent banner when needed.
 
 ## Styling Approach
 
@@ -71,6 +74,4 @@ import { cn } from "../utils/cn"
 )} />
 ```
 
-The theme is defined in [`globals.css`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/styles/globals.css) using Tailwind v4's `@theme` directive. Key colors include `--color-anchor` (cyan accent), `--color-background` (black), and `--color-foreground` (white).
-
-Custom utilities like `btn-primary`, `card`, and `glow-effect` are defined in [`globals.css`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/styles/globals.css) for consistent styling patterns.
+The theme is defined in [`globals.css`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/styles/globals.css) using Tailwind v4's `@theme` directive. See [Theming](./theming.md) for details on colors and custom utilities.

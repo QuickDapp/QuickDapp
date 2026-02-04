@@ -39,7 +39,8 @@ bun run serve
 │   └── ...
 ├── worker/                     # Background worker docs
 ├── users/                      # User management docs
-├── smart-contracts/            # Web3 contract docs
+├── variants/                   # Variant-specific documentation
+│   └── web3/                   # Web3 variant docs
 ├── deployment/                 # Deployment guides
 ├── command-line/               # CLI documentation
 └── static/                     # Static assets (logo, favicon)

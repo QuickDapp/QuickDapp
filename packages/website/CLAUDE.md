@@ -6,6 +6,10 @@ This is the **marketing website** for QuickDapp - a simple landing page showcasi
 
 **Stack**: Bun, ElysiaJS, PostgreSQL (for settings cache), React 19, TailwindCSS
 
+## Documentation
+
+For comprehensive framework documentation, fetch the LLM-friendly docs from https://quickdapp.xyz/llms.txt — this page lists `llms.txt` files for each QuickDapp version. To get documentation matching this codebase, check the `version` field in `package.json` and fetch `https://quickdapp.xyz/docs-versions/{version}/llms.txt`. If unable to determine the version, use the latest version listed.
+
 ---
 
 ## Package-Specific Notes
@@ -28,14 +32,38 @@ Compared to the full QuickDapp packages:
 
 ## CLI Commands
 
+### Development
 ```bash
-bun run dev              # Start development server
+bun run dev              # Start development server with hot reload
 bun run build            # Build for production
 bun run prod             # Run production server
-bun run test             # Run tests
+```
+
+### Database
+```bash
 bun run gen              # Generate GraphQL types
 bun run db push          # Push schema changes to database
-bun run lint             # Run Biome linter
+bun run db push --force  # Force push (destructive)
+bun run db migrate       # Run migrations (production)
+```
+
+### Testing
+```bash
+bun run test             # Run all tests
+bun run test:e2e         # Run Playwright E2E tests
+```
+
+### Code Quality
+```bash
+bun run typecheck        # TypeScript type checking only
+bun run lint             # Type check + Biome linting
+bun run lint:fix         # Auto-fix lint issues
+bun run format           # Format code with Biome
+```
+
+### Docs
+```bash
+bun run fetch-docs       # Fetch versioned documentation from git tags
 ```
 
 ---

@@ -17,8 +17,10 @@ QuickDapp provides CLI commands for development, building, testing, and database
 | `bun run build` | Build for production |
 | `bun run prod` | Run production server |
 | `bun run test` | Run test suite |
+| `bun run test:e2e` | Run Playwright E2E tests |
 | `bun run gen` | Generate types and migrations |
 | `bun run lint` | Type check and lint |
+| `bun run lint:fix` | Auto-fix lint issues |
 | `bun run format` | Format code |
 | `bun run db push` | Push schema to database |
 | `bun run db migrate` | Run migrations |
@@ -57,7 +59,7 @@ Tests run with isolated database state. The test database is reset before each r
 bun run gen              # Generate all types
 ```
 
-Generates GraphQL TypeScript types, ABI types from contracts, and DrizzleORM migration files.
+Generates GraphQL TypeScript types and DrizzleORM migration files.
 
 ## Code Quality
 
@@ -95,4 +97,7 @@ Environment files load in order: `.env` → `.env.{NODE_ENV}` → `.env.local`.
 - [Build](./build.md) — Production builds
 - [Prod](./prod.md) — Production server
 - [Database](./db.md) — Database commands
+- [Gen](./gen.md) — Code generation
 - [Test](./test.md) — Test runner
+- [Lint](./lint.md) — Linting and formatting
+- [Test E2E](./test-e2e.md) — Playwright E2E tests

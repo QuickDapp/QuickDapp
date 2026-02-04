@@ -6,7 +6,7 @@ expanded: true
 
 # Users
 
-QuickDapp provides a simple user management system with flexible authentication. Users can sign in via SIWE (wallet), email verification, or OAuth providers. Each authentication method links to a single user record, allowing multiple sign-in options per account.
+QuickDapp provides a simple user management system with flexible authentication. Users can sign in via email verification or OAuth providers. Each authentication method links to a single user record, allowing multiple sign-in options per account.
 
 ## User Model
 
@@ -30,20 +30,22 @@ The [`userAuth`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/db/
 export const userAuth = pgTable("user_auth", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  authType: text("auth_type").notNull(),       // "web3_wallet", "email", "google", etc.
-  authIdentifier: text("auth_identifier").unique().notNull(),  // wallet address, email, etc.
+  authType: text("auth_type").notNull(),       // "email", "google", etc.
+  authIdentifier: text("auth_identifier").unique().notNull(),  // email, provider ID, etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 ```
 
-This separation allows a single user to have multiple authentication methods—for example, a wallet address and an email—all pointing to the same account.
+This separation allows a single user to have multiple authentication methods—for example, an email address and a Google account—all pointing to the same user record.
+
+!!!
+Variants can add additional authentication types. For example, the [Web3 variant](../variants/web3/authentication.md) adds wallet-based authentication via SIWE (Sign-In With Ethereum).
+!!!
 
 ## Authentication Methods
 
-QuickDapp supports three authentication approaches:
-
-**SIWE (Sign-In With Ethereum)** — When Web3 is enabled, users sign a message with their wallet. The signature proves ownership of the address without exposing private keys.
+QuickDapp supports two base authentication approaches:
 
 **Email Verification** — Users receive a verification code via email. The code is encrypted into a stateless blob, avoiding database storage for pending verifications.
 
@@ -65,9 +67,9 @@ This just-in-time creation means there's no separate registration step. Users ex
 
 ## Account Linking
 
-A user can add additional authentication methods to their account. For example, someone who signed up with their wallet can later add email authentication. The new auth record links to the existing user ID.
+A user can add additional authentication methods to their account. For example, someone who signed up with email can later add Google OAuth. The new auth record links to the existing user ID.
 
-The unique constraint on `authIdentifier` prevents the same email or wallet from linking to multiple accounts.
+The unique constraint on `authIdentifier` prevents the same email or provider account from linking to multiple users.
 
 ## User Disabling
 
@@ -87,18 +89,7 @@ await serverApp.db
   .where(eq(users.id, userId))
 ```
 
-## Notifications
+## Documentation
 
-Users receive real-time notifications stored in the [`notifications`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/db/schema.ts) table. Create notifications with:
-
-```typescript
-await serverApp.createNotification(userId, {
-  type: "token_deployed",
-  message: "Your token has been deployed",
-  tokenAddress: "0x..."
-})
-```
-
-This saves to the database and pushes via WebSocket to connected clients. The frontend's [`useNotifications`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/hooks/useNotifications.ts) hook handles real-time updates.
-
-See [Authentication](./authentication.md) for detailed auth flows and implementation.
+- [Authentication](./authentication.md) — Detailed auth flows and frontend integration
+- [Notifications](./notifications.md) — Real-time notification system

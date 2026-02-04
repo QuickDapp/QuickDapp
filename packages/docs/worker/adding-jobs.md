@@ -19,12 +19,7 @@ export const myCustomJob: Job = {
     log.info("Starting custom job", { jobId: job.id })
 
     // Access database
-    const users = await serverApp.db.select().from(users)
-
-    // Access blockchain clients (when Web3 enabled)
-    if (serverApp.publicClient) {
-      const balance = await serverApp.publicClient.getBalance({ address })
-    }
+    const result = await serverApp.db.select().from(users)
 
     // Create notifications
     await serverApp.createNotification(job.userId, {
@@ -38,7 +33,7 @@ export const myCustomJob: Job = {
 ```
 
 The `JobParams` object provides:
-- `serverApp` — Full access to database, blockchain clients, notifications
+- `serverApp` — Full access to database, notifications, and other services
 - `log` — Logger scoped to this job execution
 - `job` — The job record including `id`, `type`, `data`, `userId`
 
@@ -54,8 +49,6 @@ export interface MyCustomJobData {
 
 export type JobType =
   | "removeOldWorkerJobs"
-  | "watchChain"
-  | "deployMulticall3"
   | "myCustomJob"  // Add your type
 ```
 
@@ -68,8 +61,6 @@ import { myCustomJob } from "./myCustomJob"
 
 export const jobRegistry: JobRegistry = {
   removeOldWorkerJobs: removeOldWorkerJobsJob,
-  watchChain: watchChainJob,
-  deployMulticall3: deployMulticall3Job,
   myCustomJob: myCustomJob,
 }
 ```
@@ -87,14 +78,4 @@ await serverApp.workerManager.submitJob({
 })
 ```
 
-## Best Practices
-
-**Idempotency**: Design jobs to be safely re-runnable. If a job fails mid-execution and restarts, it should handle duplicate processing gracefully.
-
-**Logging**: Use the provided `log` parameter for structured logging. Include the `jobId` in log entries for tracing.
-
-**Error Handling**: Let errors bubble up—the worker system handles retries based on job configuration. Log errors before throwing for debugging.
-
-**Duration**: Keep jobs under 5 minutes. For longer work, break into multiple jobs or use progress tracking.
-
-**Database Transactions**: Use `withTransaction` for operations that need atomicity. The transaction wrapper handles serialization conflicts automatically.
+For more guidelines on writing reliable jobs, see [Best Practices](./best-practices.md).

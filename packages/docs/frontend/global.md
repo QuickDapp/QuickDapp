@@ -4,45 +4,47 @@ order: 60
 
 # Global State
 
-QuickDapp uses React Context for global state management. The application separates concerns into focused providers: authentication, WebSocket connections, and toast notifications. Each handles one responsibility and exposes a hook for components to access its data.
+QuickDapp uses React Context for global state management. The application separates concerns into focused providers: theming, authentication, WebSocket connections, and toast notifications. Each handles one responsibility and exposes a hook for components to access its data.
 
 ## Provider Structure
 
-The [`App.tsx`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx) nests providers to make them available throughout the application. When Web3 is enabled, the stack includes Wagmi and RainbowKit for wallet connections:
+The [`App.tsx`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx) nests providers to make them available throughout the application:
 
 ```tsx
-// Web3 enabled
-<WagmiProvider config={web3Config}>
+<ThemeProvider>
   <QueryClientProvider client={queryClient}>
-    <RainbowKitProvider>
-      <AuthProvider>
-        <SocketProvider>
-          <ToastProvider>
-            {/* routes */}
-          </ToastProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </RainbowKitProvider>
+    <AuthProvider>
+      <SocketProvider>
+        <ToastProvider>
+          {/* routes */}
+        </ToastProvider>
+      </SocketProvider>
+    </AuthProvider>
   </QueryClientProvider>
-</WagmiProvider>
-
-// Web3 disabled
-<QueryClientProvider client={queryClient}>
-  <AuthProvider>
-    <SocketProvider>
-      <ToastProvider>
-        {/* routes */}
-      </ToastProvider>
-    </SocketProvider>
-  </AuthProvider>
-</QueryClientProvider>
+</ThemeProvider>
 ```
 
-The `WEB3_ENABLED` config flag determines which structure is used. Both share the same inner providers, so components work identically regardless of Web3 mode.
+## Theme Context
+
+The [`ThemeProvider`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/ThemeContext.tsx) manages dark/light mode with system preference detection.
+
+```typescript
+interface ThemeContextValue {
+  preference: ThemePreference    // "system" | "light" | "dark"
+  resolvedTheme: ResolvedTheme   // "light" | "dark"
+  setPreference: (preference: ThemePreference) => void
+}
+```
+
+The provider resolves the "system" preference by checking `window.matchMedia("(prefers-color-scheme: dark)")` and listens for changes. The resolved theme is applied by adding `"light"` or `"dark"` to the HTML root element's class list, which activates the corresponding CSS variables.
+
+Theme preference is persisted to localStorage under the `"theme"` key.
+
+Access via `useTheme()`. See [Theming](./theming.md) for details on CSS integration.
 
 ## Authentication Context
 
-The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) manages SIWE (Sign-In With Ethereum) authentication when Web3 is enabled, or provides a minimal auth shell for email/OAuth when disabled. It uses a state machine to track the authentication lifecycle.
+The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) manages email and OAuth authentication. It uses a state machine to track the authentication lifecycle.
 
 ```typescript
 interface AuthContextValue {
@@ -50,19 +52,17 @@ interface AuthContextValue {
   isLoading: boolean
   error: Error | null
   authToken: string | null
-  walletAddress: string | null
-  userRejectedAuth: boolean
-  authenticate: (address: string) => Promise<AuthResult>
+  profile: UserProfile | null
+  email: string | null
+  login: (token: string, profile: UserProfile) => void
   logout: () => void
   restoreAuth: () => void
 }
 ```
 
-The authentication flow works as follows: when a wallet connects, the context generates a SIWE message from the server, prompts the user to sign it, then sends the signature for verification. On success, the JWT token is stored in localStorage and attached to GraphQL requests.
+On mount, the context attempts to restore a previous session by reading the JWT from localStorage and validating it with the server. If valid, it fetches the user profile via the `me` query.
 
-The context tracks several states: `IDLE`, `RESTORING` (checking for existing session), `WAITING_FOR_WALLET`, `AUTHENTICATING`, `AUTHENTICATED`, `REJECTED` (user cancelled signature), and `ERROR`. This state machine prevents race conditions and handles edge cases like wallet disconnection mid-auth.
-
-If the wallet disconnects after authentication, the user is automatically logged out. If they previously rejected signing, the context remembers and won't auto-prompt again until they connect a different wallet.
+The context tracks several states: `IDLE`, `RESTORING` (checking for existing session), `AUTHENTICATING`, `AUTHENTICATED`, and `ERROR`.
 
 Access the context via `useAuthContext()`.
 

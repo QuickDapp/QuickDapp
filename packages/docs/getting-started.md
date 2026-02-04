@@ -23,7 +23,7 @@ Open a terminal window and type in:
 bunx @quickdapp/cli create my-project
 ```
 
-The above command will get the QuickDapp CLI and use it to create a new project in a folder called `my-project`. 
+The above command will get the QuickDapp CLI and use it to create a new project in a folder called `my-project`.
 
 You can now enter the `my-project` folder using:
 
@@ -45,8 +45,8 @@ You should see output which looks like this:
 
 ```
 [+] up 2/2
- ✔ Network my-project_default   Created                                               0.0s 
- ✔ Container quickdapp-postgres Created                                               0.1s 
+ ✔ Network my-project_default   Created                                               0.0s
+ ✔ Container quickdapp-postgres Created                                               0.1s
 ```
 
 From this point on the database is running in the background. To shutdown the database at any time run:
@@ -55,7 +55,7 @@ From this point on the database is running in the background. To shutdown the da
 docker compose down
 ```
 
-You can now connect to the database yourself through a third-party client (e.g [DBeaver](https://dbeaver.io/)). 
+You can now connect to the database yourself through a third-party client (e.g [DBeaver](https://dbeaver.io/)).
 
 You can see the full database connection parameters by looking at the [`.env`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/.env) file in the project. This file defines the [environment variables](./environment-variables.md) used by the web app._
 
@@ -123,7 +123,7 @@ Go ahead and change the text in `HomePage.tsx` to be something different and you
 
 The same goes for if you change any of the backend server code - you will see the dev server running in the terminal auto-reload any code changes.
 
-It is only if you change the `.env` file settings that you will need to manually restart the dev server. 
+It is only if you change the `.env` file settings that you will need to manually restart the dev server.
 
 ## Step 6 - Ready!
 
@@ -164,11 +164,11 @@ Now you should see the QuickDapp code show up in your new Github repository:
 
 ![](/images/github-initial-commit.png)
 
-## Step 9 - Run Github workflow
+## Step 8 - Run Github workflow
 
 Now we're ready to run the Github workflow to build the production-ready version of our web app.
 
-Goto your Github repository's _Actions_ tab and select the _Docker Build and Push_ worfklow from the left. 
+Goto your Github repository's _Actions_ tab and select the _Docker Build and Push_ worfklow from the left.
 
 Then choose to run the workflow against the `main` branch:
 
@@ -184,9 +184,9 @@ If you click into the package generated in the previous step you will see someth
 
 ![](/images/github-package-overview.png)
 
-## Step 10 - Generate Github access token
+## Step 9 - Generate Github access token
 
-In order to deploy your newly built Docker image you will need to authenticate access to it. 
+In order to deploy your newly built Docker image you will need to authenticate access to it.
 
 To do this goto https://github.com/settings/tokens/new. Create a new token with the `read:packages` permission set:
 
@@ -194,45 +194,16 @@ To do this goto https://github.com/settings/tokens/new. Create a new token with 
 
 Copy and paste the generated token value somewhere (you will only be shown in once!).
 
-## Step 11 - Setup production database
+## Step 10 - Setup production database
 
-TODO
-
-## Step 12 - Deploy the production app
-
-Although we can technically deploy the built Docker image to any cloud, for the purposes of this guide we will opt for [DigitalOcean](https://digitalocean.com/) as it's cheap and quite simple to use.
-
-First, sign up for [DigitalOcean](https://digitalocean.com/).
-
-Next, got the _App Platform_ menu item and you should see the _Apps_ page:
-
-![](/images/do-apps-page.png)
-
-Add a new app and select _Container Image_ as the source, and then select _Github Container Registry_ and enter the details of your Docker image _(replace `<...>` with the right values)_:
-
-* _Repository_: `<github username>/<github repository name>`
-* _Image Tag_: `latest` along with your username and the token you created earlier
-  * _Note: using `latest` ensures that DigitalOcean will automatically re-deploy your app when the Docker image gets rebuilt on Github!_
-* _Credentials_: `<github username>:<previously created access token>`
-
-It will look something like this:
-
-![](/images/do-create-app.png)
-
-Now goto the next page. we need to fill in some _Environment Variables_ before we can finish the deployment.
-
-We are going to deploy the built web app to DigitalOcean, though you 
-
-## Step 9 - Setup production database
-
-We will setup a PostgreSQL database for production use. You can use any PostgreSQL hosting service such as:
+You will need a PostgreSQL database for production use. You can use any PostgreSQL hosting service such as:
 
 * [DigitalOcean Managed Databases](https://www.digitalocean.com/products/managed-databases)
 * [AWS RDS](https://aws.amazon.com/rds/)
 * [Railway](https://railway.app/)
 * [Supabase](https://supabase.com/)
 
-Once you have your production database connection string, add it to your `.env.production` file (or create a production environment file):
+Once you have your production database connection string, add it to your `.env.production` file:
 
 ```ini
 DATABASE_URL="postgresql://user:password@host:5432/database"
@@ -244,7 +215,7 @@ Now setup the production database schema:
 bun run db migrate
 ```
 
-## Step 10 - Test-run production build locally
+## Step 11 - Test-run production build locally
 
 _Note: This step is optional, and is useful if you want to debug some production issues locally_
 
@@ -252,8 +223,6 @@ In the project folder, build the production apps:
 
 ```shell
 bun run build
-# Optionally bundle client into server static assets so server serves the SPA:
-# bun run build --bundle
 ```
 
 Now, run the production apps:
@@ -264,7 +233,7 @@ bun run prod
 
 Open http://localhost:3000 in your browser to test the production build locally.
 
-## Step 11 - Deploy to production
+## Step 12 - Deploy to production
 
 QuickDapp supports several deployment options:
 
@@ -286,60 +255,20 @@ docker run -p 3000:3000 quickdapp
 
 See the [deployment documentation](./deployment/) for detailed guides on various deployment strategies.
 
-## Step 11 - Hurrah!
+## Step 13 - Done!
 
 **Congratulations! Your application is now available on the web in production mode.**
 
 ## Optional: Web3 Setup
 
-If building a Web3 application, you can enable blockchain features:
-
-### Local Development
-
-1. Install Foundry if not already installed:
-```shell
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
-
-2. Start local blockchain:
-```shell
-cd sample-contracts
-bun devnet.ts
-```
-
-3. Deploy sample contracts:
-```shell
-cd sample-contracts
-bun deploy.ts
-```
-
-4. Import the test mnemonic into your wallet (e.g., MetaMask):
-```
-test test test test test test test test test test test junk
-```
-
-5. Add local network to wallet: Chain ID 31337, RPC http://localhost:8545
-
-### Production Web3 Deployment
-
-To deploy contracts to Sepolia testnet:
-
-1. Get Sepolia ETH from a faucet and an RPC endpoint
-2. Set environment variables in `.env.production`:
-```bash
-WEB3_SUPPORTED_CHAINS=sepolia
-WEB3_SEPOLIA_RPC="https://sepolia.infura.io/v3/your-api-key"
-WEB3_SERVER_WALLET_PRIVATE_KEY="0x..."
-```
-3. Deploy: `cd sample-contracts && bun deploy.ts`
+If you're interested in building a Web3 application with blockchain features, check out the [Web3 variant documentation](./variants/web3/index.md). The Web3 variant adds wallet authentication, smart contract interactions, and blockchain event monitoring on top of everything in the base package.
 
 ## Next steps
 
 Now that you have QuickDapp running, explore the documentation to learn about:
 
 * [Backend architecture](./backend/) - Understanding the ServerApp pattern and database layer
-* [Frontend development](./frontend/) - Building React components and optional Web3 integrations
+* [Frontend development](./frontend/) - Building React components
 * [Worker system](./worker/) - Adding background jobs and cron tasks
 * [Command line tools](./command-line/) - Development and deployment commands
-* [Testing](./getting-started.md#step-6---run-tests) - Writing and running tests
+* [Variants](./variants/) - Specialized derivations like the Web3 variant

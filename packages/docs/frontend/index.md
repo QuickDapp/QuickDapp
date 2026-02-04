@@ -6,15 +6,13 @@ expanded: true
 
 # Frontend
 
-The QuickDapp frontend is a React 19 application built with Vite, TypeScript, and TailwindCSS. Web3 integration through RainbowKit and Wagmi is optional—the same codebase works with or without blockchain features.
+The QuickDapp frontend is a React 19 application built with Vite, TypeScript, and TailwindCSS.
 
 ## Technology Stack
 
-Vite handles development and production builds with hot module replacement. TailwindCSS v4 provides styling with a dark theme and custom utility classes. Radix UI supplies accessible primitives for dialogs, popovers, and tooltips.
+Vite handles development and production builds with hot module replacement. TailwindCSS v4 provides styling with dark and light theme support and custom utility classes. Radix UI supplies accessible primitives for dialogs, popovers, and tooltips.
 
 For data fetching, React Query manages server state with caching and background refetching. The GraphQL client uses `graphql-request` with queries defined in the shared folder.
-
-When Web3 is enabled, RainbowKit provides wallet connection UI and Wagmi supplies React hooks for blockchain interactions. Viem handles the underlying Ethereum operations.
 
 ## Project Structure
 
@@ -22,10 +20,9 @@ When Web3 is enabled, RainbowKit provides wallet connection UI and Wagmi supplie
 src/client/
 ├── App.tsx              # Root with provider setup
 ├── components/          # UI components
-├── contexts/            # AuthContext, SocketContext, CookieConsentContext
-├── hooks/               # useForm, useTokens, useTokenActions, useNotifications
+├── contexts/            # ThemeContext, AuthContext, SocketContext, CookieConsentContext
+├── hooks/               # useForm, useNotifications
 ├── lib/                 # Socket client
-├── config/              # Web3 configuration
 ├── pages/               # Page components
 ├── styles/              # Tailwind globals
 └── utils/               # cn() helper
@@ -33,41 +30,25 @@ src/client/
 
 ## Provider Structure
 
-The [`App`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx) component conditionally wraps content with Web3 providers based on configuration:
+The [`App`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx) component wraps content with providers:
 
 ```tsx
-// When WEB3_ENABLED=true
-<WagmiProvider>
+<ThemeProvider>
   <QueryClientProvider>
-    <RainbowKitProvider>
-      <AuthProvider>
-        <SocketProvider>
-          <ToastProvider>
-            {/* routes */}
-          </ToastProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </RainbowKitProvider>
+    <AuthProvider>
+      <SocketProvider>
+        <ToastProvider>
+          {/* routes */}
+        </ToastProvider>
+      </SocketProvider>
+    </AuthProvider>
   </QueryClientProvider>
-</WagmiProvider>
-
-// When WEB3_ENABLED=false
-<QueryClientProvider>
-  <AuthProvider>
-    <SocketProvider>
-      <ToastProvider>
-        {/* routes */}
-      </ToastProvider>
-    </SocketProvider>
-  </AuthProvider>
-</QueryClientProvider>
+</ThemeProvider>
 ```
-
-Components work identically in either mode. The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) switches between SIWE authentication and email/OAuth based on the Web3 flag.
 
 ## Key Patterns
 
-**State management** uses React Context for global state (auth, sockets, toasts) and React Query for server data. There's no Redux or external state library.
+**State management** uses React Context for global state (theme, auth, sockets, toasts) and React Query for server data. There's no Redux or external state library.
 
 **Forms** use a custom hook-based validation system in [`useForm.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/hooks/useForm.ts). It supports sync and async validation with debouncing, without external form libraries.
 
@@ -82,4 +63,4 @@ Components work identically in either mode. The [`AuthContext`](https://github.c
 - [Global](./global.md) — Context providers and global state
 - [GraphQL](./graphql.md) — GraphQL client usage
 - [Static Assets](./static-assets.md) — Serving static files (favicon, fonts, etc.)
-- [Web3](./web3.md) — Blockchain integration (optional)
+- [Theming](./theming.md) — Dark/light mode, theme customization

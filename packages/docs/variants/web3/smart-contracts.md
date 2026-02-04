@@ -1,16 +1,14 @@
 ---
-order: 91
-icon: FileCode
-expanded: true
+order: 70
 ---
 
-# Smart Contracts (Optional)
+# Smart Contracts
 
-QuickDapp includes sample smart contracts for Web3 developers. If you're building a non-Web3 application, skip this section entirely.
+The Web3 variant includes sample smart contracts demonstrating an ERC20 token factory pattern. These serve as a starting point for your own contract development and show how QuickDapp integrates with on-chain contracts end-to-end.
 
 ## Overview
 
-The sample contracts demonstrate a simple ERC20 token factory pattern using OpenZeppelin contracts and Foundry tooling. The factory deploys new ERC20 tokens with custom names, symbols, and initial supplies.
+The sample contracts use OpenZeppelin contracts and Foundry tooling. The factory deploys new ERC20 tokens with custom names, symbols, and initial supplies.
 
 Both contracts live in [`sample-contracts/src/ERC20Factory.sol`](https://github.com/QuickDapp/QuickDapp/blob/main/sample-contracts/src/ERC20Factory.sol):
 
@@ -112,7 +110,7 @@ forge test --gas-report
 
 After deployment, the contract address is available via [`clientConfig.WEB3_FACTORY_CONTRACT_ADDRESS`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/config/client.ts). ABIs are generated from Foundry build artifacts to [`src/shared/abi/generated.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/abi/generated.ts) when you run `bun run gen`.
 
-Use viem/wagmi on the client for contract interactions. The `ERC20NewToken` and `TokenTransferred` events are useful for real-time tracking via WebSockets.
+Use Wagmi hooks on the client for contract interactions. The `ERC20NewToken` and `TokenTransferred` events are tracked by the [chain monitoring](chain-monitoring.md) worker for real-time notifications.
 
 ## Customization
 

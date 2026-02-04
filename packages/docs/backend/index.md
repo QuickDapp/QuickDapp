@@ -6,13 +6,11 @@ expanded: true
 
 # Backend
 
-The QuickDapp backend runs on Bun with ElysiaJS as the web framework. Everything flows through the ServerApp pattern, which provides clean access to the database, logger, WebSocket manager, worker system, and optional blockchain clients.
+The QuickDapp backend runs on Bun with ElysiaJS as the web framework. Everything flows through the ServerApp pattern, which provides clean access to the database, logger, WebSocket manager, and worker system.
 
 ## Core Technologies
 
 The backend uses Bun as its runtime and package manager. ElysiaJS handles HTTP and WebSocket connections, GraphQL Yoga provides the API layer, and DrizzleORM manages PostgreSQL access with full TypeScript integration.
-
-When Web3 is enabled, the server also has Viem clients for reading from and writing to the blockchain, plus SIWE support for wallet-based authentication.
 
 ## The ServerApp Pattern
 
@@ -28,22 +26,24 @@ type ServerApp = {
   workerManager: WorkerManager                   // Background job manager
   socketManager: ISocketManager                  // WebSocket manager
   createNotification: (userId, data) => Promise  // Send user notifications
-  publicClient?: PublicClient                    // Blockchain read client (Web3)
-  walletClient?: WalletClient                    // Blockchain write client (Web3)
 }
 ```
 
 GraphQL resolvers receive this through their context. Worker jobs get it as their first parameter. Any service you build can accept `ServerApp` to access shared resources.
 
+!!!
+Variants may extend the `ServerApp` type with additional fields. For example, the [Web3 variant](../variants/web3/index.md) adds `publicClient` and `walletClient` for blockchain access.
+!!!
+
 ## Directory Structure
 
 ```
 src/server/
-├── auth/           # Authentication (SIWE, email, OAuth)
+├── auth/           # Authentication (email, OAuth)
 ├── bootstrap.ts    # ServerApp creation
 ├── db/             # Schema, queries, connection management
 ├── graphql/        # Resolvers and schema integration
-├── lib/            # Logger, errors, crypto, chains
+├── lib/            # Logger, errors, crypto
 ├── services/       # Business logic services
 ├── start-server.ts # Server startup
 ├── start-worker.ts # Worker process startup
@@ -65,7 +65,9 @@ Background jobs get submitted to the database queue. Worker processes poll for p
 - [Bootstrap](./bootstrap.md) — How ServerApp gets created and configured
 - [Database](./database.md) — Schema design, queries, and transaction handling
 - [GraphQL](./graphql.md) — API schema, resolvers, and authentication
-- [Authentication](./authentication.md) — SIWE, email, and OAuth flows
+- [Authentication](./authentication.md) — JWT implementation, the `@auth` directive, and adding new auth methods
 - [WebSockets](./websockets.md) — Real-time communication
+- [Error Handling](./error-handling.md) — Error classes and GraphQL error codes
+- [Logging](./logging.md) — Logger system, categories, and Sentry integration
 
 See [`src/server/types.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/types.ts) for the complete `ServerApp` type definition.

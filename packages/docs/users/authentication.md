@@ -4,39 +4,11 @@ order: 80
 
 # Authentication
 
-QuickDapp uses stateless JWT authentication with three provider options: SIWE (wallet signing), email verification, and OAuth. This page covers the authentication flows in detail.
+QuickDapp uses stateless JWT authentication with two provider options: email verification and OAuth. This page covers the authentication flows from the user's perspective. For backend implementation details (JWT internals, the `@auth` directive), see [Backend > Authentication](../backend/authentication.md).
 
 ## JWT Tokens
 
-All authentication methods produce a JWT token signed with `SESSION_ENCRYPTION_KEY`. The token contains:
-
-```typescript
-{
-  type: "auth",
-  userId: number,
-  web3_wallet?: string,  // Present for SIWE auth
-  iat: number,
-  iatMs: number,
-  jti: string
-}
-```
-
-Tokens expire after 24 hours. There's no session table—authentication state lives entirely in the token. The server verifies the signature and extracts the user ID on each request.
-
-## SIWE Authentication
-
-Sign-In With Ethereum works through wallet message signing:
-
-1. Client calls `generateSiweMessage` with wallet address, chain ID, and domain
-2. Server creates a SIWE-compliant message with a random nonce
-3. User signs the message in their wallet (MetaMask, WalletConnect, etc.)
-4. Client calls `authenticateWithSiwe` with the message and signature
-5. Server verifies the signature using the `siwe` library
-6. Server finds or creates the user and returns a JWT
-
-The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/contexts/AuthContext.tsx) handles this flow automatically. It uses a state machine to track progress and handles edge cases like wallet disconnection mid-auth.
-
-Domain validation prevents phishing. The server checks that the SIWE message domain matches `WEB3_ALLOWED_SIWE_ORIGINS`. A malicious site can't reuse a signature meant for your application.
+All authentication methods produce a JWT token signed with `SESSION_ENCRYPTION_KEY`. The token contains the user ID and expires after 24 hours. There's no session table—authentication state lives entirely in the token.
 
 ## Email Authentication
 
@@ -50,9 +22,9 @@ Email verification uses encrypted, stateless codes:
 6. Server decrypts the blob, verifies the code matches and hasn't expired
 7. Server finds or creates the user and returns a JWT
 
-The blob approach means no database storage for pending verifications. Codes expire after a short window (typically 10 minutes).
+The blob approach means no database storage for pending verifications. Codes expire after a short window.
 
-Email configuration requires `EMAIL_*` environment variables for SMTP settings.
+Email configuration requires `MAILGUN_*` environment variables for the email provider.
 
 ## OAuth Authentication
 
@@ -70,31 +42,28 @@ Six OAuth providers are supported: Google, Facebook, GitHub, X (Twitter), TikTok
 Each provider requires configuration:
 
 ```bash
-# Google
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
+OAUTH_GOOGLE_CLIENT_ID=...
+OAUTH_GOOGLE_CLIENT_SECRET=...
 
-# GitHub
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
+OAUTH_GITHUB_CLIENT_ID=...
+OAUTH_GITHUB_CLIENT_SECRET=...
 
 # Similar for Facebook, X, TikTok, LinkedIn
 ```
 
 The OAuth implementation uses the Arctic library and handles PKCE automatically for providers that support it.
 
-## Token Validation
+## Adding Custom Authentication Methods
 
-Protected GraphQL operations use the `@auth` directive. The handler:
+To add a new authentication method, follow these steps:
 
-1. Extracts the Bearer token from the Authorization header
-2. Verifies the JWT signature
-3. Checks token expiration
-4. Loads the user from the database
-5. Checks the `disabled` flag
-6. Attaches the user to the resolver context
+1. **Add auth type constant** — Define the new type in `src/shared/constants.ts`
+2. **Create user lookup/creation** — Add a function in `src/server/db/users.ts` to find or create users by the new identifier
+3. **Add authentication logic** — Implement verification in a new auth service method
+4. **Create GraphQL mutation** — Add the mutation to the schema and implement the resolver
+5. **Update frontend** — Create a login form that calls the new mutation
 
-Invalid or expired tokens return `UNAUTHORIZED`. Disabled users return `ACCOUNT_DISABLED`.
+See [Backend > Authentication](../backend/authentication.md) for detailed implementation guidance.
 
 ## Frontend Integration
 
@@ -102,23 +71,23 @@ The [`AuthContext`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/
 
 - `isAuthenticated` — Whether the user is logged in
 - `isLoading` — Loading state during auth operations
-- `error` — Error message from failed auth attempts
+- `error` — Error from failed auth attempts
 - `authToken` — The current JWT (null if not authenticated)
-- `walletAddress` — Connected wallet address (SIWE only)
-- `userRejectedAuth` — True if user rejected wallet signature
-- `authenticate(address)` — Trigger SIWE auth for connected wallet
+- `profile` — The authenticated user's profile
+- `email` — The authenticated user's email
+- `login(token, profile)` — Store auth state after successful authentication
 - `logout()` — Clear auth state
-- `restoreAuth()` — Attempt to restore auth from stored token
+- `restoreAuth()` — Attempt to restore auth from stored token on app load
 
-For non-Web3 apps, use the email or OAuth flows directly through GraphQL mutations.
+## Token Validation
+
+Protected GraphQL operations use the `@auth` directive. The handler extracts the Bearer token, verifies it, loads the user, and checks the `disabled` flag. Invalid tokens return `UNAUTHORIZED`, disabled users return `ACCOUNT_DISABLED`. See [Backend > Authentication](../backend/authentication.md) for details.
 
 ## Security
 
 **Encryption Key**: The `SESSION_ENCRYPTION_KEY` must be 32+ characters and kept secret. It signs JWTs and encrypts OAuth state.
 
 **HTTPS**: Always use HTTPS in production. Tokens sent over HTTP can be intercepted.
-
-**Domain Validation**: SIWE messages include the domain. Configure `WEB3_ALLOWED_SIWE_ORIGINS` to match your deployment domains.
 
 **Token Storage**: The frontend stores tokens in localStorage. For higher security requirements, consider httpOnly cookies with CSRF protection.
 

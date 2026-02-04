@@ -16,13 +16,12 @@ QuickDapp follows a modern, clean architecture built around the **ServerApp depe
 │  Frontend (React + Vite)                                  │
 │  ├── React 19 + TypeScript                                │
 │  ├── GraphQL Client (React Query)                        │
-│  ├── WebSocket Client                                     │
-│  └── RainbowKit + Wagmi (Optional Web3)                  │
+│  └── WebSocket Client                                     │
 ├─────────────────────────────────────────────────────────────┤
 │  Backend (Bun + ElysiaJS)                                 │
 │  ├── ElysiaJS Server                                     │
 │  ├── GraphQL Yoga API                                    │
-│  ├── JWT Authentication (+ Optional SIWE)                │
+│  ├── JWT Authentication                                  │
 │  ├── WebSocket Server                                    │
 │  └── Static Asset Serving                                │
 ├─────────────────────────────────────────────────────────────┤
@@ -36,10 +35,8 @@ QuickDapp follows a modern, clean architecture built around the **ServerApp depe
 │  ├── Schema Migrations                                   │
 │  └── Connection Pooling                                  │
 ├─────────────────────────────────────────────────────────────┤
-│  Blockchain Layer (Optional - Viem)                       │
-│  ├── Public Client (Read Operations)                     │
-│  ├── Wallet Client (Write Operations)                    │
-│  └── Contract Interactions                               │
+│  Variant-specific Layers (Optional)                       │
+│  └── e.g. Web3: Blockchain Clients, Contract Interactions │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -57,17 +54,18 @@ export type ServerApp = {
   workerManager: WorkerManager   // Background job processing
   socketManager: ISocketManager  // WebSocket manager
   createNotification: (userId: number, data: NotificationData) => Promise<void>
-  // Web3 (optional - when WEB3_ENABLED=true)
-  publicClient?: PublicClient    // Blockchain read client
-  walletClient?: WalletClient    // Blockchain write client
 }
 ```
 
+!!!
+Variants extend `ServerApp` with additional fields. For example, the Web3 variant adds `publicClient` and `walletClient` for blockchain access.
+!!!
+
 **Benefits of this pattern:**
-* **Clean dependencies** - No global state or singletons
-* **Easy testing** - Mock individual services for unit tests
-* **Type safety** - Full TypeScript support across all layers
-* **Consistent access** - Same interface for all components
+* **Clean dependencies** — No global state or singletons
+* **Easy testing** — Mock individual services for unit tests
+* **Type safety** — Full TypeScript support across all layers
+* **Consistent access** — Same interface for all components
 
 ## Directory Structure
 
@@ -76,12 +74,13 @@ src/
 ├── server/              # Backend server code
 │   ├── db/             # Database schema, migrations, and queries
 │   ├── graphql/        # GraphQL resolvers and schema
-│   ├── auth/           # Authentication (SIWE + JWT)
+│   ├── auth/           # Authentication (email, OAuth)
 │   ├── workers/        # Background job system
-│   ├── lib/            # Server utilities (logging, etc.)
+│   ├── lib/            # Server utilities (logging, errors, etc.)
 │   └── ws/             # WebSocket implementation
 ├── client/             # Frontend React application
 │   ├── components/     # React components
+│   ├── contexts/       # Theme, Auth, Socket contexts
 │   ├── hooks/          # Custom React hooks
 │   ├── lib/            # Client-side utilities
 │   └── pages/          # Application pages
@@ -95,35 +94,29 @@ tests/                  # Integration test suite
 ## Technology Stack
 
 ### Runtime & Server
-* **Bun** - Primary runtime and package manager
-* **ElysiaJS** - High-performance web framework with native WebSocket support
-* **GraphQL Yoga** - GraphQL server (no GraphQL subscriptions; use WebSockets for realtime)
+* **Bun** — Primary runtime and package manager
+* **ElysiaJS** — High-performance web framework with native WebSocket support
+* **GraphQL Yoga** — GraphQL server (no GraphQL subscriptions; use WebSockets for realtime)
 
 ### Frontend
-* **React 19** - Latest React with concurrent features
-* **Vite** - Lightning-fast build tool and dev server
-* **TypeScript** - Full type safety across the stack
+* **React 19** — Latest React with concurrent features
+* **Vite** — Lightning-fast build tool and dev server
+* **TypeScript** — Full type safety across the stack
 
 ### Database & ORM
-* **PostgreSQL** - Robust relational database
-* **DrizzleORM** - Type-safe, performant SQL toolkit
-* **postgres** - High-performance PostgreSQL client
+* **PostgreSQL** — Robust relational database
+* **DrizzleORM** — Type-safe, performant SQL toolkit
+* **postgres** — High-performance PostgreSQL client
 
 ### Authentication & Security
-* **JWT (Jose)** - Stateless token authentication
-* **Multiple auth providers** - Email, OAuth, and SIWE (Sign-in with Ethereum)
-* **Custom auth directive** - GraphQL operation-level security
-
-### Web3 Integration (Optional)
-* **Viem** - Type-safe Ethereum library
-* **Wagmi** - React hooks for Ethereum
-* **RainbowKit** - Wallet connection UI
-* **SIWE** - Wallet-based authentication
+* **JWT (Jose)** — Stateless token authentication
+* **Multiple auth providers** — Email and OAuth (Google, Facebook, GitHub, X, TikTok, LinkedIn)
+* **Custom auth directive** — GraphQL operation-level security
 
 ### Background Processing
-* **Child process architecture** - Isolated worker processes
-* **IPC communication** - Inter-process messaging
-* **Database job queue** - Persistent job storage with retry logic
+* **Child process architecture** — Isolated worker processes
+* **IPC communication** — Inter-process messaging
+* **Database job queue** — Persistent job storage with retry logic
 
 ## Request Flow
 
@@ -168,34 +161,34 @@ QuickDapp uses a layered configuration system:
 ```
 
 Configuration is loaded by the shared bootstrap pattern and provides type-safe access via:
-* `serverConfig` - Server-side configuration
-* `clientConfig` - Client-side configuration (subset of server config)
+* `serverConfig` — Server-side configuration
+* `clientConfig` — Client-side configuration (subset of server config)
 
 ## Development Workflow
 
 ### Development Mode
-* **Hot reload** - Both frontend and backend update automatically
-* **Database migrations** - Schema changes applied instantly
-* **Worker monitoring** - Background jobs visible in logs
-* **GraphQL playground** - Interactive API exploration
+* **Hot reload** — Both frontend and backend update automatically
+* **Database migrations** — Schema changes applied instantly
+* **Worker monitoring** — Background jobs visible in logs
+* **GraphQL playground** — Interactive API exploration
 
 ### Testing
-* **Integration tests** - Full end-to-end testing
-* **Database isolation** - Each test gets a clean database
-* **Server lifecycle** - Tests manage server startup/shutdown
-* **Mock services** - Authentication and external services mocked
+* **Integration tests** — Full end-to-end testing
+* **Database isolation** — Each test gets a clean database clone
+* **Parallel execution** — Template database pattern for fast test runs
+* **Mock services** — Authentication and external services mocked
 
 ### Production Build
-* **Binary compilation** - Self-contained executables
-* **Asset bundling** - Frontend assets embedded in server
-* **Database migrations** - Production-safe schema updates
-* **Docker support** - Container-based deployment
+* **Binary compilation** — Self-contained executables
+* **Asset bundling** — Frontend assets embedded in server
+* **Database migrations** — Production-safe schema updates
+* **Docker support** — Container-based deployment
 
 ## Data Flow
 
 ### Authentication Flow
 ```
-1. User initiates login (email, OAuth, or wallet)
+1. User initiates login (email or OAuth)
 2. Auth provider validates credentials
 3. Backend verifies identity
 4. JWT token issued and stored
@@ -220,4 +213,4 @@ Configuration is loaded by the shared bootstrap pattern and provides type-safe a
 5. UI updates reactively
 ```
 
-This architecture provides a solid foundation for building scalable, maintainable web applications with modern development practices and excellent developer experience—with optional Web3 capabilities when needed.
+This architecture provides a solid foundation for building scalable, maintainable web applications with modern development practices and excellent developer experience. [Variants](./variants/index.md) can extend this foundation with domain-specific capabilities.
