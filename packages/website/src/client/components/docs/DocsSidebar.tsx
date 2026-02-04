@@ -169,7 +169,7 @@ function SidebarContent({
 
         <div className="mt-8 border-t border-foreground/10 pt-4">
           <a
-            href={`/docs-versions/${version}/llms.txt`}
+            href={`/docs-versions/${version === "latest" ? latestVersion : version}/llms.txt`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground/60 transition-colors hover:bg-anchor hover:text-white"
