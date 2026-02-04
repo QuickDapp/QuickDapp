@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.10.2](https://github.com/QuickDapp/QuickDapp/compare/v3.10.1...v3.10.2) (2026-02-04)
+
+
+### Documentation
+
+* add LLM plugin docs page and CLI recommendation ([95b5a69](https://github.com/QuickDapp/QuickDapp/commit/95b5a696f2d5801841571aadaa97db1f8911c708))
+
 ## [3.10.1](https://github.com/QuickDapp/QuickDapp/compare/v3.10.0...v3.10.1) (2026-02-04)
 
 
