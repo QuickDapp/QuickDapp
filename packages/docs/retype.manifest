@@ -1,6 +1,6 @@
 {
-  "version": "3.6.0",
-  "created": "2025-09-01T07:11:01Z",
+  "version": "3.11.0",
+  "created": "2026-02-04T08:07:33Z",
   "files": [
     {
       "path": ".nojekyll"
@@ -21,40 +21,73 @@
       "path": "backend/database/index.html"
     },
     {
+      "path": "backend/error-handling/index.html"
+    },
+    {
       "path": "backend/graphql/index.html"
     },
     {
       "path": "backend/index.html"
     },
     {
+      "path": "backend/logging/index.html"
+    },
+    {
       "path": "backend/websockets/index.html"
+    },
+    {
+      "path": "claude/index.html"
     },
     {
       "path": "CNAME"
     },
     {
-      "path": "command-line/contracts/index.html"
+      "path": "command-line/build/index.html"
+    },
+    {
+      "path": "command-line/contracts/index.html",
+      "old": true
+    },
+    {
+      "path": "command-line/db/index.html"
     },
     {
       "path": "command-line/dev/index.html"
     },
     {
-      "path": "command-line/docker/index.html"
+      "path": "command-line/docker/index.html",
+      "old": true
+    },
+    {
+      "path": "command-line/gen/index.html"
     },
     {
       "path": "command-line/index.html"
     },
     {
+      "path": "command-line/lint/index.html"
+    },
+    {
       "path": "command-line/prod/index.html"
+    },
+    {
+      "path": "command-line/test-e2e/index.html"
+    },
+    {
+      "path": "command-line/test/index.html"
     },
     {
       "path": "deployment/binary/index.html"
     },
     {
-      "path": "deployment/cloud-platforms/index.html"
+      "path": "deployment/cloud-platforms/index.html",
+      "old": true
     },
     {
       "path": "deployment/docker/index.html"
+    },
+    {
+      "path": "deployment/github-workflows/index.html"
     },
     {
       "path": "deployment/index.html"
@@ -66,7 +99,8 @@
       "path": "frontend/components/index.html"
     },
     {
-      "path": "frontend/cookies/index.html"
+      "path": "frontend/cookies/index.html",
+      "old": true
     },
     {
       "path": "frontend/forms/index.html"
@@ -81,13 +115,62 @@
       "path": "frontend/index.html"
     },
     {
-      "path": "frontend/web3/index.html"
+      "path": "frontend/static-assets/index.html"
+    },
+    {
+      "path": "frontend/theming/index.html"
+    },
+    {
+      "path": "frontend/web3/index.html",
+      "old": true
     },
     {
       "path": "getting-started/index.html"
     },
     {
+      "path": "images/demopage.png"
+    },
+    {
+      "path": "images/do-apps-page.png"
+    },
+    {
+      "path": "images/do-create-app.png"
+    },
+    {
+      "path": "images/github-initial-commit.png"
+    },
+    {
+      "path": "images/github-new-pat.png"
+    },
+    {
+      "path": "images/github-new-repo.png"
+    },
+    {
+      "path": "images/github-package-list.png"
+    },
+    {
+      "path": "images/github-package-overview.png"
+    },
+    {
+      "path": "images/github-repo-private.png"
+    },
+    {
+      "path": "images/github-run-docker-workflow.png"
+    },
+    {
+      "path": "images/github-ssh-url.png"
+    },
+    {
+      "path": "images/serverpage.png"
+    },
+    {
       "path": "index.html"
+    },
+    {
+      "path": "license/index.html"
+    },
+    {
+      "path": "package.json"
     },
     {
       "path": "resources/css/retype.css"
@@ -135,7 +218,8 @@
       "path": "sitemap.xml.gz"
     },
     {
-      "path": "smart-contracts/index.html"
+      "path": "smart-contracts/index.html",
+      "old": true
     },
     {
       "path": "static/favicon.png"
@@ -144,16 +228,55 @@
       "path": "static/logo.png"
     },
     {
+      "path": "tutorials/chatroom/index.html"
+    },
+    {
+      "path": "tutorials/index.html"
+    },
+    {
       "path": "users/authentication/index.html"
     },
     {
       "path": "users/index.html"
     },
     {
+      "path": "users/notifications/index.html"
+    },
+    {
+      "path": "variants/index.html"
+    },
+    {
+      "path": "variants/web3/authentication/index.html"
+    },
+    {
+      "path": "variants/web3/blockchain-interactions/index.html"
+    },
+    {
+      "path": "variants/web3/chain-monitoring/index.html"
+    },
+    {
+      "path": "variants/web3/frontend/index.html"
+    },
+    {
+      "path": "variants/web3/index.html"
+    },
+    {
+      "path": "variants/web3/smart-contracts/index.html"
+    },
+    {
+      "path": "vibe-coding/index.html"
+    },
+    {
+      "path": "vibe-coding/llm-plugin/index.html"
+    },
+    {
       "path": "worker/adding-jobs/index.html"
     },
     {
       "path": "worker/background-jobs/index.html"
+    },
+    {
+      "path": "worker/best-practices/index.html"
     },
     {
       "path": "worker/index.html"

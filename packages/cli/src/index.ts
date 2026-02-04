@@ -216,6 +216,8 @@ async function createProject(
     console.log(`  docker compose up -d`)
     console.log(`  bun run db push`)
     console.log(`  bun run dev`)
+    console.log(`\n💡 Using an AI code editor? Install the QuickDapp LLM plugin for a better experience:`)
+    console.log(`   https://docs.quickdapp.xyz/vibe-coding/llm-plugin`)
   } catch (error) {
     console.error(
       "\nError:",
