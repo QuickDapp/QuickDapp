@@ -217,7 +217,7 @@ async function createProject(
     console.log(`  bun run db push`)
     console.log(`  bun run dev`)
     console.log(`\n💡 Using an AI code editor? Install the QuickDapp LLM plugin for a better experience:`)
-    console.log(`   https://docs.quickdapp.xyz/vibe-coding/llm-plugin`)
+    console.log(`   https://docs.quickdapp.xyz/vibe-coding/llm-plugins`)
   } catch (error) {
     console.error(
       "\nError:",

@@ -11,7 +11,7 @@ The QuickDapp LLM plugin gives your AI code editor deep knowledge of QuickDapp c
 Add the QuickDapp marketplace to Claude Code:
 
 ```
-/plugin marketplace add QuickDapp/llm-plugin
+/plugin marketplace add QuickDapp/llm-plugins
 ```
 
 Install the plugin:
@@ -22,12 +22,12 @@ Install the plugin:
 
 ## Commands
 
-### create-quickdapp-project
+### create-project
 
 Scaffold a new QuickDapp project interactively.
 
 ```
-/quickdapp:create-quickdapp-project
+/quickdapp:create-project
 ```
 
 Prompts for folder name, variant (base or web3), and package runner (bunx or npx), then runs the CLI and displays next steps.

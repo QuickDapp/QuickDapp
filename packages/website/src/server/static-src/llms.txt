@@ -7,7 +7,9 @@ in plain text format, suitable for use as context in LLM conversations.
 
 ## Available Versions
 
-- 3.10.0 (latest): /docs-versions/3.10.0/llms.txt
+- 3.10.2 (latest): /docs-versions/3.10.2/llms.txt
+- 3.10.1: /docs-versions/3.10.1/llms.txt
+- 3.10.0: /docs-versions/3.10.0/llms.txt
 - 3.9.1: /docs-versions/3.9.1/llms.txt
 - 3.9.0: /docs-versions/3.9.0/llms.txt
 - 3.8.0: /docs-versions/3.8.0/llms.txt
