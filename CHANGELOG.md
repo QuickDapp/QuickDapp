@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.10.4](https://github.com/QuickDapp/QuickDapp/compare/v3.10.3...v3.10.4) (2026-02-04)
+
+
+### Bug Fixes
+
+* **website:** exclude README.md and LICENSE.md from docs parsing ([fb91153](https://github.com/QuickDapp/QuickDapp/commit/fb91153fc07d836df0923ce651da0e5737eda9ad))
+
+
+### Documentation
+
+* remove static llms.txt from website ([1c1f4a3](https://github.com/QuickDapp/QuickDapp/commit/1c1f4a373a1334287b3935f16329d792511e434e))
+
 ## [3.10.3](https://github.com/QuickDapp/QuickDapp/compare/v3.10.2...v3.10.3) (2026-02-04)
 
 
