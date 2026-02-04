@@ -13,6 +13,7 @@ import path from "node:path"
 import { $ } from "bun"
 import matter from "gray-matter"
 import lunr from "lunr"
+import semver from "semver"
 import {
   type CommandSetup,
   createScriptRunner,
@@ -50,6 +51,7 @@ interface DocsVersion {
 }
 
 const EXCLUDED_FILES = new Set(["CLAUDE.MD", "README.MD", "LICENSE.MD"])
+const MIN_VERSION = "3.10.0"
 
 async function extractTitleFromMarkdown(markdown: string): Promise<string> {
   const lines = markdown.split("\n")
@@ -297,16 +299,7 @@ async function fetchDocsHandler(
     }
   }
 
-  const sortedVersions = processedVersions.sort((a, b) => {
-    const aNum = a.split(".").map(Number)
-    const bNum = b.split(".").map(Number)
-    for (let i = 0; i < 3; i++) {
-      if ((aNum[i] || 0) !== (bNum[i] || 0)) {
-        return (bNum[i] || 0) - (aNum[i] || 0)
-      }
-    }
-    return 0
-  })
+  const sortedVersions = processedVersions.sort((a, b) => semver.rcompare(a, b))
   const manifest = {
     versions: sortedVersions,
     latest: sortedVersions[0] || null,
@@ -373,17 +366,11 @@ async function getVersionTags(rootFolder: string): Promise<string[]> {
   return result
     .split("\n")
     .map((t) => t.trim())
-    .filter((t) => t.length > 0 && /^v\d+\.\d+\.\d+$/.test(t))
-    .sort((a, b) => {
-      const aNum = a.replace("v", "").split(".").map(Number)
-      const bNum = b.replace("v", "").split(".").map(Number)
-      for (let i = 0; i < 3; i++) {
-        if ((aNum[i] || 0) !== (bNum[i] || 0)) {
-          return (bNum[i] || 0) - (aNum[i] || 0)
-        }
-      }
-      return 0
+    .filter((t) => {
+      const v = semver.valid(t)
+      return v !== null && semver.gte(v, MIN_VERSION)
     })
+    .sort((a, b) => semver.rcompare(a, b))
 }
 
 async function findGitRoot(startDir: string): Promise<string> {
