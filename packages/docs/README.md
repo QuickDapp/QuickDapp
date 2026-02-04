@@ -1,6 +1,6 @@
 # QuickDapp Docs
 
-Documentation source for [docs.quickdapp.xyz](https://docs.quickdapp.xyz). Built with [Retype](https://retype.com).
+Documentation source for [quickdapp.xyz/docs](https://quickdapp.xyz/docs). Built with [Retype](https://retype.com).
 
 ## Development
 

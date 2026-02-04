@@ -49,10 +49,8 @@ bun run dev
 
 ## Documentation
 
-- [Full documentation](https://docs.quickdapp.xyz)
+- [Full documentation](https://quickdapp.xyz/docs)
 - [Website](https://quickdapp.xyz)
-- [Live demo](https://demo.quickdapp.xyz)
-- [GitHub Discussions](https://github.com/QuickDapp/quickdapp/discussions)
 
 ### LLM-Friendly Docs
 
