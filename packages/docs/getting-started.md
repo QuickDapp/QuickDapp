@@ -203,65 +203,8 @@ You will need a PostgreSQL database for production use. You can use any PostgreS
 * [Railway](https://railway.app/)
 * [Supabase](https://supabase.com/)
 
-Once you have your production database connection string, add it to your `.env.production` file:
+## Step 11 - TODO
 
-```ini
-DATABASE_URL="postgresql://user:password@host:5432/database"
-```
-
-Now setup the production database schema:
-
-```shell
-bun run db migrate
-```
-
-## Step 11 - Test-run production build locally
-
-_Note: This step is optional, and is useful if you want to debug some production issues locally_
-
-In the project folder, build the production apps:
-
-```shell
-bun run build
-```
-
-Now, run the production apps:
-
-```shell
-bun run prod
-```
-
-Open http://localhost:3000 in your browser to test the production build locally.
-
-## Step 12 - Deploy to production
-
-QuickDapp supports several deployment options:
-
-**Option A: Binary deployment**
-Build a self-contained binary with embedded assets:
-
-```shell
-bun run build
-# Binaries are created automatically in dist/binaries/
-```
-
-**Option B: Docker deployment**
-Build and run as Docker containers:
-
-```shell
-docker build -t quickdapp .
-docker run -p 3000:3000 quickdapp
-```
-
-See the [deployment documentation](./deployment/) for detailed guides on various deployment strategies.
-
-## Step 13 - Done!
-
-**Congratulations! Your application is now available on the web in production mode.**
-
-## Optional: Web3 Setup
-
-If you're interested in building a Web3 application with blockchain features, check out the [Web3 variant documentation](./variants/web3/index.md). The Web3 variant adds wallet authentication, smart contract interactions, and blockchain event monitoring on top of everything in the base package.
 
 ## Next steps
 
