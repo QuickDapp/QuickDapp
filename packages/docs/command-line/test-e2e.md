@@ -66,3 +66,7 @@ Locally:
 - Can reuse an existing dev server
 
 See [`scripts/test-e2e.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/scripts/test-e2e.ts) for the test runner implementation and [`playwright.config.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/playwright.config.ts) for the full configuration.
+
+## See Also
+
+For more information about E2E testing patterns and configuration, see the [E2E Testing](../testing/e2e.md) section.

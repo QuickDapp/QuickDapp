@@ -101,3 +101,7 @@ DATABASE_URL=postgresql://postgres:@localhost:5432/quickdapp_test
 ```
 
 The test database should be separate from development to avoid data conflicts.
+
+## See Also
+
+For detailed information about the test framework architecture, parallelization, and writing tests, see the [Testing](../testing/index.md) section.

@@ -3,7 +3,7 @@ import { DocsLink, GithubLink, LicenseLink } from "./Links"
 
 export const Footer = () => {
   return (
-    <footer className="flex container flex-col-reverse justify-start items-start p-8 sm:flex-row sm:justify-between sm:items-start sm:p-4 text-[75%]">
+    <footer className="flex container flex-col-reverse justify-start items-start p-8 pt-12 sm:flex-row sm:justify-between sm:items-start sm:p-4 sm:pt-8 text-[75%] border-t border-foreground/10">
       <div className="mt-12 sm:mt-0 sm:mr-24">
         <p className="font-heading mb-4">QuickDapp</p>
         <p className="mb-4">

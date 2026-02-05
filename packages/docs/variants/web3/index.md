@@ -101,11 +101,3 @@ The Web3 variant requires additional environment variables beyond the base packa
 | `WEB3_BASE_RPC` | No | Custom RPC URL for Base chain |
 
 See [Environment Variables](/environment-variables.md) for the full list including base package variables.
-
-## Documentation
-
-- [Authentication](authentication.md) — SIWE wallet authentication flow
-- [Frontend](frontend.md) — RainbowKit, Wagmi, token hooks and components
-- [Smart Contracts](smart-contracts.md) — ERC20 factory, deployment, testing
-- [Blockchain Interactions](blockchain-interactions.md) — Contract reader/writer, multicall, chain config
-- [Chain Monitoring](chain-monitoring.md) — Event watcher, chain filters, notifications

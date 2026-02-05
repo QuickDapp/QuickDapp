@@ -69,5 +69,6 @@ Background jobs get submitted to the database queue. Worker processes poll for p
 - [WebSockets](./websockets.md) — Real-time communication
 - [Error Handling](./error-handling.md) — Error classes and GraphQL error codes
 - [Logging](./logging.md) — Logger system, categories, and Sentry integration
+- [Sentry](./sentry.md) — Error tracking and performance monitoring
 
 See [`src/server/types.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/types.ts) for the complete `ServerApp` type definition.
