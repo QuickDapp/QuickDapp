@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.10.6](https://github.com/QuickDapp/QuickDapp/compare/v3.10.5...v3.10.6) (2026-02-05)
+
+
+### Documentation
+
+* remove redundant Documentation sections from hub index pages ([78314ee](https://github.com/QuickDapp/QuickDapp/commit/78314ee8a4c5c37bc2d5ebe30b4a8c18bb6c6063))
+
 ## [3.10.5](https://github.com/QuickDapp/QuickDapp/compare/v3.10.4...v3.10.5) (2026-02-05)
 
 
