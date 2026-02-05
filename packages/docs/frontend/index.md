@@ -56,11 +56,3 @@ The [`App`](https://github.com/QuickDapp/QuickDapp/blob/main/src/client/App.tsx)
 
 **Configuration** comes from [`clientConfig`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/config/client.ts) in the shared folder. The build process injects environment values so they're available at runtime.
 
-## Documentation
-
-- [Components](./components.md) — UI component library
-- [Forms](./forms.md) — Form handling and validation
-- [Global](./global.md) — Context providers and global state
-- [GraphQL](./graphql.md) — GraphQL client usage
-- [Static Assets](./static-assets.md) — Serving static files (favicon, fonts, etc.)
-- [Theming](./theming.md) — Dark/light mode, theme customization

@@ -60,15 +60,4 @@ WebSocket connections follow a similar pattern. Clients connect, optionally auth
 
 Background jobs get submitted to the database queue. Worker processes poll for pending jobs, execute them with full `ServerApp` access, and mark them complete. Workers can send WebSocket messages back through IPC to the main server process.
 
-## Documentation
-
-- [Bootstrap](./bootstrap.md) — How ServerApp gets created and configured
-- [Database](./database.md) — Schema design, queries, and transaction handling
-- [GraphQL](./graphql.md) — API schema, resolvers, and authentication
-- [Authentication](./authentication.md) — JWT implementation, the `@auth` directive, and adding new auth methods
-- [WebSockets](./websockets.md) — Real-time communication
-- [Error Handling](./error-handling.md) — Error classes and GraphQL error codes
-- [Logging](./logging.md) — Logger system, categories, and Sentry integration
-- [Sentry](./sentry.md) — Error tracking and performance monitoring
-
 See [`src/server/types.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/types.ts) for the complete `ServerApp` type definition.

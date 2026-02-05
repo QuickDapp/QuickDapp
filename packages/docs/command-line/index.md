@@ -91,13 +91,3 @@ NODE_ENV=test bun run db push
 
 Environment files load in order: `.env` → `.env.{NODE_ENV}` → `.env.local`.
 
-## Documentation
-
-- [Dev](./dev.md) — Development server
-- [Build](./build.md) — Production builds
-- [Prod](./prod.md) — Production server
-- [Database](./db.md) — Database commands
-- [Gen](./gen.md) — Code generation
-- [Test](./test.md) — Test runner
-- [Lint](./lint.md) — Linting and formatting
-- [Test E2E](./test-e2e.md) — Playwright E2E tests

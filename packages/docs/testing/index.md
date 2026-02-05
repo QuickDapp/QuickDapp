@@ -101,8 +101,3 @@ test('health check returns ok', async () => {
 })
 ```
 
-## Documentation
-
-- [E2E Testing](./e2e.md) — Browser-based end-to-end testing with Playwright
-- [Test command](../command-line/test.md) — CLI options for running tests
-- [Test E2E command](../command-line/test-e2e.md) — CLI options for E2E tests

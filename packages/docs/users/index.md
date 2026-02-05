@@ -89,7 +89,3 @@ await serverApp.db
   .where(eq(users.id, userId))
 ```
 
-## Documentation
-
-- [Authentication](./authentication.md) — Detailed auth flows and frontend integration
-- [Notifications](./notifications.md) — Real-time notification system
