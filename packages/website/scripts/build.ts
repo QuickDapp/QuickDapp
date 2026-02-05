@@ -39,6 +39,7 @@ async function buildHandler(
     DIST: path.join(config.rootFolder, "dist"),
     DIST_SERVER: path.join(config.rootFolder, "dist", "server"),
     DIST_CLIENT: path.join(config.rootFolder, "dist", "client"),
+    DIST_SSR: path.join(config.rootFolder, "dist", "ssr"),
     SRC_CLIENT: path.join(config.rootFolder, "src", "client"),
     SRC_SERVER: path.join(config.rootFolder, "src", "server"),
     SERVER_STATIC: path.join(config.rootFolder, "src", "server", "static"),
@@ -50,6 +51,7 @@ async function buildHandler(
       "server",
       "static",
     ),
+    DIST_SERVER_SSR: path.join(config.rootFolder, "dist", "server", "ssr"),
   }
 
   console.log("🏗️  Building QuickDapp for production...")
@@ -89,10 +91,15 @@ async function buildHandler(
     console.warn("⚠️  Linting or type checking failed, continuing build...")
   }
 
-  // Step 5: Build frontend
-  console.log("🎨 Building frontend...")
+  // Step 5: Build frontend (client-side)
+  console.log("🎨 Building frontend (client)...")
   await $`bun vite build`.cwd(PATHS.SRC_CLIENT)
-  console.log("✅ Frontend built to dist/client")
+  console.log("✅ Frontend client built to dist/client")
+
+  // Step 5b: Build SSR bundle
+  console.log("🎨 Building frontend (SSR)...")
+  await $`bun vite build --config vite.config.ssr.ts`.cwd(PATHS.SRC_CLIENT)
+  console.log("✅ Frontend SSR built to dist/ssr")
 
   // Step 6: Copy static-src to server static directory first (if bundling)
   if (shouldBundle) {
@@ -118,9 +125,14 @@ async function buildHandler(
 
   // Step 9: Copy server static directory to dist/server (if bundling)
   if (shouldBundle) {
-    console.log("📁 Copying server static directry to dist/server...")
+    console.log("📁 Copying server static directory to dist/server...")
     cpSync(PATHS.SERVER_STATIC, PATHS.DIST_SERVER_STATIC, { recursive: true })
     console.log("✅ Server static directory copied to dist/server")
+
+    // Step 9b: Copy SSR bundle to dist/server
+    console.log("📁 Copying SSR bundle to dist/server...")
+    cpSync(PATHS.DIST_SSR, PATHS.DIST_SERVER_SSR, { recursive: true })
+    console.log("✅ SSR bundle copied to dist/server/ssr")
   } else {
     console.log(
       "⏭️  Skipping server static directory copy to dist/server (use --bundle to enable)",
@@ -137,6 +149,11 @@ async function buildHandler(
   const CLIENT_INDEX_HTML = path.join(PATHS.DIST_CLIENT, "index.html")
   if (!existsSync(CLIENT_INDEX_HTML)) {
     throw new Error("Build failed - frontend index.html not found")
+  }
+
+  const SSR_ENTRY_JS = path.join(PATHS.DIST_SSR, "entry-server.js")
+  if (!existsSync(SSR_ENTRY_JS)) {
+    throw new Error("Build failed - SSR entry-server.js not found")
   }
 
   // Only validate bundled files if bundling is enabled
@@ -160,6 +177,14 @@ async function buildHandler(
         "Build failed - server static directory not copied to dist/server",
       )
     }
+
+    const DIST_SERVER_SSR_ENTRY = path.join(
+      PATHS.DIST_SERVER_SSR,
+      "entry-server.js",
+    )
+    if (!existsSync(DIST_SERVER_SSR_ENTRY)) {
+      throw new Error("Build failed - SSR bundle not copied to dist/server/ssr")
+    }
   }
 
   // Step 11: Binary build (always enabled)
@@ -173,12 +198,14 @@ async function buildHandler(
   console.log("📄 Build artifacts:")
   console.log("   dist/server/index.js             - Server bundle")
   console.log("   dist/server/index.js.map         - Server source map")
-  console.log("   dist/client/                     - Frontend build")
+  console.log("   dist/client/                     - Frontend build (client)")
+  console.log("   dist/ssr/                        - Frontend build (SSR)")
 
   if (shouldBundle) {
     console.log(
       "   dist/server/static/              - Server static files (bundled)",
     )
+    console.log("   dist/server/ssr/                 - SSR bundle (bundled)")
     console.log(
       "   src/server/static/               - Frontend assets (copied for dev server)",
     )
@@ -230,6 +257,12 @@ async function buildBinaryDistribution(
   const staticDir = path.join(PATHS.DIST_SERVER, "static")
   if (existsSync(staticDir)) {
     patterns.push("static/**/*")
+  }
+
+  // Include SSR bundle if it exists
+  const ssrDir = path.join(PATHS.DIST_SERVER, "ssr")
+  if (existsSync(ssrDir)) {
+    patterns.push("ssr/**/*")
   }
 
   // Create compressed assets file using file patterns

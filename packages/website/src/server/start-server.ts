@@ -2,6 +2,7 @@ import path from "node:path"
 import { cors } from "@elysiajs/cors"
 import { staticPlugin } from "@elysiajs/static"
 import * as Sentry from "@sentry/node"
+import { clientConfig } from "@shared/config/client"
 import { serverConfig } from "@shared/config/server"
 import { Elysia } from "elysia"
 import { createServerApp } from "./bootstrap"
@@ -9,6 +10,7 @@ import { dbManager } from "./db/connection"
 import { createGraphQLHandler } from "./graphql"
 import { createRootLogger } from "./lib/logger"
 import { initializeSentry } from "./lib/sentry"
+import { renderPage } from "./ssr"
 import type { ServerApp } from "./types"
 
 export const createApp = async (
@@ -125,13 +127,80 @@ export const createApp = async (
   const staticDir =
     serverConfig.STATIC_ASSETS_FOLDER || path.join(import.meta.dir, "static")
 
-  // Serve index.html for root path (SPA entry point)
-  app.get("/", async ({ set }) => {
+  const ssrDir = path.join(path.dirname(staticDir), "ssr")
+  let ssrModule: {
+    render: (
+      url: string,
+      queryClient: import("@tanstack/react-query").QueryClient,
+    ) => { html: string; dehydratedState: unknown }
+  } | null = null
+  let viteManifest: Record<string, { file: string; css?: string[] }> | null =
+    null
+
+  if (serverConfig.NODE_ENV === "production") {
+    try {
+      const ssrEntryPath = path.join(ssrDir, "entry-server.js")
+      const manifestPath = path.join(staticDir, ".vite/manifest.json")
+
+      const ssrFile = Bun.file(ssrEntryPath)
+      const manifestFile = Bun.file(manifestPath)
+
+      if ((await ssrFile.exists()) && (await manifestFile.exists())) {
+        ssrModule = await import(ssrEntryPath)
+        viteManifest = await manifestFile.json()
+        logger.info("SSR module loaded successfully")
+      } else {
+        logger.warn("SSR module or manifest not found, falling back to CSR")
+      }
+    } catch (error) {
+      logger.error("Failed to load SSR module:", error)
+    }
+  } else {
+    logger.info("SSR disabled in development mode")
+  }
+
+  const apiUrl = `http://${serverConfig.HOST}:${serverConfig.PORT}`
+
+  async function trySSR(reqPath: string): Promise<string | null> {
+    if (!ssrModule || !viteManifest) {
+      return null
+    }
+
+    try {
+      return await renderPage({
+        url: reqPath,
+        apiUrl,
+        staticDir,
+        clientConfig,
+        ssrModule: ssrModule as any,
+        manifest: viteManifest,
+      })
+    } catch (error) {
+      logger.error(`SSR error for ${reqPath}:`, error)
+      return null
+    }
+  }
+
+  async function serveFallbackHtml(): Promise<Response | null> {
     const indexPath = path.join(staticDir, "index.html")
     const file = Bun.file(indexPath)
     if (await file.exists()) {
+      return new Response(file, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      })
+    }
+    return null
+  }
+
+  app.get("/", async ({ set }) => {
+    const ssrHtml = await trySSR("/")
+    if (ssrHtml) {
       set.headers["content-type"] = "text/html; charset=utf-8"
-      return file
+      return ssrHtml
+    }
+    const fallback = await serveFallbackHtml()
+    if (fallback) {
+      return fallback
     }
     set.status = 404
     return "Not found"
@@ -151,11 +220,14 @@ export const createApp = async (
       set.status = 404
       return "Not found"
     }
-    const indexPath = path.join(staticDir, "index.html")
-    const file = Bun.file(indexPath)
-    if (await file.exists()) {
+    const ssrHtml = await trySSR(reqPath)
+    if (ssrHtml) {
       set.headers["content-type"] = "text/html; charset=utf-8"
-      return file
+      return ssrHtml
+    }
+    const fallback = await serveFallbackHtml()
+    if (fallback) {
+      return fallback
     }
     set.status = 404
     return "Not found"

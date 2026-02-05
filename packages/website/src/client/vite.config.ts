@@ -38,6 +38,9 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "../shared"),
     },
   },
+  ssr: {
+    noExternal: ["@tanstack/react-query"],
+  },
   server: {
     port: 5173,
     proxy: {
@@ -49,7 +52,9 @@ export default defineConfig({
     outDir: "../../dist/client",
     emptyOutDir: true,
     sourcemap: true,
+    manifest: true,
     rollupOptions: {
+      input: path.resolve(__dirname, "index.html"),
       output: {
         entryFileNames: "assets/[name].[hash].js",
         chunkFileNames: "assets/[name].[hash].js",

@@ -41,6 +41,7 @@ generated/
 **/src/shared/abi/generated.ts
 **/src/shared/graphql/generated/
 **/src/server/static
+playwright-report/
 
 # Database files
 *.db
