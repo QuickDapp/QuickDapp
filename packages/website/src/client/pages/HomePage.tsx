@@ -7,8 +7,8 @@ import {
   CalendarCheck,
   DatabaseZap,
   Layers,
-  Network,
   Rocket,
+  ShieldCheck,
   Webhook,
 } from "../components/Icons"
 import { GettingStartedLink, LicenseLink } from "../components/Links"
@@ -57,18 +57,10 @@ export const HomePage = () => {
           </h2>
           <div className="flex-1 flex flex-col justify-center items-center mb-20">
             <img
-              src="/tools.png"
+              src="/integrated_tools.png"
               alt="Tools"
-              width={800}
-              height={400}
-              className="hidden sm:inline-block"
-            />
-            <img
-              src="/tools_mobile.png"
-              alt="Tools"
-              width={600}
-              height={852}
-              className="inline-block sm:hidden"
+              width={500}
+              height={300}
             />
           </div>
         </div>
@@ -77,9 +69,7 @@ export const HomePage = () => {
       <div className="gradient-block-1 p-4 sm:h-screen sm:min-h-[800px]">
         <div className="flex flex-col justify-start items-center h-full container">
           <h2 className="text-4xl mb-20 text-center">
-            Saving you{" "}
-            <mark className="bg-anchor text-black px-1">37+ hours</mark> of dev
-            time
+            Saving you time <em>(yes, even for vibe coding!)</em>
           </h2>
           <div className="flex-1 flex flex-col justify-center items-center mb-20">
             <ul className="list-none flex flex-col justify-start items-center my-0 mx-auto sm:flex-row sm:flex-wrap sm:justify-around sm:items-start md:w-9/12">
@@ -116,15 +106,15 @@ export const HomePage = () => {
               <li className="mb-12">
                 <div className="flex flex-row justify-start items-start">
                   <div className="w-24 px-2 flex flex-col justify-start items-center mr-2">
-                    <Network strokeWidth={0.4} className="w-full flex-1" />
-                    <span className="mt-2 text-sm text-emphasis">5+ hrs</span>
+                    <ShieldCheck strokeWidth={0.4} className="w-full flex-1" />
+                    <span className="mt-2 text-sm text-emphasis">6+ hrs</span>
                   </div>
                   <div className="w-40">
-                    <h3 className="text-lg font-bold">Web3 layer</h3>
-                    <p className="text-sm">Wallet auth</p>
-                    <p className="text-sm">React components</p>
-                    <p className="text-sm">Contract hooks</p>
-                    <p className="text-sm">Event watcher</p>
+                    <h3 className="text-lg font-bold">Authentication</h3>
+                    <p className="text-sm">Email verification</p>
+                    <p className="text-sm">OAuth login</p>
+                    <p className="text-sm">JWT tokens</p>
+                    <p className="text-sm">Fully extensible</p>
                   </div>
                 </div>
               </li>
@@ -177,7 +167,8 @@ export const HomePage = () => {
               </li>
               <li>
                 <div className="italic text-lg text-center mt-4 w-8/12 mx-auto sm:w-full">
-                  ...plus push notifications, sending emails, and much more!
+                  ...plus real-time notifications, parallel testing, email
+                  sending, and much more!
                 </div>
               </li>
             </ul>
@@ -210,12 +201,6 @@ export const HomePage = () => {
                     }
                   />
                 </div>
-                <div className="mb-8 w-full">
-                  <FaqBlock
-                    question="What blockchains are supported?"
-                    answer="By default the Web3 integration is built for Ethereum Virtual Machine (EVM) chains such as Ethereum, Polygon, Base, etc."
-                  />
-                </div>
               </div>
               <div className="flex flex-col justify-start items-start w-full md:w-[300px]">
                 <div className="mb-8 w-full">
@@ -228,12 +213,6 @@ export const HomePage = () => {
                         <LastCommitTime className="text-emphasis italic" />.
                       </span>
                     }
-                  />
-                </div>
-                <div className="mb-8 w-full">
-                  <FaqBlock
-                    question="Is it free as in beer?"
-                    answer="Yes, it's free as in beer! And free as in free software."
                   />
                 </div>
                 <div className="mb-8 w-full">
