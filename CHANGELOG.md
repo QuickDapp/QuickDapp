@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.10.5](https://github.com/QuickDapp/QuickDapp/compare/v3.10.4...v3.10.5) (2026-02-05)
+
+
+### Documentation
+
+* add Sentry and Testing documentation, fix internal links ([c634d90](https://github.com/QuickDapp/QuickDapp/commit/c634d9046f13d4ff454fa623bf9a50da1a136192))
+* mark getting-started steps as TODO ([42bd2ff](https://github.com/QuickDapp/QuickDapp/commit/42bd2ff4fdcba3c9f107a6cf77ec9e2e44188edf))
+
 ## [3.10.4](https://github.com/QuickDapp/QuickDapp/compare/v3.10.3...v3.10.4) (2026-02-04)
 
 
