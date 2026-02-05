@@ -58,8 +58,6 @@ export interface ServerConfig extends ClientConfig {
   SENTRY_WORKER_DSN?: string
   SENTRY_TRACES_SAMPLE_RATE: number
   SENTRY_PROFILE_SESSION_SAMPLE_RATE: number
-
-  DIGITALOCEAN_ACCESS_TOKEN?: string
 }
 
 // Load and validate server configuration
@@ -158,8 +156,6 @@ export const serverConfig: ServerConfig = {
     .get("SENTRY_PROFILE_SESSION_SAMPLE_RATE")
     .default("1.0")
     .asFloat(),
-
-  DIGITALOCEAN_ACCESS_TOKEN: env.get("DIGITALOCEAN_ACCESS_TOKEN").asString(),
 }
 
 // Helper to check if a config value is empty

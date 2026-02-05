@@ -78,7 +78,6 @@ function showEnvironmentInfo(
     "MAILGUN_API_KEY",
     "SENTRY_WORKER_DSN",
     "SENTRY_AUTH_TOKEN",
-    "DIGITALOCEAN_ACCESS_TOKEN",
     "WALLETCONNECT_PROJECT_ID",
   ])
 

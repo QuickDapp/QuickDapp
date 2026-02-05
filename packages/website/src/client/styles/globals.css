@@ -35,7 +35,7 @@
   --color-foreground: #333333;
   --color-muted: #6b7280;
   --color-border: #e5e7eb;
-  --color-emphasis: #0284c7;
+  --color-emphasis: #aa00ff;
   --color-alt: #64748b;
 
   --color-gradcol1: #ffffff;
@@ -58,7 +58,7 @@
     --color-foreground: #cccccc;
     --color-muted: #f8fafc;
     --color-border: #e2e8f0;
-    --color-emphasis: #0ec8ff;
+    --color-emphasis: #ffff00;
     --color-alt: #94a3b8;
 
     --color-gradcol1: #000000;

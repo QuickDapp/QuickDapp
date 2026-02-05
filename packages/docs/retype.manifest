@@ -1,6 +1,6 @@
 {
   "version": "3.11.0",
-  "created": "2026-02-04T08:07:33Z",
+  "created": "2026-02-05T09:21:28Z",
   "files": [
     {
       "path": ".nojekyll"
@@ -31,6 +31,12 @@
     },
     {
       "path": "backend/logging/index.html"
+    },
+    {
+      "path": "backend/mailgun/index.html"
+    },
+    {
+      "path": "backend/sentry/index.html"
     },
     {
       "path": "backend/websockets/index.html"
@@ -226,6 +232,12 @@
     },
     {
       "path": "static/logo.png"
+    },
+    {
+      "path": "testing/e2e/index.html"
+    },
+    {
+      "path": "testing/index.html"
     },
     {
       "path": "tutorials/chatroom/index.html"
