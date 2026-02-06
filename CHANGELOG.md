@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.11.0](https://github.com/QuickDapp/QuickDapp/compare/v3.10.6...v3.11.0) (2026-02-06)
+
+
+### Features
+
+* **website:** add server-side rendering support ([47d7600](https://github.com/QuickDapp/QuickDapp/commit/47d7600be7bccb4ef29b3e94d93f65fff0ee8a7a))
+
 ## [3.10.6](https://github.com/QuickDapp/QuickDapp/compare/v3.10.5...v3.10.6) (2026-02-05)
 
 
