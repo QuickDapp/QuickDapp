@@ -112,3 +112,7 @@ GITHUB_TOKEN=<for higher API rate limits>
 - `Dialog` component instead of `<dialog>` - accessible modal implementation
 - `Sheet` component for slide-out panels
 - Check existing components before using native HTML tags - consistency matters
+
+**Static Assets**
+- Any file needed as a static asset at runtime goes in `src/server/static-src/`
+- `src/server/static/` is auto-populated from `static-src/` during build — never edit it directly

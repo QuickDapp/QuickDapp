@@ -125,9 +125,9 @@ bun run format           # Format code with Biome
 - Check existing components before using native HTML tags - consistency matters
 
 **Static Assets**
-- Static files (favicon.ico, robots.txt, fonts) go in `src/server/static-src/`
+- Any file needed as a static asset at runtime goes in `src/server/static-src/`
 - Vite serves these during dev (via publicDir) and copies to build output
-- Never edit `src/server/static/` directly - it's regenerated on every build
+- Never edit `src/server/static/` directly - it's auto-populated from `static-src/` on build
 - For assets in React components, use Vite imports (they get optimized and hashed)
 
 ---

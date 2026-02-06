@@ -156,6 +156,28 @@ function generateLlmTxt(pages: Record<string, DocPage>, tag: string): string {
   return lines.join("\n")
 }
 
+function generateSitemap(pagePaths: string[], lastmod: string): string {
+  const baseUrl = "https://quickdapp.xyz"
+  const urls = ["  <url>", `    <loc>${baseUrl}/</loc>`, "  </url>"]
+
+  for (const pagePath of pagePaths) {
+    urls.push(
+      "  <url>",
+      `    <loc>${baseUrl}/docs/latest/${pagePath}</loc>`,
+      `    <lastmod>${lastmod}</lastmod>`,
+      "  </url>",
+    )
+  }
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls,
+    "</urlset>",
+    "",
+  ].join("\n")
+}
+
 function generateRootLlmsTxt(versions: string[]): string {
   const latest = versions[0] || null
   const lines: string[] = [
@@ -352,13 +374,25 @@ async function fetchDocsHandler(
   writeFileSync(path.join(staticRoot, "llms.txt"), rootLlmsTxt)
   writeFileSync(path.join(staticSrcRoot, "llms.txt"), rootLlmsTxt)
 
+  if (sortedVersions.length > 0) {
+    const latestVersion = sortedVersions[0]!
+    const latestIndexPath = path.join(outputDir, latestVersion, "index.json")
+    const latestIndex: DocsVersion = JSON.parse(
+      await Bun.file(latestIndexPath).text(),
+    )
+    const pagePaths = Object.keys(latestIndex.pages)
+    const lastmod = manifest.generatedAt.split("T")[0]!
+    const sitemapXml = generateSitemap(pagePaths, lastmod)
+    writeFileSync(path.join(staticSrcRoot, "sitemap.xml"), sitemapXml)
+  }
+
   console.log("")
   console.log(
     `✨ Documentation fetched for ${processedVersions.length} version(s)`,
   )
   console.log(`📁 Output: ${outputDir}`)
   console.log(
-    `📁 Copied to: static/llms.txt, static-src/, static/docs-versions`,
+    `📁 Copied to: static/llms.txt, sitemap.xml, static-src/, static/docs-versions`,
   )
 }
 

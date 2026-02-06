@@ -89,5 +89,6 @@ Sitemap: https://example.com/sitemap.xml
 
 ## Important Notes
 
-- **Never edit `src/server/static/` directly** — It's regenerated on every build
+- **All runtime static assets go in `src/server/static-src/`** — this includes manually created files and script-generated files
+- **Never edit `src/server/static/` directly** — it's auto-populated from `static-src/` on every build
 - **Binary deployments** extract static files to a temp directory at runtime; the `STATIC_ASSETS_FOLDER` environment variable points to this location

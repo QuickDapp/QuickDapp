@@ -51,6 +51,8 @@ temp/
 # Generated docs
 docs-versions/
 src/server/static-src/docs-versions/
+llms.txt
+sitemap.xml
 
 # Editor files
 .vscode/*
@@ -62,7 +64,3 @@ src/server/static-src/docs-versions/
 # Claude local
 CLAUDE.local.md
 
-# Versioned docs content (generated)
-docs-versions/
-src/server/static-src/docs-versions/
-llms.txt
