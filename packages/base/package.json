@@ -1,6 +1,6 @@
 {
   "name": "@quickdapp/base",
-  "version": "3.11.2",
+  "version": "3.11.3",
   "description": "Production-ready boilerplate for web apps.",
   "author": "Ramesh Nair <ram@hiddentao.com>",
   "license": "MIT",
