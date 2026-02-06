@@ -13,7 +13,7 @@
   },
   "type": "module",
   "bin": {
-    "create-quickdapp": "./dist/index.js"
+    "quickdapp": "./dist/index.js"
   },
   "files": [
     "dist"

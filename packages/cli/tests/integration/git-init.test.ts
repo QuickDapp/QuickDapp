@@ -36,7 +36,7 @@ describe("initGit", () => {
         cwd: targetDir,
         encoding: "utf-8",
       })
-      expect(log).toContain("Initial commit from create-quickdapp")
+      expect(log).toContain("Initial commit from @quickdapp/cli")
     } finally {
       cleanup()
     }

@@ -169,7 +169,7 @@ async function initGit(targetDir: string): Promise<void> {
   console.log("\nInitializing git repository...")
   execSync("git init", { cwd: targetDir, stdio: "inherit", timeout: 10000 })
   execSync("git add .", { cwd: targetDir, stdio: "inherit", timeout: 30000 })
-  execSync('git commit -m "Initial commit from create-quickdapp"', {
+  execSync('git commit -m "Initial commit from @quickdapp/cli"', {
     cwd: targetDir,
     stdio: "inherit",
     timeout: 30000,
@@ -233,7 +233,7 @@ async function createProject(
 const program = new Command()
 
 program
-  .name("create-quickdapp")
+  .name("@quickdapp/cli")
   .description("CLI to scaffold QuickDapp projects")
   .version(CLI_VERSION)
 
@@ -272,7 +272,7 @@ program
 
     if (!projectName) {
       console.error("Error: project-name is required")
-      console.error("Usage: create-quickdapp create <project-name>")
+      console.error("Usage: @quickdapp/cli create <project-name>")
       process.exit(1)
     }
 
@@ -308,8 +308,8 @@ export {
 }
 
 const isDirectRun = import.meta.url === `file://${process.argv[1]}`
-  || process.argv[1]?.endsWith("/create-quickdapp")
-  || process.argv[1]?.endsWith("\\create-quickdapp")
+  || process.argv[1]?.endsWith("/quickdapp")
+  || process.argv[1]?.endsWith("\\quickdapp")
 
 if (isDirectRun) {
   program.parse()

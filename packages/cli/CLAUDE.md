@@ -1,10 +1,10 @@
-# CLAUDE.md - create-quickdapp CLI
+# CLAUDE.md - @quickdapp/cli
 
 ## Overview
 
 This is the **CLI tool** for scaffolding new QuickDapp projects. It downloads the latest release from GitHub and sets up a new project directory.
 
-**Package Name**: `create-quickdapp` (published to npm)
+**Package Name**: `@quickdapp/cli` (published to npm)
 
 ---
 
