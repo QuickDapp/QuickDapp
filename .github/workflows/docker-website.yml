@@ -85,6 +85,11 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker
+
+    steps:
     - name: Trigger DigitalOcean deploy
       run: |
         curl -s -X POST \
