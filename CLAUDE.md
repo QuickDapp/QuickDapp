@@ -2,6 +2,10 @@
 
 This is NOT a traditional monorepo with shared dependencies and interdependent packages. Instead, it's a collection of **independent, standalone codebases** organized together for convenience.
 
+## Documentation
+
+The docs base URL is always `https://quickdapp.xyz/docs`. All documentation references across packages should use this base URL.
+
 ## Structure
 
 ```
