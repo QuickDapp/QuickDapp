@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.11.2](https://github.com/QuickDapp/QuickDapp/compare/v3.11.1...v3.11.2) (2026-02-06)
+
+
+### Bug Fixes
+
+* **base:** prevent race condition in job scheduling tests ([ec3e19c](https://github.com/QuickDapp/QuickDapp/commit/ec3e19c361e90b0a95be4b5658af3693a963bf37))
+* update docs URLs and resolve variant-web3 test race conditions ([5c18755](https://github.com/QuickDapp/QuickDapp/commit/5c1875535ddce1cdc3f19c62ee230bdf9cebd990))
+
+
+### Documentation
+
+* add documentation base URL to root CLAUDE.md ([a268fde](https://github.com/QuickDapp/QuickDapp/commit/a268fde1a9546ef1fc06567568b82733bd3cde37))
+* improve static assets guidance and add sitemap generation ([f7070ec](https://github.com/QuickDapp/QuickDapp/commit/f7070ec1680181ac4971b9a441650445dfb11188))
+
 ## [3.11.1](https://github.com/QuickDapp/QuickDapp/compare/v3.11.0...v3.11.1) (2026-02-06)
 
 ## [3.11.0](https://github.com/QuickDapp/QuickDapp/compare/v3.10.6...v3.11.0) (2026-02-06)
