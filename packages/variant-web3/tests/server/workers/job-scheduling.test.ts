@@ -185,11 +185,14 @@ describe("Worker Job Scheduling", () => {
   })
 
   test("should not cancel jobs with different tags", async () => {
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000)
+
     // Schedule first job with tag A
     const job1 = await scheduleJob(serverContext.serverApp, {
       tag: "tag-a",
       type: "removeOldWorkerJobs",
       userId: 1,
+      due: futureDate,
     })
 
     // Schedule second job with tag B (should NOT cancel job1)
@@ -197,6 +200,7 @@ describe("Worker Job Scheduling", () => {
       tag: "tag-b",
       type: "removeOldWorkerJobs",
       userId: 1,
+      due: futureDate,
     })
 
     // Both jobs should exist and be pending
@@ -220,17 +224,21 @@ describe("Worker Job Scheduling", () => {
   })
 
   test("jobs with same type but different tags should not cancel each other", async () => {
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000)
+
     // Schedule two jobs with same type but different tags
     await scheduleJob(serverContext.serverApp, {
       tag: "session-1",
       type: "watchChain",
       userId: 1,
+      due: futureDate,
     })
 
     await scheduleJob(serverContext.serverApp, {
       tag: "session-2",
       type: "watchChain",
       userId: 1,
+      due: futureDate,
     })
 
     // Both jobs should exist and be pending
@@ -338,11 +346,14 @@ describe("Worker Job Scheduling", () => {
   })
 
   test("one-time jobs and cron jobs with different tags do not affect each other", async () => {
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000)
+
     // Schedule a one-time job
     const _oneTimeJob = await scheduleJob(serverContext.serverApp, {
       tag: "one-time-job",
       type: "removeOldWorkerJobs",
       userId: 1,
+      due: futureDate,
     })
 
     // Schedule a cron job with different tag

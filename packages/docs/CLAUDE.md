@@ -4,7 +4,7 @@
 
 This package contains the **documentation** for QuickDapp, built with [Retype](https://retype.com/).
 
-**Live Site**: https://docs.quickdapp.xyz
+**Live Site**: https://quickdapp.xyz/docs
 
 ---
 
