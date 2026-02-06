@@ -260,6 +260,7 @@ program
           const latestLabel = isLatest ? " (latest)" : ""
           console.log(`  ${release.tag_name}${latestLabel}${prerelease}`)
         }
+        process.exit(0)
       } catch (error) {
         console.error(
           "Error:",
