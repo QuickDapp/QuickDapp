@@ -51,7 +51,7 @@ interface DocsVersion {
 }
 
 const EXCLUDED_FILES = new Set(["CLAUDE.MD", "README.MD", "LICENSE.MD"])
-const MIN_VERSION = "3.10.4"
+const MIN_VERSION = "3.11.0"
 
 async function extractTitleFromMarkdown(markdown: string): Promise<string> {
   const lines = markdown.split("\n")

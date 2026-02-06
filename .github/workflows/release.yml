@@ -107,3 +107,11 @@ jobs:
           echo "Artifacts that would be created:" >> $GITHUB_STEP_SUMMARY
           echo "- base-${{ steps.version.outputs.tag }}.tar.gz" >> $GITHUB_STEP_SUMMARY
           echo "- variant-web3-${{ steps.version.outputs.tag }}.tar.gz" >> $GITHUB_STEP_SUMMARY
+
+  docker-website:
+    needs: release
+    if: ${{ !inputs.dry_run }}
+    uses: ./.github/workflows/docker-website.yml
+    permissions:
+      contents: read
+      packages: write
