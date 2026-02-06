@@ -84,3 +84,11 @@ jobs:
         platforms: linux/amd64,linux/arm64
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Trigger DigitalOcean deploy
+      run: |
+        curl -s -X POST \
+        "https://api.digitalocean.com/v2/apps/${{ secrets.DIGITALOCEAN_APP_ID }}/deployments" \
+        -H "Authorization: Bearer ${{ secrets.DIGITALOCEAN_API_TOKEN }}" \
+        -H "Content-Type: application/json" \
+        -d '{"force_build": true}'
