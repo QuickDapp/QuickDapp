@@ -25,7 +25,7 @@ export interface TestServer {
  * Start a test server instance using the real server creation code
  * Uses dynamic port based on test file index for parallel execution
  *
- * Note: Environment variables (PORT, DATABASE_URL, API_URL) are already set
+ * Note: Environment variables (PORT, DATABASE_URL, BASE_URL) are already set
  * by test-config.ts at module load time, so serverConfig will have correct values.
  */
 export async function startTestServer(

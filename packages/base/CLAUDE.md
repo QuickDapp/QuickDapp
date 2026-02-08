@@ -157,7 +157,7 @@ import { describe, expect, it } from "bun:test"
 // ... other imports
 ```
 
-**Why this matters:** `serverConfig` caches environment variables at module load time. The test-config import sets PORT, DATABASE_URL, and API_URL before serverConfig is imported by any other module.
+**Why this matters:** `serverConfig` caches environment variables at module load time. The test-config import sets PORT, DATABASE_URL, and BASE_URL before serverConfig is imported by any other module.
 
 **Resource Allocation:**
 - Server ports: 54000 + test file index

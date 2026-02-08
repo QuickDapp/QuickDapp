@@ -9,6 +9,9 @@
  * that env-var's .required() throws during module load.
  */
 
+// Side-effect import: sets env vars before serverConfig loads
+import "@tests/helpers/test-config"
+
 import { describe, expect, it } from "bun:test"
 import { serverConfig, validateConfig } from "../../../src/shared/config/server"
 
@@ -24,7 +27,7 @@ describe("Server Configuration Validation", () => {
       // Verify that the loaded config has all required values
       expect(serverConfig.DATABASE_URL).toBeTruthy()
       expect(serverConfig.SESSION_ENCRYPTION_KEY).toBeTruthy()
-      expect(serverConfig.API_URL).toBeTruthy()
+      expect(serverConfig.BASE_URL).toBeTruthy()
     })
 
     it("should validate SESSION_ENCRYPTION_KEY length requirement", () => {

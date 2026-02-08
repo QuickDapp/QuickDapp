@@ -196,7 +196,7 @@ describe("OAuth Authentication", () => {
 
     it("should accept valid same-origin redirectUrl", async () => {
       const { serverConfig } = await import("../../../src/shared/config/server")
-      const redirectUrl = `${serverConfig.API_URL}/dashboard`
+      const redirectUrl = `${serverConfig.BASE_URL}/dashboard`
       const response = await makeRequest(
         `${testServer.url}/graphql`,
         createOAuthLoginUrlRequest("GOOGLE", undefined, redirectUrl),

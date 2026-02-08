@@ -15,12 +15,12 @@ Every QuickDapp deployment needs these core variables:
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string. See [Database](./backend/database.md) for schema and query patterns. |
 | `SESSION_ENCRYPTION_KEY` | Secret key for JWT signing and OAuth state encryption. Must be at least 32 characters. |
-| `API_URL` | Base URL for the API (e.g., `http://localhost:3000` or `https://api.yourdomain.com`). |
+| `BASE_URL` | Base URL for the server (e.g., `http://localhost:3000` or `https://api.yourdomain.com`). Server-only. |
 
 ```bash
 DATABASE_URL=postgresql://user:password@host:5432/database
 SESSION_ENCRYPTION_KEY=your_min_32_characters_key
-API_URL=http://localhost:3000
+BASE_URL=http://localhost:3000
 ```
 
 ## Server Configuration
@@ -99,7 +99,7 @@ Control real-time connection limits. See [WebSockets](./backend/websockets.md) f
 These variables are safe to expose in the frontend bundle:
 
 - `APP_NAME`, `APP_VERSION`, `NODE_ENV`
-- `API_URL`
+- `CLIENT_API_BASE_URL` (optional — overrides the API base URL on the client; falls back to `window.location.origin`)
 - `SENTRY_DSN`
 
 Server-side secrets like database credentials, private keys, and OAuth secrets remain server-only. See [`src/shared/config/client.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/config/client.ts) for the client configuration and [`src/shared/config/server.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/config/server.ts) for the full server configuration.

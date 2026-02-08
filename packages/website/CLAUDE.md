@@ -94,7 +94,7 @@ Only strict `vX.Y.Z` format tags appear in the docs version selector. Pre-releas
 Required:
 ```
 DATABASE_URL=postgres://user:pass@host:port/db
-API_URL=http://localhost:3000
+BASE_URL=http://localhost:3000
 ```
 
 Optional:

@@ -61,7 +61,7 @@ import { beforeAll, afterAll, test, expect } from 'bun:test'
 import { startTestServer } from '../helpers/server'
 ```
 
-This import sets `PORT`, `DATABASE_URL`, and `API_URL` environment variables before `serverConfig` caches them at module load time. Importing it after other server modules causes tests to use the wrong port or database.
+This import sets `PORT`, `DATABASE_URL`, and `BASE_URL` environment variables before `serverConfig` caches them at module load time. Importing it after other server modules causes tests to use the wrong port or database.
 
 ## Running Tests
 

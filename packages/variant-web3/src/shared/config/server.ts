@@ -3,6 +3,8 @@ import { type ClientConfig, clientConfig } from "./client"
 
 // Server-only configuration (extends client config)
 export interface ServerConfig extends ClientConfig {
+  BASE_URL: string
+
   // Server settings
   WEB_ENABLED: boolean
   HOST: string
@@ -63,6 +65,8 @@ export interface ServerConfig extends ClientConfig {
 // Load and validate server configuration
 export const serverConfig: ServerConfig = {
   ...clientConfig,
+
+  BASE_URL: env.get("BASE_URL").required().asString(),
 
   // Server settings
   WEB_ENABLED: env.get("WEB_ENABLED").default("true").asBool(),
@@ -171,7 +175,7 @@ export function validateConfig() {
   const requiredForAll: (keyof ServerConfig)[] = [
     "DATABASE_URL",
     "SESSION_ENCRYPTION_KEY",
-    "API_URL",
+    "BASE_URL",
     "WEB3_SERVER_WALLET_PRIVATE_KEY",
     "WEB3_ALLOWED_SIWE_ORIGINS",
     "WEB3_WALLETCONNECT_PROJECT_ID",

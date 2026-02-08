@@ -2,6 +2,7 @@ import env from "env-var"
 import { type ClientConfig, clientConfig } from "./client"
 
 export interface ServerConfig extends ClientConfig {
+  BASE_URL: string
   WEB_ENABLED: boolean
   HOST: string
   PORT: number
@@ -33,6 +34,7 @@ export interface ServerConfig extends ClientConfig {
 export const serverConfig: ServerConfig = {
   ...clientConfig,
 
+  BASE_URL: env.get("BASE_URL").required().asString(),
   WEB_ENABLED: env.get("WEB_ENABLED").default("true").asBool(),
   HOST: env.get("HOST").default("localhost").asString(),
   PORT: env.get("PORT").default(3000).asPortNumber(),
@@ -96,7 +98,7 @@ export function validateConfig() {
   const requiredForAll: (keyof ServerConfig)[] = [
     "DATABASE_URL",
     "SESSION_ENCRYPTION_KEY",
-    "API_URL",
+    "BASE_URL",
   ]
 
   const missing = requiredForAll.filter((key) =>

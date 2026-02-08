@@ -9,7 +9,6 @@ export interface ClientConfig {
   APP_NAME: string
   APP_VERSION: string
   NODE_ENV: "development" | "production" | "test"
-  API_URL: string
   SENTRY_DSN?: string
 }
 
@@ -28,15 +27,14 @@ export const clientConfig: ClientConfig =
           .get("NODE_ENV")
           .default("development")
           .asEnum(["development", "production", "test"]),
-        API_URL: env.get("API_URL").default("http://localhost:3000").asString(),
         SENTRY_DSN: env.get("SENTRY_DSN").asString(),
       }
 
 export function validateClientConfig() {
-  const requiredForClient = ["API_URL"]
+  const requiredForClient: (keyof ClientConfig)[] = []
 
   const missing = requiredForClient.filter((key) => {
-    const value = clientConfig[key as keyof ClientConfig]
+    const value = clientConfig[key]
     return !value || (typeof value === "string" && value.trim() === "")
   })
 

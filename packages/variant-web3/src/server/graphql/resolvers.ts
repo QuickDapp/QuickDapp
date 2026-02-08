@@ -398,7 +398,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               if (redirectUrl) {
                 try {
                   const redirectUrlObj = new URL(redirectUrl)
-                  const apiUrlObj = new URL(serverConfig.API_URL)
+                  const apiUrlObj = new URL(serverConfig.BASE_URL)
                   if (redirectUrlObj.origin !== apiUrlObj.origin) {
                     return {
                       success: false,

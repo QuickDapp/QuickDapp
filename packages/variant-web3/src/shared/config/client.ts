@@ -11,7 +11,7 @@ export interface ClientConfig {
   APP_NAME: string
   APP_VERSION: string
   NODE_ENV: "development" | "production" | "test"
-  API_URL: string
+  CLIENT_API_BASE_URL?: string
   SENTRY_DSN?: string
   // Web3 configuration (always required in this variant)
   WEB3_WALLETCONNECT_PROJECT_ID: string
@@ -36,7 +36,7 @@ export const clientConfig: ClientConfig =
           .get("NODE_ENV")
           .default("development")
           .asEnum(["development", "production", "test"]),
-        API_URL: env.get("API_URL").required().asString(),
+        CLIENT_API_BASE_URL: env.get("CLIENT_API_BASE_URL").asString(),
         SENTRY_DSN: env.get("SENTRY_DSN").asString(),
         WEB3_WALLETCONNECT_PROJECT_ID: env
           .get("WEB3_WALLETCONNECT_PROJECT_ID")
@@ -58,7 +58,6 @@ export const clientConfig: ClientConfig =
 // Validate critical client configuration on startup
 export function validateClientConfig() {
   const requiredForClient: (keyof ClientConfig)[] = [
-    "API_URL",
     "WEB3_WALLETCONNECT_PROJECT_ID",
     "WEB3_FACTORY_CONTRACT_ADDRESS",
     "WEB3_SUPPORTED_CHAINS",
@@ -77,4 +76,11 @@ export function validateClientConfig() {
       `Missing required client environment variables: ${missing.join(", ")}`,
     )
   }
+}
+
+export function getClientApiBaseUrl(): string {
+  if (clientConfig.CLIENT_API_BASE_URL) {
+    return clientConfig.CLIENT_API_BASE_URL
+  }
+  return isBrowser ? window.location.origin : ""
 }

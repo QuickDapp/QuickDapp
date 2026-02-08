@@ -1,11 +1,11 @@
 import { GraphQLClient } from "graphql-request"
-import { clientConfig } from "../config/client"
+import { getClientApiBaseUrl } from "../config/client"
 
 let graphqlClient: GraphQLClient | null = null
 
 export function getGraphQLClient(): GraphQLClient {
   if (!graphqlClient) {
-    graphqlClient = new GraphQLClient(`${clientConfig.API_URL}/graphql`, {
+    graphqlClient = new GraphQLClient(`${getClientApiBaseUrl()}/graphql`, {
       headers: {
         "Content-Type": "application/json",
       },

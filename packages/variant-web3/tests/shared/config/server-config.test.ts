@@ -27,7 +27,7 @@ describe("Server Configuration Validation", () => {
       // Verify that the loaded config has all required values
       expect(serverConfig.DATABASE_URL).toBeTruthy()
       expect(serverConfig.SESSION_ENCRYPTION_KEY).toBeTruthy()
-      expect(serverConfig.API_URL).toBeTruthy()
+      expect(serverConfig.BASE_URL).toBeTruthy()
     })
 
     it("should validate SESSION_ENCRYPTION_KEY length requirement", () => {

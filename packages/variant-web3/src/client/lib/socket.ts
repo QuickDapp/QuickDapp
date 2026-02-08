@@ -1,4 +1,4 @@
-import { clientConfig } from "@shared/config/client"
+import { getClientApiBaseUrl } from "@shared/config/client"
 import {
   type WebSocketMessage,
   WebSocketMessageType,
@@ -26,17 +26,10 @@ export class Socket {
   }
 
   private getWebSocketUrl(): string {
-    // In development mode with Vite dev server, use the current host which will be proxied
-    // In production, use API_URL from client config
-    if (clientConfig.NODE_ENV === "development") {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-      return `${protocol}//${window.location.host}/ws`
-    }
-
-    // Production: Use API_URL from client config
-    const baseUrl = new URL(clientConfig.API_URL)
-    const protocol = baseUrl.protocol === "https:" ? "wss:" : "ws:"
-    return `${protocol}//${baseUrl.host}/ws`
+    const origin = getClientApiBaseUrl() || window.location.origin
+    const url = new URL(origin)
+    const protocol = url.protocol === "https:" ? "wss:" : "ws:"
+    return `${protocol}//${url.host}/ws`
   }
 
   connect(token?: string) {

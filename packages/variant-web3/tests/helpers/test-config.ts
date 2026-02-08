@@ -85,7 +85,7 @@ const anvilRpcUrl = getTestAnvilRpcUrl()
 // Set env vars so serverConfig will use them
 process.env.PORT = preferredPort.toString()
 process.env.DATABASE_URL = databaseUrl
-process.env.API_URL = `http://localhost:${preferredPort}`
+process.env.BASE_URL = `http://localhost:${preferredPort}`
 process.env.WEB3_ANVIL_RPC = anvilRpcUrl
 
 // ============================================================================
@@ -144,7 +144,7 @@ export async function getTestPort(): Promise<number> {
       resolvedPort = randomPort
       // Update env for consistency
       process.env.PORT = randomPort.toString()
-      process.env.API_URL = `http://localhost:${randomPort}`
+      process.env.BASE_URL = `http://localhost:${randomPort}`
       return randomPort
     }
   }
@@ -153,9 +153,9 @@ export async function getTestPort(): Promise<number> {
 }
 
 /**
- * Get the API_URL for this test file
+ * Get the BASE_URL for this test file
  */
-export async function getTestApiUrl(): Promise<string> {
+export async function getTestBaseUrl(): Promise<string> {
   const port = await getTestPort()
   return `http://localhost:${port}`
 }
@@ -169,7 +169,7 @@ export async function getTestConfig() {
     TEST_FILE_INDEX: getTestFileIndex(),
     PORT: port,
     DATABASE_URL: getTestDatabaseUrl(),
-    API_URL: `http://localhost:${port}`,
+    BASE_URL: `http://localhost:${port}`,
     DATABASE_NAME: getTestDatabaseName(),
     BLOCKCHAIN_PORT: getTestBlockchainPort(),
     ANVIL_RPC_URL: getTestAnvilRpcUrl(),
