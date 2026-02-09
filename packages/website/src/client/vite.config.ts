@@ -6,6 +6,9 @@ import { defineConfig } from "vite"
 
 const { clientConfig } = require("../shared/config/client.ts")
 
+const serverPort = process.env.PORT || 3000
+const serverUrl = `http://localhost:${serverPort}`
+
 function injectConfig(): Plugin {
   return {
     name: "inject-config",
@@ -44,8 +47,18 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/graphql": "http://localhost:3000",
-      "/health": "http://localhost:3000",
+      "/graphql": {
+        target: serverUrl,
+        configure: (proxy) => {
+          proxy.on("error", () => undefined)
+        },
+      },
+      "/health": {
+        target: serverUrl,
+        configure: (proxy) => {
+          proxy.on("error", () => undefined)
+        },
+      },
     },
   },
   build: {

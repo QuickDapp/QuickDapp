@@ -109,8 +109,8 @@ export async function bootstrap(
   let { env } = options
 
   try {
-    // Determine environment - prioritize parameter over existing NODE_ENV
-    env = env || process.env.NODE_ENV || "development"
+    // Determine environment - process env var takes highest priority
+    env = process.env.NODE_ENV || env || "development"
     process.env.NODE_ENV = env
 
     const rootFolder = resolve(import.meta.dir, "..", "..")

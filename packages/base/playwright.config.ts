@@ -20,7 +20,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "NODE_ENV=test bun run dev 2>&1 | tee /tmp/e2e-server.log",
-    url: "http://localhost:5173",
+    url: "http://localhost:5173/health",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     stdout: "pipe",

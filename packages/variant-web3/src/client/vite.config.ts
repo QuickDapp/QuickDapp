@@ -7,6 +7,9 @@ import { defineConfig } from "vite"
 // Import clientConfig from shared client.ts (this runs in Node.js context)
 const { clientConfig } = require("../shared/config/client.ts")
 
+const serverPort = process.env.PORT || 3000
+const serverUrl = `http://localhost:${serverPort}`
+
 // Plugin to inject config into HTML (for production builds)
 function injectConfig(): Plugin {
   return {
@@ -44,11 +47,24 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/graphql": "http://localhost:3000",
-      "/health": "http://localhost:3000",
+      "/graphql": {
+        target: serverUrl,
+        configure: (proxy) => {
+          proxy.on("error", () => undefined)
+        },
+      },
+      "/health": {
+        target: serverUrl,
+        configure: (proxy) => {
+          proxy.on("error", () => undefined)
+        },
+      },
       "/ws": {
-        target: "ws://localhost:3000",
+        target: `ws://localhost:${serverPort}`,
         ws: true,
+        configure: (proxy) => {
+          proxy.on("error", () => undefined)
+        },
       },
     },
   },
