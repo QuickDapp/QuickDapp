@@ -216,7 +216,7 @@ export const createApp = async (
   )
 
   app.get("/*", async ({ set, path: reqPath }) => {
-    if (reqPath.includes(".")) {
+    if (reqPath.includes(".") || reqPath.startsWith("/assets/")) {
       set.status = 404
       return "Not found"
     }

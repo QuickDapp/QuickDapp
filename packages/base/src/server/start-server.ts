@@ -188,7 +188,7 @@ export const createApp = async (
 
   // SPA fallback for client-side routes
   app.get("/*", async ({ set, path: reqPath }) => {
-    if (reqPath.includes(".")) {
+    if (reqPath.includes(".") || reqPath.startsWith("/assets/")) {
       set.status = 404
       return "Not found"
     }

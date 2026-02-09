@@ -165,6 +165,14 @@ describe("Server Integration Tests", () => {
       expect(response.status).toBe(404)
     })
 
+    it("should return 404 for non-existent asset paths without extensions", async () => {
+      if (!testServer) throw new Error("Test server not initialized")
+
+      const response = await makeRequest(`${testServer.url}/assets/missing-dir`)
+
+      expect(response.status).toBe(404)
+    })
+
     it("should handle malformed requests gracefully", async () => {
       if (!testServer) throw new Error("Test server not initialized")
 
