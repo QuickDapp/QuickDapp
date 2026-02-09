@@ -133,6 +133,23 @@ describe("Server Integration Tests", () => {
       // In test environment, this should return 204 (no content)
       expect(response.status).toBe(204)
     })
+
+    it("should serve SPA fallback for non-root paths without file extensions", async () => {
+      if (!testServer) throw new Error("Test server not initialized")
+
+      const response = await makeRequest(`${testServer.url}/dashboard`)
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get("content-type")).toContain("text/html")
+    })
+
+    it("should return 404 for non-existent file paths", async () => {
+      if (!testServer) throw new Error("Test server not initialized")
+
+      const response = await makeRequest(`${testServer.url}/nonexistent.js`)
+
+      expect(response.status).toBe(404)
+    })
   })
 
   describe("Error Handling", () => {
