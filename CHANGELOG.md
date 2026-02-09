@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.12.0](https://github.com/QuickDapp/QuickDapp/compare/v3.11.3...v3.12.0) (2026-02-09)
+
+
+### Features
+
+* **server:** add SPA fallback routing for client-side routes ([df1a728](https://github.com/QuickDapp/QuickDapp/commit/df1a72800bcfcc93ed4fe569676e8b018c18a16e))
+
+
+### Bug Fixes
+
+* **ci:** add build step before tests for SPA fallback routing ([79eace9](https://github.com/QuickDapp/QuickDapp/commit/79eace92b8fb31a9e1d8e962fbc8f822416f6b4a))
+* **ci:** resolve E2E failures and suppress Vite proxy errors ([28d0381](https://github.com/QuickDapp/QuickDapp/commit/28d03818d1943da9f494a5c1fcf8ff3ef4bbeef4))
+* **cli:** exit after --list-versions to prevent process hanging ([4138f8c](https://github.com/QuickDapp/QuickDapp/commit/4138f8cf4a74982b819f80e9c6517ed6cf5b9a56))
+
 ## [3.11.3](https://github.com/QuickDapp/QuickDapp/compare/v3.11.2...v3.11.3) (2026-02-06)
 
 ## [3.11.2](https://github.com/QuickDapp/QuickDapp/compare/v3.11.1...v3.11.2) (2026-02-06)
