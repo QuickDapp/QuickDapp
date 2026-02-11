@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { $, Glob, spawn } from "bun"
@@ -96,6 +97,8 @@ async function testHandler(options: TestOptions) {
     concurrency = 10,
   } = options
 
+  let containerStarted = false
+
   // Create temporary .env.test.local for debug logging if verbose
   const envTestLocalPath = resolve(process.cwd(), ".env.test.local")
   let createdTempEnvFile = false
@@ -114,8 +117,16 @@ WORKER_LOG_LEVEL=debug
     console.log("")
   }
 
-  // Cleanup function to remove temporary files
   const cleanup = () => {
+    if (containerStarted) {
+      console.log("🐳 Stopping test database container...")
+      spawnSync(
+        "docker",
+        ["compose", "-f", "docker-compose.test.yaml", "down"],
+        { stdio: "inherit" },
+      )
+      containerStarted = false
+    }
     if (createdTempEnvFile && existsSync(envTestLocalPath)) {
       console.log("🧹 Cleaning up temporary debug logging configuration...")
       unlinkSync(envTestLocalPath)
@@ -143,6 +154,7 @@ WORKER_LOG_LEVEL=debug
       console.log("🐳 Starting test database container...")
       try {
         await $`docker compose -f docker-compose.test.yaml up -d --wait`
+        containerStarted = true
         console.log("✅ Test database container started")
       } catch (error) {
         console.error("❌ Failed to start test database container:", error)

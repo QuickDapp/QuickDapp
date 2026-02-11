@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { spawnSync } from "node:child_process"
 import { $ } from "bun"
 import {
   type CommandSetup,
@@ -12,9 +13,31 @@ interface E2ETestOptions extends ScriptOptions {
   ui?: boolean
 }
 
+let containerStarted = false
+
+const cleanup = () => {
+  if (containerStarted) {
+    console.log("🐳 Stopping test database container...")
+    spawnSync("docker", ["compose", "-f", "docker-compose.test.yaml", "down"], {
+      stdio: "inherit",
+    })
+    containerStarted = false
+  }
+}
+
 async function e2eTestHandler(options: E2ETestOptions) {
   const { headed, ui } = options
   const isCI = !!process.env.CI
+
+  process.on("exit", cleanup)
+  process.on("SIGINT", () => {
+    cleanup()
+    process.exit(0)
+  })
+  process.on("SIGTERM", () => {
+    cleanup()
+    process.exit(0)
+  })
 
   try {
     // In CI, database is provided by service container
@@ -23,9 +46,11 @@ async function e2eTestHandler(options: E2ETestOptions) {
       console.log("🐳 Starting test database container...")
       try {
         await $`docker compose -f docker-compose.test.yaml up -d --wait`
+        containerStarted = true
         console.log("✅ Test database container started")
       } catch (error) {
         console.error("❌ Failed to start test database container:", error)
+        cleanup()
         process.exit(1)
       }
       console.log("")
@@ -38,6 +63,7 @@ async function e2eTestHandler(options: E2ETestOptions) {
       console.log("✅ Test database schema updated successfully")
     } catch (error) {
       console.error("❌ Failed to set up test database:", error)
+      cleanup()
       process.exit(1)
     }
     console.log("")
@@ -59,13 +85,16 @@ async function e2eTestHandler(options: E2ETestOptions) {
     if (result.exitCode !== 0) {
       console.log("")
       console.log("❌ E2E tests failed!")
+      cleanup()
       process.exit(1)
     }
 
     console.log("")
     console.log("✅ All E2E tests passed!")
+    cleanup()
   } catch (error) {
     console.error("❌ E2E test execution failed:", error)
+    cleanup()
     process.exit(1)
   }
 }

@@ -1,5 +1,6 @@
 import { GraphQLError } from "graphql"
 import { serverConfig } from "../../shared/config/server"
+import { EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS } from "../../shared/constants"
 import { GraphQLErrorCode } from "../../shared/graphql/errors"
 import { AuthService } from "../auth"
 import {
@@ -29,6 +30,9 @@ import type { Resolvers } from "./types"
 /**
  * GraphQL resolvers with standard error handling
  */
+const emailLastSentAt = new Map<string, number>()
+const RESEND_COOLDOWN_MS = EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS * 1000
+
 export function createResolvers(serverApp: ServerApp): Resolvers {
   const logger = serverApp.createLogger(LOG_CATEGORIES.GRAPHQL_RESOLVERS)
 
@@ -216,6 +220,15 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 }
               }
 
+              const lastSent = emailLastSentAt.get(email)
+              if (lastSent && Date.now() - lastSent < RESEND_COOLDOWN_MS) {
+                return {
+                  success: false,
+                  blob: null,
+                  error: "Please wait before requesting another code",
+                }
+              }
+
               authLogger.debug("Generating email verification code")
 
               const { code, blob } = await generateVerificationCodeAndBlob(
@@ -231,6 +244,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
                 html: `<p>Your verification code is: <strong>${code}</strong></p>`,
               })
 
+              emailLastSentAt.set(email, Date.now())
               authLogger.debug("Email verification code sent")
 
               return {

@@ -1,3 +1,4 @@
+import { EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS } from "@shared/constants"
 import { getGraphQLClient } from "@shared/graphql/client"
 import {
   AUTHENTICATE_WITH_EMAIL,
@@ -5,6 +6,7 @@ import {
 } from "@shared/graphql/mutations"
 import { useState } from "react"
 import { type UserProfile, useAuthContext } from "../contexts/AuthContext"
+import { useCountdownTimer } from "../hooks/useCountdownTimer"
 import { useField, useForm } from "../hooks/useForm"
 import { Button } from "./Button"
 import {
@@ -81,6 +83,9 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
   const emailForm = useForm({ fields: [emailField] })
   const codeForm = useForm({ fields: [codeField] })
+  const { secondsLeft, restart: restartTimer } = useCountdownTimer(
+    EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
+  )
 
   const resetForm = () => {
     setStep("email")
@@ -120,6 +125,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
         setBlob(response.sendEmailVerificationCode.blob)
         setSubmittedEmail(emailField.value)
         setStep("code")
+        restartTimer()
       } else {
         setServerError(
           response.sendEmailVerificationCode.error ||
@@ -177,6 +183,38 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
     codeField.unset()
   }
 
+  const handleResendCode = async () => {
+    setIsLoading(true)
+    setServerError("")
+
+    try {
+      const graphqlClient = getGraphQLClient()
+      const response = (await graphqlClient.request(
+        SEND_EMAIL_VERIFICATION_CODE,
+        { email: submittedEmail },
+      )) as SendEmailResponse
+
+      if (
+        response.sendEmailVerificationCode.success &&
+        response.sendEmailVerificationCode.blob
+      ) {
+        setBlob(response.sendEmailVerificationCode.blob)
+        codeField.unset()
+        restartTimer()
+      } else {
+        setServerError(
+          response.sendEmailVerificationCode.error ||
+            "Failed to resend verification code",
+        )
+      }
+    } catch (err) {
+      console.error("Error resending verification code:", err)
+      setServerError("Failed to resend code. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -189,6 +227,11 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
               ? "Enter your email address and we'll send you a verification code."
               : `We've sent a 6-digit code to ${submittedEmail}`}
           </DialogDescription>
+          {step === "code" && (
+            <p className="text-xs text-muted-foreground">
+              Can't find it? Check your spam folder.
+            </p>
+          )}
         </DialogHeader>
 
         {step === "email" ? (
@@ -258,6 +301,23 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
               >
                 Verify
               </Button>
+            </div>
+
+            <div className="text-center text-sm">
+              {secondsLeft > 0 ? (
+                <span className="text-muted-foreground">
+                  Resend code in {secondsLeft}s
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="text-primary underline hover:text-primary/80"
+                  onClick={handleResendCode}
+                  disabled={isLoading}
+                >
+                  Resend code
+                </button>
+              )}
             </div>
           </form>
         )}

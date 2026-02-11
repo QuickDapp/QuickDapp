@@ -365,6 +365,61 @@ describe("Email Authentication", () => {
     })
   })
 
+  describe("Email verification resend cooldown", () => {
+    const sendCodeMutation = `
+      mutation SendEmailVerificationCode($email: String!) {
+        sendEmailVerificationCode(email: $email) {
+          success
+          blob
+          error
+        }
+      }
+    `
+
+    it("should reject immediate resend within cooldown period", async () => {
+      const email = generateTestEmail()
+
+      const response1 = await makeRequest(
+        `${testServer.url}/graphql`,
+        createGraphQLRequest(sendCodeMutation, { email }),
+      )
+      const body1 = await response1.json()
+      expect(body1.data.sendEmailVerificationCode.success).toBe(true)
+      expect(body1.data.sendEmailVerificationCode.blob).toBeTruthy()
+
+      const response2 = await makeRequest(
+        `${testServer.url}/graphql`,
+        createGraphQLRequest(sendCodeMutation, { email }),
+      )
+      const body2 = await response2.json()
+      expect(body2.data.sendEmailVerificationCode.success).toBe(false)
+      expect(body2.data.sendEmailVerificationCode.blob).toBeNull()
+      expect(body2.data.sendEmailVerificationCode.error).toBe(
+        "Please wait before requesting another code",
+      )
+    })
+
+    it("should allow sending to a different email during cooldown", async () => {
+      const email1 = generateTestEmail()
+      const email2 = generateTestEmail()
+
+      const response1 = await makeRequest(
+        `${testServer.url}/graphql`,
+        createGraphQLRequest(sendCodeMutation, { email: email1 }),
+      )
+      const body1 = await response1.json()
+      expect(body1.data.sendEmailVerificationCode.success).toBe(true)
+
+      const response2 = await makeRequest(
+        `${testServer.url}/graphql`,
+        createGraphQLRequest(sendCodeMutation, { email: email2 }),
+      )
+      const body2 = await response2.json()
+      expect(body2.data.sendEmailVerificationCode.success).toBe(true)
+      expect(body2.data.sendEmailVerificationCode.blob).toBeTruthy()
+    })
+  })
+
   describe("Disabled user handling", () => {
     it("should reject authentication for disabled email user", async () => {
       const email = generateTestEmail()

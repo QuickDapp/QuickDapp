@@ -81,6 +81,23 @@ test.describe("Authentication Flow", () => {
     await expect(page.getByRole("button", { name: "Login" })).toBeVisible()
   })
 
+  test("shows countdown timer after sending verification code", async ({
+    page,
+  }) => {
+    await page.goto("/")
+    await page.getByRole("button", { name: "Login" }).click()
+
+    const testEmail = `timer-${Date.now()}@example.com`
+    await page.getByPlaceholder("you@example.com").fill(testEmail)
+    await page.getByRole("button", { name: "Send Code" }).click()
+
+    await expect(page.getByText(/We've sent a 6-digit code/)).toBeVisible()
+    await expect(page.getByText(/Resend code in \d+s/)).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "Resend code" }),
+    ).not.toBeVisible()
+  })
+
   test("localStorage only contains auth_token after login", async ({
     page,
   }) => {
