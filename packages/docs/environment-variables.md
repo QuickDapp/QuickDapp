@@ -98,7 +98,7 @@ Control real-time connection limits. See [WebSockets](./backend/websockets.md) f
 
 These variables are safe to expose in the frontend bundle:
 
-- `APP_NAME`, `APP_VERSION`, `NODE_ENV`
+- `APP_NAME`, `NODE_ENV`
 - `CLIENT_API_BASE_URL` (optional — overrides the API base URL on the client; falls back to `window.location.origin`)
 - `SENTRY_DSN`
 

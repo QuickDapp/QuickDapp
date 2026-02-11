@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execSync, spawn, spawnSync } from "node:child_process"
-import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
+import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { Readable } from "node:stream"
@@ -176,6 +176,21 @@ async function initGit(targetDir: string): Promise<void> {
   })
 }
 
+function customizeProject(projectName: string, targetDir: string): void {
+  const envPath = join(targetDir, ".env")
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, "utf-8")
+    writeFileSync(envPath, envContent.replace(/^APP_NAME=.*/m, `APP_NAME=${projectName}`))
+  }
+
+  const pkgPath = join(targetDir, "package.json")
+  if (existsSync(pkgPath)) {
+    const pkgContent = JSON.parse(readFileSync(pkgPath, "utf-8"))
+    pkgContent.name = projectName
+    writeFileSync(pkgPath, JSON.stringify(pkgContent, null, 2) + "\n")
+  }
+}
+
 async function createProject(
   projectName: string,
   options: CreateOptions,
@@ -195,6 +210,7 @@ async function createProject(
     console.log(`Using version: ${version}`)
 
     await downloadAndExtract(options.variant, version, targetDir)
+    customizeProject(projectName, targetDir)
 
     if (options.variant === "web3") {
       await cloneSampleContracts(targetDir)
@@ -302,6 +318,7 @@ export {
   runBunInstall,
   cloneSampleContracts,
   initGit,
+  customizeProject,
   createProject,
   type Variant,
   type CreateOptions,

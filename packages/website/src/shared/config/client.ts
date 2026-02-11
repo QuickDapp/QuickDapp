@@ -21,10 +21,7 @@ export const clientConfig: ClientConfig =
     ? globalThis.__CONFIG__
     : {
         APP_NAME: env.get("APP_NAME").default("QuickDapp").asString(),
-        APP_VERSION: env
-          .get("APP_VERSION")
-          .default(packageJson.version)
-          .asString(),
+        APP_VERSION: packageJson.version,
         NODE_ENV: env
           .get("NODE_ENV")
           .default("development")

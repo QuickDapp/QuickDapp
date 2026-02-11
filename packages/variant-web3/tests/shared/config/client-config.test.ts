@@ -9,6 +9,11 @@ import {
 } from "../../../src/shared/config/client"
 
 describe("Client Configuration", () => {
+  it("should have APP_VERSION matching package.json version", () => {
+    const packageJson = require("../../../package.json")
+    expect(clientConfig.APP_VERSION).toBe(packageJson.version)
+  })
+
   it("should pass validation without CLIENT_API_BASE_URL", () => {
     expect(() => validateClientConfig()).not.toThrow()
   })

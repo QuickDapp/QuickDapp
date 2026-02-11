@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
-import { existsSync, mkdirSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { createProject } from "../../src/index"
 import { createMockSampleContractsRepo } from "../helpers/mock-git-repo"
@@ -123,6 +123,52 @@ describe("createProject", () => {
       rmSync(projectDir, { recursive: true, force: true })
     }
   })
+
+  it(
+    "customizes APP_NAME and package.json name for base variant",
+    async () => {
+      const projectName = "my-awesome-app"
+      const projectDir = join(workDir.path, projectName)
+
+      try {
+        await createProject(projectName, { variant: "base", skipInstall: true })
+
+        const envContent = readFileSync(join(projectDir, ".env"), "utf-8")
+        expect(envContent).toContain("APP_NAME=my-awesome-app")
+        expect(envContent).not.toContain("APP_NAME=QuickDapp")
+
+        const pkgJson = JSON.parse(readFileSync(join(projectDir, "package.json"), "utf-8"))
+        expect(pkgJson.name).toBe("my-awesome-app")
+        expect(pkgJson.name).not.toBe("@quickdapp/base")
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true })
+      }
+    },
+    { timeout: 120000 },
+  )
+
+  it(
+    "customizes APP_NAME and package.json name for web3 variant",
+    async () => {
+      const projectName = "my-web3-dapp"
+      const projectDir = join(workDir.path, projectName)
+
+      try {
+        await createProject(projectName, { variant: "web3", skipInstall: true })
+
+        const envContent = readFileSync(join(projectDir, ".env"), "utf-8")
+        expect(envContent).toContain("APP_NAME=my-web3-dapp")
+        expect(envContent).not.toContain("APP_NAME=QuickDapp")
+
+        const pkgJson = JSON.parse(readFileSync(join(projectDir, "package.json"), "utf-8"))
+        expect(pkgJson.name).toBe("my-web3-dapp")
+        expect(pkgJson.name).not.toBe("@quickdapp/variant-web3")
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true })
+      }
+    },
+    { timeout: 120000 },
+  )
 
   it(
     "creates project with dependencies installed",
