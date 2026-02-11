@@ -58,6 +58,9 @@ temp/
 # Sample contracts (separate repo: QuickDapp/sample-contracts)
 sample-contracts/
 
+# Test run order (auto-generated)
+tests/test-run-order.json
+
 # Claude local
 CLAUDE.local.md
 v2
