@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.13.0](https://github.com/QuickDapp/QuickDapp/compare/v3.12.0...v3.13.0) (2026-02-11)
+
+
+### Features
+
+* **client:** add client-side Sentry error tracking ([9b6e12a](https://github.com/QuickDapp/QuickDapp/commit/9b6e12a0720996f27ff7b41d744511d8aaaff11d))
+
 ## [3.12.0](https://github.com/QuickDapp/QuickDapp/compare/v3.11.3...v3.12.0) (2026-02-09)
 
 
