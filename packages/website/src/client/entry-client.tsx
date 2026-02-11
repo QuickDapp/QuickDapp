@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/react"
+import { clientConfig } from "@shared/config/client"
 import {
   type DehydratedState,
   HydrationBoundary,
@@ -10,6 +12,20 @@ import { BrowserRouter } from "react-router-dom"
 import { AppRoutes } from "./AppRoutes"
 import { AppShell } from "./AppShell"
 import "./styles/globals.css"
+
+if (clientConfig.SENTRY_DSN) {
+  Sentry.init({
+    dsn: clientConfig.SENTRY_DSN,
+    environment: clientConfig.NODE_ENV,
+    tracesSampleRate: clientConfig.SENTRY_TRACES_SAMPLE_RATE,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration(),
+    ],
+    tracePropagationTargets: ["localhost"],
+    replaysSessionSampleRate: clientConfig.SENTRY_REPLAY_SESSION_SAMPLE_RATE,
+  })
+}
 
 declare global {
   interface Window {

@@ -2,84 +2,84 @@
   "tests": [
     {
       "file": "tests/server/graphql/db/transaction-retry.test.ts",
-      "duration": 32389
+      "duration": 32286
     },
     {
       "file": "tests/server/workers/error-handling.test.ts",
-      "duration": 6484
+      "duration": 4604
     },
     {
       "file": "tests/server/workers/job-execution.test.ts",
-      "duration": 5804
-    },
-    {
-      "file": "tests/server/workers/tag-based-cancellation.test.ts",
-      "duration": 5620
+      "duration": 3605
     },
     {
       "file": "tests/server/workers/cron-jobs.test.ts",
-      "duration": 4757
-    },
-    {
-      "file": "tests/server/workers/job-scheduling.test.ts",
-      "duration": 4027
-    },
-    {
-      "file": "tests/server/database/user-notification-integration.test.ts",
-      "duration": 4025
+      "duration": 2868
     },
     {
       "file": "tests/server/auth/jwt.test.ts",
-      "duration": 4024
+      "duration": 2796
+    },
+    {
+      "file": "tests/server/workers/tag-based-cancellation.test.ts",
+      "duration": 2348
+    },
+    {
+      "file": "tests/server/database/user-notification-integration.test.ts",
+      "duration": 2155
+    },
+    {
+      "file": "tests/server/workers/job-scheduling.test.ts",
+      "duration": 2120
     },
     {
       "file": "tests/server/websocket/connection-limits.test.ts",
-      "duration": 4022
+      "duration": 2119
     },
     {
       "file": "tests/server/auth/oauth.test.ts",
-      "duration": 3958
+      "duration": 2037
     },
     {
       "file": "tests/server/workers/db-cleanup.test.ts",
-      "duration": 1969
-    },
-    {
-      "file": "tests/server/graphql/me.test.ts",
-      "duration": 1703
+      "duration": 880
     },
     {
       "file": "tests/server/graphql/auth-directive.test.ts",
-      "duration": 1703
+      "duration": 749
+    },
+    {
+      "file": "tests/server/graphql/me.test.ts",
+      "duration": 746
     },
     {
       "file": "tests/server/graphql/email-auth.test.ts",
-      "duration": 1700
+      "duration": 713
     },
     {
       "file": "tests/server/server.test.ts",
-      "duration": 1700
+      "duration": 555
     },
     {
       "file": "tests/server/graphql/queries.test.ts",
-      "duration": 1107
-    },
-    {
-      "file": "tests/server/graphql/auth.test.ts",
-      "duration": 833
+      "duration": 490
     },
     {
       "file": "tests/server/graphql/mutations.test.ts",
-      "duration": 739
+      "duration": 435
     },
     {
-      "file": "tests/shared/config/client-config.test.ts",
-      "duration": 58
+      "file": "tests/server/graphql/auth.test.ts",
+      "duration": 431
     },
     {
       "file": "tests/shared/config/server-config.test.ts",
-      "duration": 50
+      "duration": 25
+    },
+    {
+      "file": "tests/shared/config/client-config.test.ts",
+      "duration": 24
     }
   ],
-  "lastUpdated": "2026-02-08T02:44:57.870Z"
+  "lastUpdated": "2026-02-11T04:10:00.344Z"
 }

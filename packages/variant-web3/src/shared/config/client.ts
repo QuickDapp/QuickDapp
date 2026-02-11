@@ -13,6 +13,8 @@ export interface ClientConfig {
   NODE_ENV: "development" | "production" | "test"
   CLIENT_API_BASE_URL?: string
   SENTRY_DSN?: string
+  SENTRY_TRACES_SAMPLE_RATE: number
+  SENTRY_REPLAY_SESSION_SAMPLE_RATE: number
   // Web3 configuration (always required in this variant)
   WEB3_WALLETCONNECT_PROJECT_ID: string
   WEB3_FACTORY_CONTRACT_ADDRESS: string
@@ -38,6 +40,14 @@ export const clientConfig: ClientConfig =
           .asEnum(["development", "production", "test"]),
         CLIENT_API_BASE_URL: env.get("CLIENT_API_BASE_URL").asString(),
         SENTRY_DSN: env.get("SENTRY_DSN").asString(),
+        SENTRY_TRACES_SAMPLE_RATE: env
+          .get("SENTRY_TRACES_SAMPLE_RATE")
+          .default("1.0")
+          .asFloat(),
+        SENTRY_REPLAY_SESSION_SAMPLE_RATE: env
+          .get("SENTRY_REPLAY_SESSION_SAMPLE_RATE")
+          .default("1.0")
+          .asFloat(),
         WEB3_WALLETCONNECT_PROJECT_ID: env
           .get("WEB3_WALLETCONNECT_PROJECT_ID")
           .required()

@@ -56,9 +56,7 @@ export interface ServerConfig extends ClientConfig {
   MAILGUN_FROM_ADDRESS?: string
 
   // Sentry configuration
-  SENTRY_DSN?: string
   SENTRY_WORKER_DSN?: string
-  SENTRY_TRACES_SAMPLE_RATE: number
   SENTRY_PROFILE_SESSION_SAMPLE_RATE: number
 }
 
@@ -150,12 +148,7 @@ export const serverConfig: ServerConfig = {
   MAILGUN_FROM_ADDRESS: env.get("MAILGUN_FROM_ADDRESS").asString(),
 
   // Sentry configuration
-  SENTRY_DSN: env.get("SENTRY_DSN").asString(),
   SENTRY_WORKER_DSN: env.get("SENTRY_WORKER_DSN").asString(),
-  SENTRY_TRACES_SAMPLE_RATE: env
-    .get("SENTRY_TRACES_SAMPLE_RATE")
-    .default("1.0")
-    .asFloat(),
   SENTRY_PROFILE_SESSION_SAMPLE_RATE: env
     .get("SENTRY_PROFILE_SESSION_SAMPLE_RATE")
     .default("1.0")
