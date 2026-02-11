@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.15.0](https://github.com/QuickDapp/QuickDapp/compare/v3.14.0...v3.15.0) (2026-02-11)
+
+
+### Features
+
+* **auth:** add email verification resend cooldown and test container cleanup ([da9e786](https://github.com/QuickDapp/QuickDapp/commit/da9e786bdb9b8d742b517cde4e8d2a236cfbc3a5))
+
 ## [3.14.0](https://github.com/QuickDapp/QuickDapp/compare/v3.13.0...v3.14.0) (2026-02-11)
 
 
