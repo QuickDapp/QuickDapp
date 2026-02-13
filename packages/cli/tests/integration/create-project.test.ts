@@ -36,8 +36,14 @@ describe("createProject", () => {
       web3Tarball.tarballPath,
     )
 
+    server.addTextResponse(
+      `/docs-versions/${TEST_VERSION.replace(/^v/, "")}/llms.txt`,
+      "# QuickDapp Documentation\n\nTest documentation content.",
+    )
+
     process.env.QUICKDAPP_GITHUB_API_BASE = server.url
     process.env.QUICKDAPP_GITHUB_DOWNLOAD_BASE = server.url
+    process.env.QUICKDAPP_DOCS_BASE = server.url
     process.env.QUICKDAPP_SAMPLE_CONTRACTS_URL = mockRepo.repoPath
 
     originalCwd = process.cwd()
@@ -54,6 +60,7 @@ describe("createProject", () => {
     workDir.cleanup()
     delete process.env.QUICKDAPP_GITHUB_API_BASE
     delete process.env.QUICKDAPP_GITHUB_DOWNLOAD_BASE
+    delete process.env.QUICKDAPP_DOCS_BASE
     delete process.env.QUICKDAPP_SAMPLE_CONTRACTS_URL
   })
 
@@ -69,6 +76,7 @@ describe("createProject", () => {
         expect(existsSync(projectDir)).toBe(true)
         expect(existsSync(join(projectDir, "package.json"))).toBe(true)
         expect(existsSync(join(projectDir, ".git"))).toBe(true)
+        expect(existsSync(join(projectDir, ".docs", "llms.txt"))).toBe(true)
         expect(existsSync(join(projectDir, "node_modules"))).toBe(false)
         expect(existsSync(join(projectDir, "sample-contracts"))).toBe(false)
       } finally {
@@ -90,6 +98,7 @@ describe("createProject", () => {
         expect(existsSync(projectDir)).toBe(true)
         expect(existsSync(join(projectDir, "package.json"))).toBe(true)
         expect(existsSync(join(projectDir, ".git"))).toBe(true)
+        expect(existsSync(join(projectDir, ".docs", "llms.txt"))).toBe(true)
         expect(existsSync(join(projectDir, "sample-contracts"))).toBe(true)
         expect(existsSync(join(projectDir, "node_modules"))).toBe(false)
       } finally {

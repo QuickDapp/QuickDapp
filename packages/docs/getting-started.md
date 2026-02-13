@@ -127,7 +127,7 @@ It is only if you change the `.env` file settings that you will need to manually
 
 ## Step 6 - Ready!
 
-At this point everything is ready for you to actually develop your app. You may wish to follow one of our [tutorials](./tutorials/index.md).
+At this point everything is ready for you to actually develop your app. 
 
 The remainder of this guide helps you get this basic app deployed to production in the cloud.
 

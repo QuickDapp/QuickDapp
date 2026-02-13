@@ -1,5 +1,5 @@
 ---
-order: 96
+order: 95
 icon: Terminal
 label: Command-line
 expanded: true

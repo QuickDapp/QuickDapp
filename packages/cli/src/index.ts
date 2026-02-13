@@ -31,6 +31,10 @@ function getSampleContractsUrl(): string {
   return process.env.QUICKDAPP_SAMPLE_CONTRACTS_URL ?? "https://github.com/QuickDapp/sample-contracts.git"
 }
 
+function getDocsBase(): string {
+  return process.env.QUICKDAPP_DOCS_BASE ?? "https://quickdapp.xyz"
+}
+
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
   return fetch(url, { signal: AbortSignal.timeout(timeoutMs) })
 }
@@ -176,6 +180,36 @@ async function initGit(targetDir: string): Promise<void> {
   })
 }
 
+async function downloadLlmsDocs(version: string, targetDir: string): Promise<void> {
+  const strippedVersion = version.replace(/^v/, "")
+  const url = `${getDocsBase()}/docs-versions/${strippedVersion}/llms.txt`
+
+  console.log("Downloading LLM documentation...")
+
+  try {
+    const response = await fetchWithTimeout(url, 30000)
+    if (!response.ok) {
+      console.warn(`Warning: Could not download llms.txt (${response.status}). Skipping.`)
+      return
+    }
+
+    const content = await response.text()
+    if (!content) {
+      console.warn("Warning: llms.txt was empty. Skipping.")
+      return
+    }
+
+    const docsDir = join(targetDir, ".docs")
+    mkdirSync(docsDir, { recursive: true })
+    writeFileSync(join(docsDir, "llms.txt"), content)
+  } catch (error) {
+    console.warn(
+      "Warning: Could not download llms.txt:",
+      error instanceof Error ? error.message : String(error),
+    )
+  }
+}
+
 function customizeProject(projectName: string, targetDir: string): void {
   const envPath = join(targetDir, ".env")
   if (existsSync(envPath)) {
@@ -211,6 +245,7 @@ async function createProject(
 
     await downloadAndExtract(options.variant, version, targetDir)
     customizeProject(projectName, targetDir)
+    await downloadLlmsDocs(version, targetDir)
 
     if (options.variant === "web3") {
       await cloneSampleContracts(targetDir)
@@ -315,6 +350,7 @@ export {
   getLatestRelease,
   listReleases,
   downloadAndExtract,
+  downloadLlmsDocs,
   runBunInstall,
   cloneSampleContracts,
   initGit,

@@ -1,5 +1,5 @@
 ---
-order: 97
+order: 96
 expanded: true
 ---
 
@@ -13,4 +13,3 @@ _Note: Feel free to update `CLAUDE.md` with statements specific to your web app,
 
 For an even better experience, install the [QuickDapp LLM plugin](./llm-plugins) for your AI code editor. It provides project scaffolding commands, convention-aware code generation, and safe CLAUDE.md editing.
 
-To get a sense of how easy it is to vibe code with QuickDapp check out one of the [tutorials](../tutorials).

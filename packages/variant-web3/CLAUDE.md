@@ -10,7 +10,7 @@ This is the **Web3 variant** of QuickDapp - a full-featured web application fram
 
 ## Documentation
 
-For comprehensive framework documentation, fetch the LLM-friendly docs from https://quickdapp.xyz/llms.txt — this page lists `llms.txt` files for each QuickDapp version. To get documentation matching this codebase, check the `version` field in `package.json` and fetch `https://quickdapp.xyz/docs-versions/{version}/llms.txt`. If unable to determine the version, use the latest version listed.
+When planning or making changes to the codebase, refer to `.docs/llms.txt` in this project's root directory — it contains the full QuickDapp documentation for the installed version. If the file is missing, fetch it from `https://quickdapp.xyz/docs-versions/{version}/llms.txt` where `{version}` matches the `version` field in `package.json`.
 
 ---
 
