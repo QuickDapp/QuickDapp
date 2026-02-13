@@ -61,9 +61,6 @@ temp/
 /blob-report/
 /playwright/.cache/
 
-# Test run order (auto-generated)
-tests/test-run-order.json
-
 # Claude local
 CLAUDE.local.md
 v2

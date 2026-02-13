@@ -2,11 +2,11 @@
 order: 50
 ---
 
-# E2E Testing
+# E2E testing
 
 QuickDapp includes end-to-end browser testing powered by [Playwright](https://playwright.dev/). E2E tests verify the full application stack from the user's perspective — clicking buttons, filling forms, and navigating pages.
 
-## How the E2E Runner Works
+## E2E test runner
 
 The E2E test runner (`scripts/test-e2e.ts`) handles all the setup:
 
@@ -16,13 +16,6 @@ The E2E test runner (`scripts/test-e2e.ts`) handles all the setup:
 4. **Runs Playwright tests** — Executes tests in headless Chromium by default
 5. **Reports results** — Outputs pass/fail status with detailed error information
 
-## Running E2E Tests
-
-```shell
-bun run test:e2e              # Run headless browser tests
-bun run test:e2e --headed     # Run with visible browser window
-bun run test:e2e --ui         # Open Playwright's interactive UI mode
-```
 
 ## Configuration
 
@@ -38,9 +31,30 @@ The Playwright configuration lives in `playwright.config.ts`:
 
 Tests run sequentially to avoid complications with shared server state and database. For faster parallel execution, consider the integration test suite instead.
 
-## Writing E2E Tests
+## CI vs Local
 
-E2E tests go in the `tests/e2e/` directory:
+The test runner behaves differently based on environment:
+
+| Behavior | Local | CI (`CI=true`) |
+|----------|-------|----------------|
+| Database | Docker Compose starts container | Service container provided |
+| Retries | None (fail fast) | Up to 2 retries |
+
+In CI, tests retry on failure to handle flaky browser interactions. Locally, failures stop immediately for faster debugging.
+
+## Command-line options
+
+```shell
+bun run test:e2e              # Run headless browser tests
+bun run test:e2e --headed     # Run with visible browser window
+bun run test:e2e --ui         # Open Playwright's interactive UI mode
+```
+
+## Writing tests
+
+E2E tests go in the `tests/e2e/` directory. 
+
+Here is an example:
 
 ```typescript
 import { test, expect } from "@playwright/test"
@@ -59,75 +73,6 @@ test("can navigate to login", async ({ page }) => {
 
 Playwright provides powerful selectors and assertions. See the [Playwright documentation](https://playwright.dev/docs/writing-tests) for details.
 
-## CI vs Local
-
-The test runner behaves differently based on environment:
-
-| Behavior | Local | CI (`CI=true`) |
-|----------|-------|----------------|
-| Database | Docker Compose starts container | Service container provided |
-| Retries | None (fail fast) | Up to 2 retries |
-| `.only` | Allowed | Blocked (`--forbidOnly`) |
-
-In CI, tests retry on failure to handle flaky browser interactions. Locally, failures stop immediately for faster debugging.
-
-## Common Patterns
-
-### Authenticated Tests
-
-For tests that require login:
-
-```typescript
-import { test, expect } from "@playwright/test"
-
-test("authenticated user can access dashboard", async ({ page }) => {
-  // Navigate to login
-  await page.goto("/login")
-
-  // Fill login form
-  await page.fill('input[name="email"]', "test@example.com")
-  await page.fill('input[name="password"]', "password123")
-  await page.click('button[type="submit"]')
-
-  // Wait for redirect and verify dashboard
-  await expect(page).toHaveURL(/dashboard/)
-  await expect(page.locator("h1")).toContainText("Dashboard")
-})
-```
-
-### Form Interactions
-
-Testing form submission:
-
-```typescript
-test("can submit contact form", async ({ page }) => {
-  await page.goto("/contact")
-
-  await page.fill('input[name="name"]', "Test User")
-  await page.fill('input[name="email"]', "test@example.com")
-  await page.fill('textarea[name="message"]', "Hello!")
-  await page.click('button[type="submit"]')
-
-  await expect(page.locator(".success-message")).toBeVisible()
-})
-```
-
-### Waiting for Network
-
-When tests depend on API responses:
-
-```typescript
-test("loads user data", async ({ page }) => {
-  await page.goto("/profile")
-
-  // Wait for the GraphQL response
-  await page.waitForResponse(
-    (response) => response.url().includes("/graphql") && response.status() === 200
-  )
-
-  await expect(page.locator(".user-name")).toBeVisible()
-})
-```
 
 ## Debugging
 
@@ -149,4 +94,4 @@ For headed mode with slower execution:
 bun run test:e2e --headed
 ```
 
-See [`playwright.config.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/playwright.config.ts) for the full configuration.
+See [`playwright.config.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/playwright.config.ts) for the full configuration.
