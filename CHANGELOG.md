@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.16.0](https://github.com/QuickDapp/QuickDapp/compare/v3.15.0...v3.16.0) (2026-02-14)
+
+
+### Features
+
+* **cli:** download LLM docs during project creation and update documentation ([d250cd9](https://github.com/QuickDapp/QuickDapp/commit/d250cd9c7c037e963c029841f77e8687a72fd032))
+
+
+### Documentation
+
+* rename architecture-layout to architectural-overview ([acd73c5](https://github.com/QuickDapp/QuickDapp/commit/acd73c5824fab06b7623f866de6000460595f999))
+* reorganize monitoring section and streamline testing docs ([c9880ab](https://github.com/QuickDapp/QuickDapp/commit/c9880ab69eb2b79c723e0feaf8a111532d4ecb1b))
+* rewrite backend documentation and reorganize sections ([ed76b32](https://github.com/QuickDapp/QuickDapp/commit/ed76b326e6d0bfe6989f903429636ab9aae2fb19))
+
 ## [3.15.0](https://github.com/QuickDapp/QuickDapp/compare/v3.14.0...v3.15.0) (2026-02-11)
 
 
