@@ -2,11 +2,15 @@
 order: 35
 ---
 
-# Mailgun
+# Sending emails
 
-QuickDapp uses Mailgun for transactional email delivery. The [`Mailer`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/lib/mailer.ts) class wraps the Mailgun API and provides graceful fallback when not configured—emails are logged to the console instead of being sent.
+QuickDapp uses [Mailgun](https://mailgun.io) for sending emails.
+
+The [`Mailer`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/src/server/lib/mailer.ts) class wraps the Mailgun API and provides graceful fallback when Mailgun has not been configured.
 
 ## Configuration
+
+The relevant [environment variables](../environment-variables.md) are:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -24,6 +28,7 @@ Create a Mailer instance with a logger and call `send()`:
 import { Mailer } from "../lib/mailer"
 
 const mailer = new Mailer(logger)
+
 await mailer.send({
   to: "user@example.com",
   subject: "Welcome!",
@@ -47,32 +52,7 @@ When Mailgun isn't configured (no `MAILGUN_API_KEY`), the Mailer logs email cont
 [WARN] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-This allows development and testing without a Mailgun account. The email content appears in your terminal, making it easy to verify what would be sent.
-
-## Email Verification Flow
-
-QuickDapp uses email verification for passwordless authentication. The flow works as follows:
-
-1. User submits their email address
-2. Server generates a verification code and encrypted blob
-3. Server sends the code via Mailer
-4. User enters the received code
-5. Server verifies the code against the blob and creates a session
-
-```typescript
-// From resolvers.ts - sending verification code
-const { code, blob } = await generateVerificationCodeAndBlob(logger, email)
-
-const mailer = new Mailer(logger)
-await mailer.send({
-  to: email,
-  subject: "Your verification code",
-  text: `Your verification code is: ${code}`,
-  html: `<p>Your verification code is: <strong>${code}</strong></p>`,
-})
-```
-
-The blob contains the encrypted code with an expiration timestamp, allowing stateless verification without storing codes in the database.
+This allows development and testing without a Mailgun account.
 
 ## Error Handling
 
@@ -87,15 +67,3 @@ try {
 }
 ```
 
-Mailgun API errors (invalid API key, domain not verified) propagate as exceptions with descriptive messages.
-
-## Testing
-
-In tests, Mailgun variables are left empty in `.env.test`, so emails are logged instead of sent. E2E tests can parse the logged output to extract verification codes:
-
-```typescript
-// From tests/e2e/helpers/email-code.ts
-// In dev/test mode, the mailer logs: "Body: Your verification code is: XXXXXX"
-```
-
-See [`src/server/lib/mailer.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/lib/mailer.ts) for the implementation.

@@ -1,22 +1,26 @@
 ---
-order: 20
+order: 30
 ---
 
 # Logging
 
-QuickDapp uses a structured logging system built on [`@hiddentao/logger`](https://github.com/hiddentao/logger) with console and Sentry transports. Every part of the application—resolvers, workers, database operations—logs through categorized logger instances.
+QuickDapp uses a structured logging system built on [`@hiddentao/logger`](https://github.com/hiddentao/logger) with console and [cloud-based logging](../monitoring/logs.md) support. 
+
+Every part of the application — resolvers, workers, database operations — logs through categorized logger instances.
+
+Log categories make it easy to separate log messages in logging output and understand where a given log message originates from.
 
 ## Architecture
 
 The logging system has three layers:
 
-1. **Root logger** — Created at startup with a base category (e.g. "server" or "worker")
-2. **Child loggers** — Created via `serverApp.createLogger(category)` for specific subsystems
-3. **Transports** — Console output with timestamps, and optionally Sentry for error capture
+1. **Root logger** — Created at startup with a base category (e.g. `server` or `worker`).
+2. **Child loggers** — Created via `serverApp.createLogger(category)` for specific subsystems.
+3. **Transports** — Different output destinations, e.g console, cloud, etc.
 
 ## Log Categories
 
-Predefined categories keep logs organized and filterable:
+Here are some of the predefined categories keep logs organized and filterable:
 
 | Category | Used By |
 |----------|---------|
@@ -41,7 +45,16 @@ log.debug("Detailed data", { payload })
 log.error("Operation failed", error)
 ```
 
-In worker jobs, the logger is provided via the job parameters:
+For any given logger instance a child-logger can be created which adds the new logger category as a suffix of the parent category. For example:
+
+```typescript
+log.info('test') // <parent> [info] test
+
+const childLogger = log.child('happy')
+childLogger.info('test') // <parent/happy> [info] test
+```
+
+In [worker](../worker/index.md) jobs, the logger is provided via the job parameters:
 
 ```typescript
 export const myJob: Job = {
@@ -65,16 +78,23 @@ Five levels are available, from most to least verbose:
 | `error` | Failures that need attention |
 | `fatal` | Critical errors that may crash the process |
 
-Set the minimum level via environment variables:
+Set the minimum level via [environment variables](../environment-variables.md):
 
 ```bash
 LOG_LEVEL=info            # Server process log level
 WORKER_LOG_LEVEL=info     # Worker process log level
 ```
 
+Any messages logged at the minimum severity level will be silently discarded. This allows you to control how verbose logging should be. For example, if there are backend errors that you're struggling to resolve you may choose to set `LOG_LEVEL` to `debug` temporarily to get more detailed logging output in order to help resolve the issue.
+
+
 ## Transports
 
-### Console Transport
+Logging transports are output destinations for log messages. This section documents the available built-in logger transports.
+
+### Console
+
+Source: [console.ts](https://github.com/hiddentao/logger/blob/main/src/transports/console.ts).
 
 Always enabled. Outputs log messages with ISO timestamps and category prefixes:
 
@@ -83,39 +103,32 @@ Always enabled. Outputs log messages with ISO timestamps and category prefixes:
 2026-01-29T05:08:34.123Z [info] <graphql> Processing query: getMyNotifications
 ```
 
-### Sentry Transport
+### Sentry
 
-Enabled when `SENTRY_DSN` is configured. Routes `error` and `fatal` level messages to Sentry for centralized error tracking. The transport attaches:
+Source: [sentry.ts](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/src/server/lib/sentry.ts).
+
+Enabled when [Sentry monitoring](../monitoring/index.md) is enabled.
+
+Routes log messages to Sentry for centralized logs tracking. The transport attaches:
 
 - Log category as context
 - Any metadata passed to the log call
 - Stack traces for error objects
 
-## Performance Spans
+### Custom
 
-The `startSpan()` function integrates with Sentry's performance monitoring to trace operation duration:
+You can add your own custom logging transports. Your transport only has to implement the following interface.
 
 ```typescript
-const result = await serverApp.startSpan("db.getNotifications", async () => {
-  return await getNotifications(db, userId, pageParam)
-})
+/**
+ * Transport interface for logger output
+ */
+export interface Transport {
+  /**
+   * Write a log message to this transport
+   */
+  write(entry: LogEntry): void
+}
 ```
 
-Spans are used throughout the codebase for:
-- Database operations
-- GraphQL resolver execution
-- External API calls
-
-This provides visibility into where time is spent during request processing.
-
-## Configuration
-
-```bash
-LOG_LEVEL=info                          # trace|debug|info|warn|error
-WORKER_LOG_LEVEL=info                   # Same options, for worker processes
-SENTRY_DSN=                             # Sentry DSN for error tracking
-SENTRY_TRACES_SAMPLE_RATE=1.0           # Percentage of requests to trace
-SENTRY_PROFILE_SESSION_SAMPLE_RATE=1.0  # Percentage of sessions to profile
-```
-
-See [`src/server/lib/logger.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/lib/logger.ts) for the logger implementation and [`src/server/lib/sentry.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/lib/sentry.ts) for the Sentry transport.
+Please refer to [@hiddentao/logger](https://github.com/hiddentao/logger) for more information.

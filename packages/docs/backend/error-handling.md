@@ -1,14 +1,18 @@
 ---
-order: 30
+order: 20
 ---
 
 # Error Handling
 
-QuickDapp uses a structured error system with typed error classes on the server and consistent error codes in the GraphQL API. In production, error details are masked to prevent information leakage. Sentry captures errors automatically when configured.
+QuickDapp uses a structured error system with typed error classes on the server and consistent error codes in the GraphQL API. 
 
 ## Error Classes
 
-All custom errors extend `ApplicationError`, which adds a `code` and optional `metadata` to the standard `Error`. These classes are defined in [`src/server/lib/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/lib/errors.ts):
+All custom errors extend `ApplicationError`, which adds a `code` and optional `metadata` to the standard `Error`. 
+
+These classes are defined in [`src/server/lib/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/src/server/lib/errors.ts). 
+
+For example:
 
 | Class | GraphQL Code | When to Use |
 |-------|-------------|-------------|
@@ -19,7 +23,7 @@ All custom errors extend `ApplicationError`, which adds a `code` and optional `m
 | `ExternalServiceError` | `INTERNAL_ERROR` | Third-party API call fails |
 | `AccountDisabledError` | `ACCOUNT_DISABLED` | Disabled user tries to access protected operation |
 
-Usage in resolvers:
+Example usage in resolvers:
 
 ```typescript
 import { ValidationError, NotFoundError } from "../lib/errors"
@@ -36,7 +40,7 @@ if (!user) {
 
 ## GraphQL Error Codes
 
-Error codes are defined in [`src/shared/graphql/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/errors.ts) and available on both client and server:
+Error codes are defined in [`src/shared/graphql/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/src/shared/graphql/errors.ts) and available on both client and server:
 
 ```typescript
 enum GraphQLErrorCode {
@@ -52,29 +56,6 @@ enum GraphQLErrorCode {
   INVALID_INPUT = "INVALID_INPUT",
   INTERNAL_ERROR = "INTERNAL_ERROR",
 }
-```
-
-The client receives these in `error.response.errors[0].extensions.code`, making it straightforward to handle specific error types in the frontend.
-
-## Error Masking
-
-In development, full error messages and stack traces are returned in GraphQL responses for debugging. In production, errors from `ApplicationError` subclasses return their message and code, while unexpected errors are masked to prevent leaking implementation details.
-
-## Sentry Integration
-
-When `SENTRY_DSN` is configured, errors are automatically captured by Sentry with:
-
-- **User context** — The authenticated user ID is attached to error reports
-- **Performance tracing** — Database operations and resolver execution are traced via `startSpan()`
-- **Worker errors** — Worker processes have their own Sentry DSN (`SENTRY_WORKER_DSN`) for separate error tracking
-
-Configuration:
-
-```bash
-SENTRY_DSN=https://...@sentry.io/...
-SENTRY_WORKER_DSN=https://...@sentry.io/...
-SENTRY_TRACES_SAMPLE_RATE=1.0
-SENTRY_PROFILE_SESSION_SAMPLE_RATE=1.0
 ```
 
 ## Adding Custom Error Types
@@ -93,5 +74,3 @@ export class RateLimitError extends ApplicationError {
 ```
 
 To add a new error code, add it to the `GraphQLErrorCode` enum in `src/shared/graphql/errors.ts` — this makes it available to both client and server code.
-
-See [`src/server/lib/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/lib/errors.ts) for the error class implementations and [`src/shared/graphql/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/errors.ts) for the error code enum.

@@ -4,15 +4,17 @@ order: 50
 
 # Authentication
 
-QuickDapp uses stateless JWT authentication on the backend. This page covers the server-side implementation: how tokens work, how the `@auth` directive protects operations, and how to add new authentication methods. For user-facing authentication flows (email, OAuth), see [Users > Authentication](../users/authentication.md).
+QuickDapp uses a stateless [JSON web token](https://grokipedia.com/page/JSON_Web_Token) (JWT) to store user authentication information.
 
-## JWT Implementation
+Although this could be passed to the backend via a cookie the base QuickDapp codebase instead opts for storing this in the browser's [localStorage](https://grokipedia.com/page/Web_storage). 
 
-Tokens are signed with HS256 using the `SESSION_ENCRYPTION_KEY` environment variable. The auth service in [`src/server/auth/index.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/auth/index.ts) provides three core functions:
+Altogether this results in a lightweight authentication mechanism that also prevents [CSRF attacks](https://developer.mozilla.org/en-US/docs/Web/Security/Attacks/CSRF) from occurring.
 
-- `generateToken(payload)` — Creates a signed JWT with a 24-hour expiration
-- `verifyToken(token)` — Validates signature and expiration, returns the payload
-- `extractBearerToken(header)` — Extracts the token from an `Authorization: Bearer ...` header
+This page covers the server-side implementation. For information on the user-facing side and flows (email, OAuth) see [Users > Authentication](../users/authentication.md).
+
+## JWT implementation
+
+Tokens are signed using the `HS256` algorithm using the `SESSION_ENCRYPTION_KEY` [environment variable](../environment-variables.md) as the encryption key. 
 
 The token payload includes:
 
@@ -26,23 +28,23 @@ The token payload includes:
 }
 ```
 
-## The @auth Directive
+## GraphQL authentication
 
-GraphQL operations marked with `@auth` require a valid JWT in the Authorization header. The GraphQL handler extracts auth requirements at startup by parsing the schema and checks them before running resolvers.
+Authenticated [GraphQL operations](./graphql.md) require a valid JWT in the `Authorization` HTTP header. 
 
-The validation pipeline runs in order:
+The validation pipeline runs in the following order:
 
-1. **Extract** — Pull the Bearer token from the Authorization header
-2. **Verify** — Check the JWT signature and expiration
-3. **Load user** — Fetch the user record from the database by ID
-4. **Check disabled** — Verify the user's `disabled` flag is false
-5. **Attach to context** — Make the user available to resolvers
+1. **Extract** — Pull the `Bearer` token from the `Authorization` header.
+2. **Verify** — Check the JWT signature and expiration.
+3. **Load user** — Fetch the user record from the database by ID.
+4. **Check disabled** — Verify the user's `disabled` flag is set to false.
+5. **Attach to context** — Make the user available to GraphQL resolvers.
 
-When an unauthenticated request tries to access a protected operation, it returns a GraphQL error with `extensions.code = "UNAUTHORIZED"`. Mixed queries containing both public and protected fields fail entirely when unauthenticated—no partial data is returned.
+When an unauthenticated request tries to access a protected operation, it returns a GraphQL error with `extensions.code = "UNAUTHORIZED"`. Mixed queries containing both public and protected fields fail entirely when unauthenticated — no partial data is returned.
 
 ## Error Codes
 
-The authentication system uses specific error codes defined in [`src/shared/graphql/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/errors.ts):
+The authentication system uses specific error codes defined in [`src/shared/graphql/errors.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/src/shared/graphql/errors.ts):
 
 | Code | When |
 |------|------|
@@ -50,9 +52,9 @@ The authentication system uses specific error codes defined in [`src/shared/grap
 | `AUTHENTICATION_FAILED` | Credentials are incorrect (wrong code, bad signature) |
 | `ACCOUNT_DISABLED` | Token is valid but the user account is disabled |
 
-## Adding a New Authentication Method
+## Adding a new authentication type
 
-To add a custom authentication method (e.g. phone number, passkey):
+To add a custom authentication type (e.g. phone number, passkey):
 
 **1. Add the auth type constant** in `src/shared/constants.ts`:
 
@@ -118,12 +120,3 @@ authenticateWithPhone: async (_, { phone, code }, context) => {
 
 **5. Update the frontend** to call the new mutation from a login form.
 
-## Security
-
-**Encryption Key**: The `SESSION_ENCRYPTION_KEY` must be at least 32 characters and kept secret. It signs JWTs and encrypts OAuth state. The server validates this on startup.
-
-**HTTPS**: Always use HTTPS in production. Tokens sent over HTTP can be intercepted.
-
-**Token Storage**: The frontend stores tokens in localStorage. For higher security requirements, consider httpOnly cookies with CSRF protection.
-
-See [`src/server/auth/`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/auth/) for the complete authentication implementation.

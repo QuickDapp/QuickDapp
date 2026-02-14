@@ -4,63 +4,48 @@ order: 60
 
 # GraphQL
 
-QuickDapp exposes its API through GraphQL Yoga integrated with ElysiaJS. The schema uses a custom `@auth` directive to protect operations that require authentication.
+The frontend speaks to the backend via a [GraphQL API](https://graphql.org). 
 
-## Schema Overview
+Nearly all backend execution will take place within the context of an incoming GraphQL request. Errors thrown and database changes made will be the same. The only time this isn't the case is for work done as part of a [background worker](../worker/index.md).
 
-The API provides authentication and notification management. There are no GraphQL subscriptions—real-time updates happen through WebSockets instead.
+Because GraphQL is an established, open standard it makes it easy for any app to speak to the backend, and the API is self-documenting.
 
-**Queries** include token validation (public), fetching the current user profile (authenticated), fetching notifications (authenticated), and getting unread counts (authenticated).
-
-**Mutations** handle email verification, OAuth login URLs, and notification management.
-
-The full schema is defined in [`src/shared/graphql/schema.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/schema.ts). Key types:
+For example, the `me` query is used to fetch the logged-in user's profile:
 
 ```graphql
-type Notification {
+type UserProfile {
   id: PositiveInt!
-  userId: PositiveInt!
-  data: JSON!
+  email: String
   createdAt: DateTime!
-  read: Boolean!
-}
-
-type AuthResult {
-  success: Boolean!
-  token: String
-  profile: UserProfile
-  error: String
 }
 
 type Query {
-  validateToken: ValidateTokenResult!
   me: UserProfile! @auth
-  getMyNotifications(pageParam: PageParam!): NotificationsResponse! @auth
-  getMyUnreadNotificationsCount: Int! @auth
-}
-
-type Mutation {
-  sendEmailVerificationCode(email: String!): EmailVerificationResult!
-  authenticateWithEmail(email: String!, code: String!, blob: String!): AuthResult!
-  getOAuthLoginUrl(provider: OAuthProvider!, redirectUrl: String): OAuthLoginUrlResult!
-  markNotificationAsRead(id: PositiveInt!): Success! @auth
-  markAllNotificationsAsRead: Success! @auth
 }
 ```
 
-!!!
-Variants may extend the schema with additional operations. For example, the [Web3 variant](../variants/web3/index.md) adds `generateSiweMessage` and `authenticateWithSiwe` mutations.
-!!!
+Since GraphQL configuration is needed both client- and server-side the various configuration files are stored in `src/shared/graphql`. The full schema is defined in [`src/shared/graphql/schema.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/packages/base/src/shared/graphql/schema.ts). 
+
+In addition to the schema, the folder also contains other files worth knowing about:
+
+* `fragments.ts` - query response fragments, for use in `queries.ts` and `mutations.ts`
+* `queries.ts` - read-only queries which are intended to only fetch data from the backend, e.g fetcing a user's profile.
+* `mutations.ts` - read-write queries which are intended to update data on the backend, e.g signing up a new user.
+* `errors.ts` - errors definitions and error generation and parsing code.
+* `resolvers.ts` - resolvers for scalar types such as `JSON` and `BigInt`, etc.
+* `client.ts` - GraphQL client config for use in the frontend.
+
+You may extend the schema with additional operations. For example, the [Web3 variant](../variants/web3/index.md) adds its own mutations.
 
 ## The @auth Directive
 
-Operations marked with `@auth` require a valid JWT in the Authorization header. The GraphQL handler extracts auth requirements at startup and checks them before running resolvers.
+Operations marked with `@auth` require the user to be authenticated in order for the given query/mutation to succeed. 
 
-When an unauthenticated request tries to access a protected operation, it returns a GraphQL error with `extensions.code = "UNAUTHORIZED"`. Mixed queries containing both public and protected fields fail entirely when unauthenticated—no partial data is returned.
+When an unauthenticated request tries to access a protected operation, it returns an `UNAUTHORIZED` GraphQL error.
 
-## Resolver Implementation
+## Resolver implementation
 
-Resolvers are defined in [`src/server/graphql/resolvers.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/graphql/resolvers.ts). Each resolver receives the context containing `ServerApp` and the authenticated user (if any):
+Resolvers are defined in [`src/server/graphql/resolvers.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/package/base/src/server/graphql/resolvers.ts). Each resolver receives the context the authenticated user (if any):
 
 ```typescript
 const resolvers = {
@@ -73,14 +58,10 @@ const resolvers = {
 }
 ```
 
-All resolvers are wrapped with `withSpan` for Sentry performance tracking. Database errors return with `extensions.code = "DATABASE_ERROR"`, authentication failures with `"AUTHENTICATION_FAILED"`, and disabled accounts with `"ACCOUNT_DISABLED"`.
-
 ## No Field Resolvers
 
-QuickDapp deliberately avoids GraphQL field resolvers. All data is fetched in the parent resolver using SQL joins, which prevents N+1 query problems and keeps performance predictable.
+QuickDapp deliberately avoids GraphQL field resolvers. All data is fetched in the parent resolver using SQL joins, which prevents [N+1 query problems](https://medium.com/databases-in-simple-words/the-n-1-database-query-problem-a-simple-explanation-and-solutions-ef11751aef8a) and keeps performance reasonable.
 
-## Client Integration
-
-The frontend uses `graphql-request` with the queries and mutations defined in [`src/shared/graphql/queries.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/queries.ts) and [`mutations.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/mutations.ts). The GraphQL client is a singleton that includes the auth token when set.
-
-See [`src/server/graphql/index.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/server/graphql/index.ts) for the handler setup and [`src/shared/graphql/schema.ts`](https://github.com/QuickDapp/QuickDapp/blob/main/src/shared/graphql/schema.ts) for the complete schema definition.
+!!!
+GraphQL [subscriptions](https://graphql.org/learn/subscriptions/) are not supported at this time. Use [real-time notifications](./realtime-notifications.md) instead.
+!!!
