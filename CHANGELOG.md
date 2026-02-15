@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.17.0](https://github.com/QuickDapp/QuickDapp/compare/v3.16.0...v3.17.0) (2026-02-15)
+
+
+### Features
+
+* add PostHog analytics and email template system ([909c180](https://github.com/QuickDapp/QuickDapp/commit/909c18031dc65eab575c026208d1ef46fb4bfe92))
+* **mailer:** add per-call replyTo parameter to override instance-level Reply-To ([f9156db](https://github.com/QuickDapp/QuickDapp/commit/f9156db4e1466a97e91e07e6b77bcccb6a17cb7d))
+* **mailer:** add Reply-To header support via MAILGUN_REPLY_TO env var ([5a70bd4](https://github.com/QuickDapp/QuickDapp/commit/5a70bd466b72834fa5fd1f156d3fcefa32184cba))
+
 ## [3.16.0](https://github.com/QuickDapp/QuickDapp/compare/v3.15.0...v3.16.0) (2026-02-14)
 
 
