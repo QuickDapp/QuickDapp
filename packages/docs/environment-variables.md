@@ -85,6 +85,7 @@ These variables are only accessible in backend code via `serverConfig`. They ext
 | `MAILGUN_API_KEY` | Mailgun API key for sending emails. | — | No |
 | `MAILGUN_API_ENDPOINT` | Mailgun API endpoint. Set for EU region. | — | No |
 | `MAILGUN_FROM_ADDRESS` | Sender email address. Domain is extracted automatically. | — | No |
+| `MAILGUN_REPLY_TO` | Reply-To email address for outgoing emails. | — | No |
 | `SENTRY_WORKER_DSN` | Sentry DSN for worker processes. | — | No |
 | `SENTRY_PROFILE_SESSION_SAMPLE_RATE` | Fraction of sessions to profile (0.0 to 1.0). | `1.0` | No |
 

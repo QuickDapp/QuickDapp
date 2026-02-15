@@ -17,13 +17,16 @@ export type MailerSendParams = {
 export class Mailer {
   private logger: Logger
   private fromAddress?: string
+  private replyTo?: string
   private domain?: string
   private mailClient?: MailgunClient
 
   constructor(logger: Logger) {
-    const { MAILGUN_API_KEY, MAILGUN_FROM_ADDRESS } = serverConfig
+    const { MAILGUN_API_KEY, MAILGUN_FROM_ADDRESS, MAILGUN_REPLY_TO } =
+      serverConfig
 
     this.fromAddress = MAILGUN_FROM_ADDRESS
+    this.replyTo = MAILGUN_REPLY_TO || undefined
     this.domain = MAILGUN_FROM_ADDRESS?.split("@")[1]
     this.logger = logger
 
@@ -40,12 +43,16 @@ export class Mailer {
 
     this.logger.info(`Sending email to ${to} with subject: ${subject}`)
 
-    const attrs = {
+    const attrs: Record<string, unknown> = {
       from: this.fromAddress ?? "",
       to: Array.isArray(to) ? to : [to],
       subject,
       text,
       html: html || text,
+    }
+
+    if (this.replyTo) {
+      attrs["h:Reply-To"] = this.replyTo
     }
 
     try {

@@ -17,6 +17,7 @@ The relevant [environment variables](../environment-variables.md) are:
 | `MAILGUN_API_KEY` | No | Your Mailgun API key |
 | `MAILGUN_API_ENDPOINT` | No | Mailgun API endpoint (defaults to US region) |
 | `MAILGUN_FROM_ADDRESS` | No | Sender email address (e.g., `noreply@yourdomain.com`) |
+| `MAILGUN_REPLY_TO` | No | Reply-To email address for outgoing emails |
 
 The Mailer extracts the domain from `MAILGUN_FROM_ADDRESS` automatically. For EU region, set `MAILGUN_API_ENDPOINT` to `https://api.eu.mailgun.net`.
 

@@ -24,6 +24,7 @@ export interface ServerConfig extends ClientConfig {
   MAILGUN_API_KEY?: string
   MAILGUN_API_ENDPOINT?: string
   MAILGUN_FROM_ADDRESS?: string
+  MAILGUN_REPLY_TO?: string
 
   SENTRY_WORKER_DSN?: string
   SENTRY_PROFILE_SESSION_SAMPLE_RATE: number
@@ -72,6 +73,7 @@ export const serverConfig: ServerConfig = {
   MAILGUN_API_KEY: env.get("MAILGUN_API_KEY").asString(),
   MAILGUN_API_ENDPOINT: env.get("MAILGUN_API_ENDPOINT").asString(),
   MAILGUN_FROM_ADDRESS: env.get("MAILGUN_FROM_ADDRESS").asString(),
+  MAILGUN_REPLY_TO: env.get("MAILGUN_REPLY_TO").asString(),
 
   SENTRY_WORKER_DSN: env.get("SENTRY_WORKER_DSN").asString(),
   SENTRY_PROFILE_SESSION_SAMPLE_RATE: env
