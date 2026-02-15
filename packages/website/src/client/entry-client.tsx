@@ -6,6 +6,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query"
+import posthog from "posthog-js"
 import { StrictMode } from "react"
 import { createRoot, hydrateRoot } from "react-dom/client"
 import { BrowserRouter } from "react-router-dom"
@@ -24,6 +25,12 @@ if (clientConfig.SENTRY_DSN) {
     ],
     tracePropagationTargets: ["localhost"],
     replaysSessionSampleRate: clientConfig.SENTRY_REPLAY_SESSION_SAMPLE_RATE,
+  })
+}
+
+if (clientConfig.POSTHOG_API_KEY) {
+  posthog.init(clientConfig.POSTHOG_API_KEY, {
+    api_host: clientConfig.POSTHOG_API_HOST || "https://us.i.posthog.com",
   })
 }
 

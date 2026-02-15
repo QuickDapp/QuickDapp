@@ -1,3 +1,4 @@
+import { usePostHog } from "@posthog/react"
 import { getGraphQLClient, setAuthToken } from "@shared/graphql/client"
 import {
   AUTHENTICATE_WITH_SIWE,
@@ -239,6 +240,7 @@ function Web3AuthProvider({ children }: AuthProviderProps) {
   )
   const [wasConnected, setWasConnected] = useState(false)
   const restorationStarted = useRef(false)
+  const posthog = usePostHog()
   const { address, isConnected, connector, status } = useAccount()
   const chainId = useChainId()
   const { signMessageAsync } = useSignMessage()
@@ -301,6 +303,9 @@ function Web3AuthProvider({ children }: AuthProviderProps) {
           }
           dispatch({ type: AuthActionType.AUTH_SUCCESS, payload })
 
+          posthog.identify(address)
+          posthog.capture("login_completed")
+
           // Clear rejection tracking on successful authentication
           setLastRejectedAddress(null)
 
@@ -340,16 +345,17 @@ function Web3AuthProvider({ children }: AuthProviderProps) {
         }
       }
     },
-    [authState.status, chainId, signMessageAsync],
+    [authState.status, chainId, signMessageAsync, posthog],
   )
 
   // Logout function
   const logout = useCallback(() => {
+    posthog.reset()
     setAuthToken(null)
     setLastRejectedAddress(null)
     dispatch({ type: AuthActionType.LOGOUT })
     clearAuthFromStorage()
-  }, [])
+  }, [posthog])
 
   // Restore authentication from localStorage
   const restoreAuth = useCallback(async () => {
@@ -435,17 +441,22 @@ function Web3AuthProvider({ children }: AuthProviderProps) {
   }, [isConnected, wasConnected])
 
   // Effect 3: Handle wallet ready state
+  const waitingForWalletAddress =
+    authState.status === AuthStatus.WAITING_FOR_WALLET
+      ? authState.web3Wallet
+      : null
   useEffect(() => {
     if (
-      authState.status === AuthStatus.WAITING_FOR_WALLET &&
+      waitingForWalletAddress &&
       isConnected &&
       address &&
       status === "connected"
     ) {
       console.log("Wallet is ready, transitioning to authenticated")
+      posthog.identify(waitingForWalletAddress)
       dispatch({ type: AuthActionType.WALLET_READY })
     }
-  }, [authState.status, isConnected, address, status])
+  }, [waitingForWalletAddress, isConnected, address, status, posthog])
 
   // Effect 4: Handle wallet disconnection (only after being connected)
   useEffect(() => {

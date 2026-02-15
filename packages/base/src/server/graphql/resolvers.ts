@@ -17,6 +17,7 @@ import {
   markNotificationAsRead,
 } from "../db/notifications"
 import { getMyProfile, getUserById } from "../db/users"
+import { verificationCodeEmail } from "../lib/emailTemplates"
 import {
   generateVerificationCodeAndBlob,
   validateEmailFormat,
@@ -239,9 +240,7 @@ export function createResolvers(serverApp: ServerApp): Resolvers {
               const mailer = new Mailer(authLogger)
               await mailer.send({
                 to: email,
-                subject: "Your verification code",
-                text: `Your verification code is: ${code}`,
-                html: `<p>Your verification code is: <strong>${code}</strong></p>`,
+                ...verificationCodeEmail(code),
               })
 
               emailLastSentAt.set(email, Date.now())

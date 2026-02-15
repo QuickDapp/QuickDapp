@@ -58,6 +58,24 @@ When Mailgun isn't configured (no `MAILGUN_API_KEY`), the Mailer logs email cont
 
 This allows development and testing without a Mailgun account.
 
+## Email Templates
+
+QuickDapp includes a styled email template system in `src/server/lib/emailTemplates.ts`. Templates provide consistent typography, responsive layout, and branded sign-off across all transactional emails.
+
+The `verificationCodeEmail()` function generates the verification code email with subject, plain text, and styled HTML:
+
+```typescript
+import { verificationCodeEmail } from "../lib/emailTemplates"
+
+const mailer = new Mailer(logger)
+await mailer.send({
+  to: "user@example.com",
+  ...verificationCodeEmail("123456"),
+})
+```
+
+To add new email templates, export additional functions from `emailTemplates.ts` that return `{ subject, text, html }`.
+
 ## Error Handling
 
 The Mailer throws errors when email delivery fails. Wrap calls in try/catch to handle failures gracefully:

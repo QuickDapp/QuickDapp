@@ -56,3 +56,51 @@ clearSentryUser()
 
 When a user is set, Sentry events include their ID, making it easier to trace issues affecting specific accounts.
 
+## PostHog
+
+While Sentry focuses on application health — catching errors, tracing performance bottlenecks, and helping developers debug code-level issues — [PostHog](https://posthog.com/) focuses on product health — understanding how users actually interact with your application, what features they use, where they drop off, and how changes affect engagement. The two tools complement each other: Sentry tells you when things break, PostHog tells you what users do.
+
+QuickDapp includes built-in support for PostHog, which provides web analytics, goal/funnel analytics, A/B testing, and optional session replays.
+
+### Configuration
+
+To enable PostHog:
+
+1. Sign up at https://posthog.com
+2. Create a project and obtain your API key
+3. Set the following [environment variables](../environment-variables.md) (use a `.env.local` file):
+    - `POSTHOG_API_KEY` - your PostHog project API key
+    - `POSTHOG_API_HOST` - (optional) your PostHog API host, defaults to `https://us.i.posthog.com`
+4. Restart the dev server - PostHog will begin capturing analytics data automatically.
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `POSTHOG_API_KEY` | No | — | PostHog project API key for analytics |
+| `POSTHOG_API_HOST` | No | `https://us.i.posthog.com` | PostHog API host URL (use for EU region or self-hosted) |
+
+### Identity Tracking
+
+PostHog identity tracking is built into the authentication flow. When a user logs in, their identity is linked to their PostHog session via `posthog.identify()`. On logout, `posthog.reset()` is called to clear the identity. A `login_completed` goal event is also captured on each successful login.
+
+For restored sessions (e.g. page refresh while already logged in), the identity is automatically re-linked.
+
+### Custom Events
+
+To capture custom events anywhere in your frontend code, use the `usePostHog` hook:
+
+```tsx
+import { usePostHog } from "@posthog/react"
+
+function MyComponent() {
+  const posthog = usePostHog()
+
+  const handleClick = () => {
+    posthog?.capture("button_clicked", { button_name: "signup" })
+  }
+
+  return <button onClick={handleClick}>Sign Up</button>
+}
+```
+
+For more details, see the [PostHog React documentation](https://posthog.com/docs/libraries/react).
+

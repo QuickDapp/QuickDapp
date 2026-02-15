@@ -47,6 +47,8 @@ These variables are accessible in both frontend and backend code via `clientConf
 | `SENTRY_DSN` | Sentry DSN for client-side error tracking. | — | No |
 | `SENTRY_TRACES_SAMPLE_RATE` | Fraction of transactions to trace (0.0 to 1.0). | `1.0` | No |
 | `SENTRY_REPLAY_SESSION_SAMPLE_RATE` | Fraction of sessions to record with Sentry Replay (0.0 to 1.0). | `1.0` | No |
+| `POSTHOG_API_KEY` | PostHog project API key for analytics. | — | No |
+| `POSTHOG_API_HOST` | PostHog API host URL. Use for EU region or self-hosted. | `https://us.i.posthog.com` | No |
 
 `APP_VERSION` is also available on `clientConfig` but is automatically derived from `package.json` and is not configurable via environment variables.
 

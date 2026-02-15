@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react"
 import { clientConfig } from "@shared/config/client"
+import posthog from "posthog-js"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { App } from "./App"
@@ -21,6 +22,12 @@ if (clientConfig.SENTRY_DSN) {
     ],
     tracePropagationTargets,
     replaysSessionSampleRate: clientConfig.SENTRY_REPLAY_SESSION_SAMPLE_RATE,
+  })
+}
+
+if (clientConfig.POSTHOG_API_KEY) {
+  posthog.init(clientConfig.POSTHOG_API_KEY, {
+    api_host: clientConfig.POSTHOG_API_HOST || "https://us.i.posthog.com",
   })
 }
 

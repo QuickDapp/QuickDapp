@@ -1,3 +1,4 @@
+import { usePostHog } from "@posthog/react"
 import { getGraphQLClient, setAuthToken } from "@shared/graphql/client"
 import { ME, VALIDATE_TOKEN } from "@shared/graphql/queries"
 import type { ReactNode } from "react"
@@ -144,23 +145,30 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, dispatch] = useReducer(authReducer, initialState)
   const restorationStarted = useRef(false)
+  const posthog = usePostHog()
 
   // Login function - stores token in localStorage, profile in memory only
-  const login = useCallback((token: string, profile: UserProfile) => {
-    setAuthToken(token)
-    saveTokenToStorage(token)
-    dispatch({
-      type: AuthActionType.AUTH_SUCCESS,
-      payload: { token, profile },
-    })
-  }, [])
+  const login = useCallback(
+    (token: string, profile: UserProfile) => {
+      setAuthToken(token)
+      saveTokenToStorage(token)
+      dispatch({
+        type: AuthActionType.AUTH_SUCCESS,
+        payload: { token, profile },
+      })
+      posthog.identify(profile.id.toString())
+      posthog.capture("login_completed")
+    },
+    [posthog],
+  )
 
   // Logout function
   const logout = useCallback(() => {
+    posthog.reset()
     setAuthToken(null)
     dispatch({ type: AuthActionType.LOGOUT })
     clearAuthFromStorage()
-  }, [])
+  }, [posthog])
 
   // Restore authentication from localStorage
   const restoreAuth = useCallback(async () => {
@@ -214,6 +222,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
     }
   }, [authState.status, restoreAuth])
+
+  // Identify restored sessions with PostHog
+  const authenticatedProfileId =
+    authState.status === AuthStatus.AUTHENTICATED ? authState.profile.id : null
+  useEffect(() => {
+    if (authenticatedProfileId !== null) {
+      posthog.identify(authenticatedProfileId.toString())
+    }
+  }, [authenticatedProfileId, posthog])
 
   const isAuthenticated = authState.status === AuthStatus.AUTHENTICATED
   const isLoading =

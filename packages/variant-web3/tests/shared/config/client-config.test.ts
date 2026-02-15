@@ -25,4 +25,8 @@ describe("Client Configuration", () => {
   it("should return empty string from getClientApiBaseUrl when running server-side without CLIENT_API_BASE_URL", () => {
     expect(getClientApiBaseUrl()).toBe("")
   })
+
+  it("should have POSTHOG_API_KEY as falsy when env var not set", () => {
+    expect(clientConfig.POSTHOG_API_KEY).toBeFalsy()
+  })
 })

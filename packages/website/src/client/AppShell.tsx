@@ -1,4 +1,6 @@
+import { PostHogProvider } from "@posthog/react"
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import posthog from "posthog-js"
 import { type ReactNode, useEffect, useMemo } from "react"
 import { useLocation, useNavigationType } from "react-router-dom"
 import { validateClientConfig } from "../shared/config/client"
@@ -34,16 +36,18 @@ export function AppShell({ queryClient, children }: AppShellProps) {
   }, [])
 
   return (
-    <ThemeProvider>
-      <ScrollToTop />
-      <div className="flex flex-col w-full min-h-screen relative font-body bg-background text-foreground">
-        <ErrorBoundary>
-          <QueryClientProvider client={queryClient}>
-            <HeaderWrapper />
-            {children}
-          </QueryClientProvider>
-        </ErrorBoundary>
-      </div>
-    </ThemeProvider>
+    <PostHogProvider client={posthog}>
+      <ThemeProvider>
+        <ScrollToTop />
+        <div className="flex flex-col w-full min-h-screen relative font-body bg-background text-foreground">
+          <ErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+              <HeaderWrapper />
+              {children}
+            </QueryClientProvider>
+          </ErrorBoundary>
+        </div>
+      </ThemeProvider>
+    </PostHogProvider>
   )
 }

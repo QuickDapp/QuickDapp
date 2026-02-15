@@ -1,4 +1,5 @@
 import "@rainbow-me/rainbowkit/styles.css"
+import { PostHogProvider } from "@posthog/react"
 import {
   darkTheme,
   lightTheme,
@@ -6,6 +7,7 @@ import {
 } from "@rainbow-me/rainbowkit"
 import { clientConfig, validateClientConfig } from "@shared/config/client"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import posthog from "posthog-js"
 import type { ReactNode } from "react"
 import { useMemo } from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
@@ -64,29 +66,32 @@ export function App() {
   return (
     <div className="flex flex-col w-full min-h-screen relative font-body bg-background text-foreground">
       <ErrorBoundary>
-        <ThemeProvider>
-          <Web3Providers>
-            <AuthProvider>
-              <SocketProvider>
-                <ToastProvider>
-                  <BrowserRouter>
-                    <Header className="fixed h-header" />
-                    <main className="relative m-after-header">
-                      <Routes>
-                        <Route path="/" element={<HomePage />} />
-                      </Routes>
-                    </main>
-                    <footer>
-                      <p className="text-xs p-4">
-                        Built with <a href="https://quickdapp.xyz">QuickDapp</a>
-                      </p>
-                    </footer>
-                  </BrowserRouter>
-                </ToastProvider>
-              </SocketProvider>
-            </AuthProvider>
-          </Web3Providers>
-        </ThemeProvider>
+        <PostHogProvider client={posthog}>
+          <ThemeProvider>
+            <Web3Providers>
+              <AuthProvider>
+                <SocketProvider>
+                  <ToastProvider>
+                    <BrowserRouter>
+                      <Header className="fixed h-header" />
+                      <main className="relative m-after-header">
+                        <Routes>
+                          <Route path="/" element={<HomePage />} />
+                        </Routes>
+                      </main>
+                      <footer>
+                        <p className="text-xs p-4">
+                          Built with{" "}
+                          <a href="https://quickdapp.xyz">QuickDapp</a>
+                        </p>
+                      </footer>
+                    </BrowserRouter>
+                  </ToastProvider>
+                </SocketProvider>
+              </AuthProvider>
+            </Web3Providers>
+          </ThemeProvider>
+        </PostHogProvider>
       </ErrorBoundary>
     </div>
   )

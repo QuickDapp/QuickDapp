@@ -12,6 +12,8 @@ export interface ClientConfig {
   SENTRY_DSN?: string
   SENTRY_TRACES_SAMPLE_RATE: number
   SENTRY_REPLAY_SESSION_SAMPLE_RATE: number
+  POSTHOG_API_KEY?: string
+  POSTHOG_API_HOST?: string
 }
 
 const isBrowser = typeof document !== "undefined"
@@ -35,6 +37,8 @@ export const clientConfig: ClientConfig =
           .get("SENTRY_REPLAY_SESSION_SAMPLE_RATE")
           .default("1.0")
           .asFloat(),
+        POSTHOG_API_KEY: env.get("POSTHOG_API_KEY").asString(),
+        POSTHOG_API_HOST: env.get("POSTHOG_API_HOST").asString(),
       }
 
 export function validateClientConfig() {
