@@ -112,6 +112,53 @@ describe("Mailer", () => {
     expect(args[1]["h:Reply-To"]).toBeUndefined()
   })
 
+  it("should use per-call replyTo over instance-level replyTo", async () => {
+    mock.module("@shared/config/server", () => ({
+      serverConfig: {
+        MAILGUN_API_KEY: "test-api-key",
+        MAILGUN_FROM_ADDRESS: "noreply@example.com",
+        MAILGUN_REPLY_TO: "support@example.com",
+      },
+    }))
+
+    const { Mailer } = await import("@server/lib/mailer")
+    const mailer = new Mailer(mockLogger as any)
+
+    await mailer.send({
+      to: "user@example.com",
+      subject: "Test",
+      text: "Hello",
+      replyTo: "team@example.com",
+    })
+
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+    const args = mockCreate.mock.calls[0] as unknown as [string, any]
+    expect(args[1]["h:Reply-To"]).toBe("team@example.com")
+  })
+
+  it("should use per-call replyTo when no instance-level replyTo is set", async () => {
+    mock.module("@shared/config/server", () => ({
+      serverConfig: {
+        MAILGUN_API_KEY: "test-api-key",
+        MAILGUN_FROM_ADDRESS: "noreply@example.com",
+      },
+    }))
+
+    const { Mailer } = await import("@server/lib/mailer")
+    const mailer = new Mailer(mockLogger as any)
+
+    await mailer.send({
+      to: "user@example.com",
+      subject: "Test",
+      text: "Hello",
+      replyTo: "team@example.com",
+    })
+
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+    const args = mockCreate.mock.calls[0] as unknown as [string, any]
+    expect(args[1]["h:Reply-To"]).toBe("team@example.com")
+  })
+
   it("should log email to console when mail client is not configured", async () => {
     mock.module("@shared/config/server", () => ({
       serverConfig: {

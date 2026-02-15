@@ -35,10 +35,13 @@ await mailer.send({
   subject: "Welcome!",
   text: "Thanks for signing up.",
   html: "<p>Thanks for signing up.</p>",
+  replyTo: "welcome-team@example.com",
 })
 ```
 
 The `to` field accepts a single email address or an array for multiple recipients. Either `text` or `html` content is required—if only `text` is provided, it's used for both.
+
+The optional `replyTo` field overrides the instance-level `MAILGUN_REPLY_TO` for that specific email. If neither is set, no Reply-To header is included.
 
 ## Development Mode
 

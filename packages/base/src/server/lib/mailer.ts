@@ -12,6 +12,7 @@ export type MailerSendParams = {
   subject: string
   text?: string
   html?: string
+  replyTo?: string
 }
 
 export class Mailer {
@@ -51,8 +52,9 @@ export class Mailer {
       html: html || text,
     }
 
-    if (this.replyTo) {
-      attrs["h:Reply-To"] = this.replyTo
+    const replyTo = params.replyTo ?? this.replyTo
+    if (replyTo) {
+      attrs["h:Reply-To"] = replyTo
     }
 
     try {
